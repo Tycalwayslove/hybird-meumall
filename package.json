@@ -1,0 +1,19 @@
+{
+  "name": "hybird-meumall",
+  "private": true,
+  "scripts": {
+    "ai:create-task": "node scripts/ai/create-task.ts",
+    "ai:diff-summary": "node scripts/ai/generate-diff-summary.ts",
+    "ai:check-docs-sync": "node scripts/ai/check-docs-sync.ts",
+    "ai:check-workflow": "node scripts/ai/check-workflow.ts",
+    "ai:archive-task": "node scripts/ai/archive-task.ts",
+    "ai:plan-task": "node scripts/ai/plan-task.ts",
+    "ai:test-task": "node scripts/ai/test-task.ts",
+    "ai:review-task": "node scripts/ai/review-task.ts",
+    "ai:build-json": "node scripts/ai/generate-build-json.ts",
+    "ai:release-prepare": "node scripts/ai/release-prepare.ts",
+    "ai:update-changelog": "node scripts/ai/update-changelog.ts",
+    "ai:update-manifest": "node scripts/ai/update-manifest.ts",
+    "ai:rollback": "node scripts/ai/rollback.ts"
+  }
+}

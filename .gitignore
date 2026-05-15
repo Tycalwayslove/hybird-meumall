@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# build output
+dist/
+build/
+coverage/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env
+.env
+.env.*
+!.env.example
+
+# caches
+.cache/
+.turbo/
+
+# temp
+tmp/
+temp/
