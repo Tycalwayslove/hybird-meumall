@@ -68,6 +68,8 @@ src/
 - 通过 manifest runtime module 或 provider 访问。
 - 校验 manifest schema。
 - 回滚默认值必须安全。
+- 客户端加载远程 H5 时使用 `src/lib/manifest` 的结构化结果，不在页面组件内手写 SSR 服务 URL。
+- 发布脚本生成的 manifest 草案必须符合 `ManifestFile` schema，避免脚本和运行时契约漂移。
 
 ## 测试规则
 
@@ -76,11 +78,14 @@ src/
 后续实现至少覆盖：
 
 - manifest 解析和 fallback。
+- 客户端 manifest runtime 的远程加载、缓存 fallback、路由 URL 和 not-found/error。
+- 发布、回滚和 SSR 发布计划脚本。
+- 发布运维脚本：SSR smoke、manifest 草案更新和回滚指针切换。
 - Bridge 成功、失败、超时和方法不可用。
 - 主题变量应用和 fallback。
 - API 错误归一化。
 - telemetry reporter、事件类型和白屏检测策略。
-- 静态包路由配置。
+- 原生兜底页路由配置。
 
 ## 文档规则
 

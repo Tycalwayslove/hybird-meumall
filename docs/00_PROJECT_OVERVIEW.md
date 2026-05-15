@@ -18,15 +18,15 @@
 
 ### 远程 WebView
 
-- H5 资源部署在远程服务或 CDN。
+- H5 运行在远程 Next.js SSR 服务中。
 - 原生 App 通过 WebView URL 加载页面。
 - manifest 控制版本选择、灰度和回滚。
 
-### App 内置静态包
+### App 内置兜底页
 
-- 部分页面导出为静态资源并随原生 App 打包。
-- 网络不可用时也可加载指定页面。
-- 内置页面必须声明所需原生能力和兼容版本。
+- 网络不可用或远程 SSR 服务不可达时，原生 App 可以加载内置兜底页。
+- 内置兜底页只用于 offline、error、not-found、maintenance 等低交互场景。
+- 当前不维护业务页面的 SSG 静态导出发布链路。
 
 ## 核心目标
 
@@ -50,14 +50,14 @@
 | WebView | 原生 App 中承载 H5 的容器。 |
 | Manifest | 描述版本、渠道、资源、灰度和回滚的运行时配置。 |
 | Native Bridge | H5 调用原生能力的通信层。 |
-| Static Bundle | 随原生 App 打包的 H5 静态资源。 |
+| Native Fallback | 随原生 App 打包的兜底 HTML。 |
 | Theme Tokens | 通过 CSS Variables 暴露并被 Tailwind 使用的主题变量。 |
 
 ## 运行时约束
 
 - 不同 App 版本和平台的 WebView 能力可能不同。
 - 不能假设网络始终可用。
-- App 内置静态页面可能落后于远程 H5。
+- App 内置兜底页可能落后于远程 H5。
 - Native Bridge 方法必须做版本和能力检测。
 - 主题变量必须有安全默认值。
 
@@ -75,7 +75,7 @@
 
 ## 待确认问题
 
-- 哪些路由必须支持静态打包？
+- 哪些兜底页必须随 App 内置？
 - 首批支持哪些原生 App 版本？
 - 主题需要支持品牌、暗色模式、无障碍或活动主题吗？
 - manifest 服务由谁维护和发布？

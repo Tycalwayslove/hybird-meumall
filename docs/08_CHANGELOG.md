@@ -41,6 +41,18 @@
 - 添加 telemetry 事件类型、noop reporter、白屏检测策略和首屏性能事件构造。
 - 添加电商模拟页面、静态缺省 HTML 和 OSS 配置模板。
 - 添加 commitlint 和 husky，接入 Git 提交信息规范检查。
+- 添加 OSS 配置模板目录 `ossDirectory: "/hybird"`。
+- 添加客户端 manifest runtime，支持远程拉取、schema 校验、last-known-good 缓存、版本解析和路由加载结果。
+- 添加 `ai:prepare-oss-release`，生成本地 OSS 上传计划草案。
+- 添加 `ai:prepare-oss-release --check-config` 参数体检和 `--execute` 真实 OSS 上传入口。
+- 添加发布脚本 manifest schema 回归测试。
+- 添加 Next.js 静态导出配置，支持按 OSS 版本目录注入 `H5_BASE_PATH` 和 `H5_ASSET_PREFIX`。
+- 添加真实 OSS smoke 上传记录，版本目录为 `/hybird/h5/prod/2026.05.15-static-smoke/`。
+- 添加 `ai:smoke-oss-release`、`ai:publish-oss-manifest`、`ai:prepare-release-pointers` 和 `ai:refresh-cdn`。
+- 添加手动 GitHub Actions H5 发布流水线。
+- 添加 Next.js SSR/standalone 发布产物归档流程。
+- 添加 SSR-only 发布计划脚本、SSR smoke 脚本和 SSR release 配置模板。
+- 添加 `/api/health` 健康检查接口。
 
 ### 变更
 
@@ -57,10 +69,25 @@
 - 补充 telemetry 模块边界、白屏检测基础策略、首屏性能指标和 noop reporter 决策。
 - 补充模拟电商路由、静态 fallback 资源和 OSS 配置模板说明。
 - 补充 Conventional Commits 提交格式、中文描述规则和本地检查命令。
+- 补充 OSS 配置模板中 bucket 内目录、CDN 公开地址和发布前缀的边界说明。
+- 统一 `ai:release-prepare`、`ai:update-manifest` 和 `ai:rollback` 的 manifest 草案结构为 `ManifestFile` schema。
+- 补充发布规范中的产物结构、缓存策略、客户端加载策略、灰度语义、回滚行为和 CI/CD 建议。
+- 补充 OSS 环境变量覆盖、root endpoint 要求和真实上传前参数体检说明。
+- 调整 OSS public base URL 约定，直接使用 bucket 公网域名时必须包含 `/hybird/h5`。
+- 上传计划记录 `contentDisposition: "inline"`，发布脚本上传对象时显式写入 inline 元数据。
+- 发布流程补充 candidate manifest、latest 辅助指针、CDN 刷新计划和 CI smoke gate。
+- 修正发布脚本生成的 manifest assets 语义：`cdnBaseUrl` 只保留域名根，版本路径由 `immutablePathPattern` 表达。
+- 完善 `2026.05.15-static-smoke` manifest 草案，补全商品详情、fallback 路由和静态导出对象路径。
+- 将默认远程发布从 Next.js 静态导出切回 SSR/standalone 构建；OSS 静态上传方案降级为静态包、fallback 或可选 CDN 静态资源方案。
+- 当前 App Router 根 layout 显式设置 `dynamic = "force-dynamic"`，避免 mock 页面在接入真实接口前被自动静态优化。
+- 调整 `.github/workflows/h5-release.yml`，默认归档 `.next/standalone`、`.next/static`、`public` 和 release 草案，不再自动上传 `out/` 到 OSS。
+- 将 manifest 资源模型从静态版本目录收敛为 SSR 服务入口：`serviceBaseUrl`、`basePath`、`staticAssetPath` 和 `healthCheckPath`。
+- 移除默认配置面的 OSS/SSG 发布入口，`.env.example` 改为 SSR 服务变量。
 
 ### 废弃
 
-- 无。
+- 修正静态导出产物的 `_next/static` 资源引用，避免部署到 `/hybird/h5/prod/<version>/` 后仍访问 bucket 根路径。
+- OSS/SSG 发布配置已由 SSR-only 发布模型取代。
 
 ### 移除
 
@@ -79,6 +106,9 @@
 - 已确认项目级 Codex Skills 存在并包含必需工作流章节。
 - 已确认 AI 辅助脚本支持 help、参数校验、本地烟测和非法参数非 0 退出。
 - 本轮使用 AI 工作流自动化完善任务完成一次完整闭环演练。
+- 已通过真实 OSS smoke 上传和公网 `curl` 验证静态 HTML/JS 对象可访问。
+- 已通过 release ops 单测、真实 OSS smoke、manifest candidate 上传和公网 manifest 读取验证。
+- 已通过 Next.js SSR/standalone 构建、standalone 产物检查、本地 SSR 服务 smoke 和 SSR release 脚本测试。
 - 已通过 `pnpm install --frozen-lockfile`、`pnpm build`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm run ai:check-workflow --strict`。
 - 已通过 `pnpm test -- src/config/manifest.test.ts`、`pnpm test`、`pnpm typecheck` 和 `pnpm lint`。
 - 已通过 Bridge adapter 单测、全量测试、类型检查、lint 和 AI 工作流检查。
@@ -89,6 +119,9 @@
 - 已通过电商 mock 数据和 OSS 配置模板单测。
 - 已通过模拟电商页面全量测试、类型检查、lint、生产构建、AI 工作流检查和浏览器抽查。
 - 已通过 commitlint 正反向样例、husky commit-msg hook、全量测试、类型检查、lint、生产构建和 AI 工作流检查。
+- 已通过 OSS 配置模板 bucket 内目录单测。
+- 已通过客户端 manifest runtime、发布 manifest 脚本和 OSS 上传计划测试。
+- 已通过 OSS 参数体检测试，当前 `.env.example` 可用于真实 OSS smoke 上传；正式 CI 仍应使用安全环境变量或密钥管理注入参数。
 ## 2026-05-15 - 归档任务
 
 ### 变更
@@ -170,3 +203,21 @@
 ### 验证
 
 - pnpm test、pnpm typecheck、pnpm lint、pnpm build、pnpm run ai:check-workflow --strict 和浏览器抽查均通过
+## 2026-05-15 - 归档任务
+
+### 变更
+
+- 落地版本发布与回滚基础机制
+
+### 验证
+
+- pnpm-test-typecheck-lint-build-workflow-and-release-cli-smoke-passed
+## 2026-05-15 - 归档任务
+
+### 变更
+
+- 真实OSS平台参数体检与显式上传入口
+
+### 验证
+
+- pnpm-test-typecheck-lint-build-workflow-and-oss-config-check-passed

@@ -2,42 +2,80 @@
 
 ## 目的
 
-定义 H5 版本、灰度、回滚、静态包和远程资源的控制方式。
+定义 H5 在 Next.js SSR 模式下的版本发布、灰度、缓存、回滚和 CI/CD 流程。
 
 ## 发布目标
 
-- 通过 manifest 选择 H5 版本。
-- 支持按渠道、平台、App 版本、用户集合或百分比灰度。
-- 支持快速回滚到已验证稳定版本。
-- 兼容远程 H5 和 App 内置静态页面。
-- 保留清晰的发布记录。
+- 远程 H5 只按 SSR 服务发布，不再维护 SSG/静态导出发布链路。
+- 通过 manifest 选择稳定版本、灰度版本和回滚版本。
+- 通过 `standalone` 产物部署 Node.js 或 Serverless 运行时。
+- 回滚只切 manifest 指针，不重新构建、不重新发布原生 App。
+- 保留可审查的 release archive、SSR release plan、manifest draft 和验证记录。
 
-## Manifest 职责
+## 版本命名
 
-manifest 应描述：
+H5 版本使用日期递增格式：
 
-- H5 版本。
-- 资源 base URL。
-- 路由交付模式。
-- 灰度策略。
-- 回滚目标。
-- 最低原生 App 版本。
-- 所需 Bridge 能力。
-- 缓存策略。
-- 必要时的完整性校验信息。
+```text
+YYYY.MM.DD-NNN
+```
 
-## Manifest 模板
+示例：
+
+```text
+2026.05.15-001
+```
+
+版本一旦进入候选发布，不再复用。失败版本通过 manifest 黑名单和 rollbackVersion 排除，不覆盖同名产物。
+
+## SSR 产物结构
+
+一次 SSR release 至少包含：
+
+```text
+h5-release-2026.05.15-001/
+  .next/
+    standalone/
+      server.js
+      .next/
+      node_modules/
+    static/
+  public/
+  archives/releases/2026.05.15-001/
+    build.json
+    release-note.md
+    manifest.draft.json
+    ssr-release-plan.json
+```
+
+运行时启动命令：
+
+```bash
+node .next/standalone/server.js
+```
+
+运行平台必须注入：
+
+- `NODE_ENV=production`
+- `PORT`
+- `HOSTNAME`
+- `H5_BASE_PATH=/hybird`
+
+`H5_BASE_PATH` 是 SSR 服务挂载路径，必须在构建和运行环境保持一致。
+
+## Manifest 模型
+
+manifest 不再描述静态版本目录。SSR 模式下，manifest 的 `assets` 表示服务入口：
 
 ```json
 {
   "schemaVersion": "1.0.0",
   "appId": "hybrid-h5",
-  "configVersion": "config-v12",
+  "configVersion": "config-2026.05.15-001",
   "environment": "prod",
-  "channel": "stable",
-  "stableVersion": "2026.05.14-001",
-  "grayVersion": "2026.05.14-002",
-  "rollbackVersion": "0.0.0",
+  "stableVersion": "2026.05.15-001",
+  "grayVersion": "2026.05.15-002",
+  "rollbackVersion": "2026.05.14-001",
   "blacklistVersions": [],
   "grayRules": {
     "percentage": 0,
@@ -46,21 +84,23 @@ manifest 应描述：
     "excludeUserIds": []
   },
   "assets": {
-    "cdnBaseUrl": "https://cdn.example.com/h5/prod",
-    "immutablePathPattern": "/h5/prod/{version}/",
-    "latestPath": "/h5/prod/latest/"
+    "serviceBaseUrl": "https://h5.example.com",
+    "basePath": "/hybird",
+    "staticAssetPath": "/_next/static",
+    "healthCheckPath": "/api/health"
   },
   "routes": {
-    "/home": {
+    "/": {
       "delivery": "remote",
-      "path": "/home",
+      "path": "/",
       "minAppVersion": "1.0.0",
-      "requiredBridgeMethods": ["app.getVersion"]
+      "requiredBridgeMethods": []
     },
-    "/offline": {
-      "delivery": "local",
-      "path": "/offline",
-      "fallbackUrl": "https://cdn.example.com/h5/prod/latest/offline"
+    "/category": {
+      "delivery": "remote",
+      "path": "/category",
+      "minAppVersion": "1.0.0",
+      "requiredBridgeMethods": []
     }
   },
   "remoteConfig": {
@@ -70,190 +110,165 @@ manifest 应描述：
 }
 ```
 
-## 版本类型
+客户端拼接远程 URL 的规则：
 
-| 版本 | 示例 | 用途 |
-| --- | --- | --- |
-| App 原生版本 | `1.0.0` | 判断原生能力、Bridge 兼容性和静态包兼容性。 |
-| H5 版本 | `2026.05.14-001` | 指向不可变 H5 资源目录。 |
-| 配置版本 | `config-v12` | 标识 manifest、app config 或 theme config 的配置变更。 |
-
-每次 H5 发布应生成不可变版本目录，例如 `/h5/prod/2026.05.14-001/`。`latest` 只能作为辅助指针，原生 App 不应直接写死 `latest` 作为生产加载目标。
-
-## 本地版本解析规则
-
-H5 本地版本解析函数位于 `src/config/manifest.ts`，输入字段为：
-
-```ts
-type RootManifest = {
-  stableVersion: string;
-  grayVersion?: string;
-  forceVersion?: string;
-  rollbackVersion?: string;
-  blacklistVersions?: string[];
-  grayRules?: GrayRules;
-};
+```text
+assets.serviceBaseUrl + assets.basePath + routes[route].path
 ```
 
-第一版解析优先级：
+示例：
 
-1. `stableVersion` 是默认安全版本。
-2. `grayVersion` 仅在 `grayRules` 命中时生效。
-3. `forceVersion` 优先级高于灰度和稳定版。
-4. `rollbackVersion` 不因字段存在而自动生效，仅在当前版本或候选版本命中 `blacklistVersions` 时优先作为 fallback。
-5. 候选版本命中 `blacklistVersions` 时，按 `rollbackVersion`、`stableVersion` 的顺序选择非黑名单版本。
-
-第一版 `GrayRules` 支持用户 allow/exclude、平台、App 版本范围和百分比灰度。manifest schema 校验位于 `src/config/remote-config.ts`，远程拉取、缓存和发布服务集成由后续任务实现。
-
-## 远程配置文件
-
-### manifest.json
-
-`manifest.json` 用于描述版本选择、资源目录、路由交付模式、灰度、回滚和远程配置入口。H5 侧类型为 `ManifestFile`，校验函数为 `validateManifestFile(input)`。
-
-### app-config.json
-
-`app-config.json` 只允许包含客户端可见的非敏感配置：
-
-- `configVersion`
-- `environment`
-- `minAppVersion`
-- `minH5Version`
-- `publicApiBaseUrl`
-- `featureFlags`
-- `pageEntries`
-
-不得包含 token、secret、password、private key、credential、api key 等敏感信息。H5 侧类型为 `AppConfigFile`，校验函数为 `validateAppConfigFile(input)`。
-
-### theme.json
-
-`theme.json` 用于远程主题配置。当前只定义 light/dark 文件结构，不在本任务中实现远程主题拉取或应用。H5 侧类型为 `ThemeConfigFile`，校验函数为 `validateThemeConfigFile(input)`。
-
-## 发布渠道
-
-| 渠道 | 用途 | 用户 |
-| --- | --- | --- |
-| dev | 开发验证。 | 内部开发。 |
-| qa | 测试验证。 | 测试用户。 |
-| beta | 小范围试用。 | 指定用户。 |
-| stable | 正式生产。 | 全量用户。 |
-| rollback | 紧急回滚。 | 从异常版本切回的用户。 |
-
-## 灰度策略
-
-| 策略 | 说明 | 必填字段 |
-| --- | --- | --- |
-| all | 对所有符合条件用户发布。 | channel、version |
-| percentage | 按百分比发布。 | percentage、salt |
-| allowlist | 对指定用户发布。 | includeUserIds |
-| appVersion | 按 App 版本发布。 | minAppVersion、maxAppVersion |
-| platform | 按平台发布。 | ios、android |
-
-## 回滚要求
-
-- 每个生产发布必须声明 `rollbackVersion`。
-- 回滚目标必须是已验证版本。
-- 回滚不应依赖重新发布原生 App。
-- 回滚操作记录到 `archives/releases/`。
-
-## 静态包要求
-
-静态页面必须记录：
-
-- 路由路径。
-- 构建产物路径。
-- 原生 App 资源路径。
-- 最低原生 App 版本。
-- 所需 Bridge 能力。
-- 远程 fallback URL。
-- 已知限制。
-
-## 当前模拟静态资源
-
-当前已提供一组可随 App 内置或本地直接访问的静态缺省页：
-
-| 场景 | 路径 | 用途 |
-| --- | --- | --- |
-| 离线 | `/static/fallback/offline.html` | WebView 无网络或远程 H5 不可达时展示。 |
-| 404 | `/static/fallback/not-found.html` | 路由不存在或 manifest 未命中时展示。 |
-| 异常 | `/static/fallback/error.html` | 页面加载异常、白屏兜底或运行时错误时展示。 |
-| 维护 | `/static/fallback/maintenance.html` | 后台维护、强制下线或人工切流时展示。 |
-
-以上页面是纯静态 HTML，不依赖 Next.js runtime，不调用 Bridge，不包含业务数据。
-
-## 当前模拟电商路由
-
-当前用于跑通 App Router 和 WebView H5 体验的模拟路由：
-
-| Route | Delivery 建议 | 说明 |
-| --- | --- | --- |
-| `/` | remote | 模拟首页和推荐商品。 |
-| `/category` | remote | 模拟分类和商品列表。 |
-| `/product/[id]` | remote | 模拟商品详情；当前通过本地 mock 数据生成。 |
-| `/cart` | remote | 模拟购物车，不持久化。 |
-| `/profile` | remote | 模拟我的页面，不接登录态。 |
-
-页面中的 icon 位置暂时使用色块占位，后续统一替换为正式 icon 体系。
-
-## OSS 配置模板
-
-当前 OSS 配置模板位于 `config/oss.config.example.json`，用于记录上传目标和缓存策略：
-
-```json
-{
-  "provider": "aliyun-oss",
-  "bucket": "<your-bucket>",
-  "region": "<your-region>",
-  "endpoint": "<your-endpoint>",
-  "publicBaseUrl": "https://<your-cdn-domain>/h5",
-  "remotePrefix": "h5/prod",
-  "versionPathPattern": "{environment}/{version}",
-  "latestPath": "{environment}/latest",
-  "credentialStrategy": "read-from-ci-env"
-}
+```text
+https://h5.example.com/hybird/category
 ```
 
-敏感凭证不得写入该 JSON 文件。发布环境应通过 CI 或本地安全环境变量提供：
+H5 版本号只用于发布选择、灰度和回滚，不参与拼接 HTML 静态目录。
 
-- `OSS_ACCESS_KEY_ID`
-- `OSS_ACCESS_KEY_SECRET`
+## 当前已落地能力
 
-`.env.example` 只作为字段提示，不应提交真实值。`NEXT_PUBLIC_*` 变量会进入浏览器 bundle，只能放客户端可见信息。
+- `next.config.ts`：使用 `output: "standalone"`，支持 `H5_BASE_PATH`。
+- `src/app/layout.tsx`：当前路由强制动态渲染，避免 mock 页面被自动静态优化。
+- `src/config/remote-config.ts`：校验 SSR manifest schema。
+- `src/lib/manifest`：拉取 manifest、缓存 last-known-good、解析版本并返回 SSR 路由 URL。
+- `scripts/ai/release-prepare.ts`：生成 SSR manifest draft、build metadata 和 release note。
+- `scripts/ai/prepare-ssr-release.ts`：生成可审查的 SSR 部署计划。
+- `scripts/ai/smoke-ssr-release.ts`：对 SSR 服务做 HTTP smoke。
+- `scripts/ai/update-manifest.ts`：更新 SSR manifest 草案。
+- `scripts/ai/rollback.ts`：只修改 manifest 草案完成回滚。
+- `.github/workflows/h5-release.yml`：手动触发 SSR release workflow。
 
-## 发布记录模板
+## 灰度发布
 
-```markdown
-# Release <version>
+灰度发布时：
 
-## 摘要
+- `stableVersion` 保持上一稳定版本。
+- `grayVersion` 指向新版本。
+- `grayRules.percentage` 控制命中比例。
+- `rollbackVersion` 指向已验证可回退版本。
 
-## Manifest
+全量发布时：
 
-- 版本：
-- 渠道：
-- 灰度：
-- 回滚目标：
+- `stableVersion` 指向新版本。
+- 移除 `grayVersion`。
+- `grayRules.percentage` 置 0。
+- `rollbackVersion` 保持上一稳定版本。
 
-## 路由
+## 缓存策略
 
-| Route | Delivery | Notes |
+| 资源 | Cache-Control | 说明 |
 | --- | --- | --- |
+| SSR HTML | `private, no-cache, no-store, max-age=0, must-revalidate` | HTML 由服务端渲染，不缓存跨用户页面。 |
+| `/_next/static/*` | `public, max-age=31536000, immutable` | Next hash 静态资源可长缓存。 |
+| `manifest.json` | `no-cache, max-age=0, must-revalidate` | 控制面入口，必须能快速切流和回滚。 |
+| `app-config.json` / `theme.json` | `no-cache` | 配置可以短缓存，但必须可回源校验。 |
+| fallback HTML | `no-cache` | 离线、错误、维护兜底页应快速更新。 |
 
-## 验证
+## CI/CD 流程
 
-- Build：
-- Tests：
-- Manual checks：
+正式 SSR 发布分为以下阶段：
 
-## 回滚方案
+1. 安装依赖：`pnpm install --frozen-lockfile`。
+2. 质量门禁：`pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm run ai:check-workflow --strict`。
+3. 构建：`H5_BASE_PATH=/hybird pnpm build`。
+4. 生成 manifest 草案：
 
-## 结果
+```bash
+pnpm run ai:release-prepare \
+  --version 2026.05.15-001 \
+  --channel stable \
+  --rollback-version 2026.05.14-001 \
+  --rollout-percentage 0 \
+  --routes "/,/category,/cart,/profile" \
+  --service-base-url "https://h5.example.com" \
+  --base-path "/hybird"
 ```
+
+5. 校验 SSR 产物：
+
+```bash
+test -f .next/standalone/server.js
+test -d .next/static
+test -d public
+```
+
+6. 生成 SSR 发布计划：
+
+```bash
+pnpm run ai:prepare-ssr-release \
+  --version 2026.05.15-001 \
+  --environment prod \
+  --service-base-url "https://h5.example.com" \
+  --base-path "/hybird"
+```
+
+7. 上传 release archive：`.next/standalone`、`.next/static`、`public`、`archives/releases/<version>`。
+8. 部署到 SSR 运行平台。
+9. 部署后 smoke：
+
+```bash
+pnpm run ai:smoke-ssr-release --plan archives/releases/2026.05.15-001/ssr-release-plan.json
+```
+
+10. 发布 candidate manifest，完成 WebView 验证。
+11. 审批后覆盖 active manifest。
+12. 监控白屏、JS error、接口错误、首屏性能和核心路径打开率。
+13. 按灰度结果提升比例或回滚。
+
+## 回滚流程
+
+回滚前置条件：
+
+- 目标版本已经成功部署过 SSR 服务。
+- 目标版本通过 smoke 和基础监控验证。
+- 当前异常版本尚未被原生 App 写死 URL，只通过 manifest 选择。
+
+回滚命令：
+
+```bash
+pnpm run ai:rollback \
+  --manifest archives/releases/2026.05.15-002/manifest.draft.json \
+  --target-version 2026.05.14-001 \
+  --reason "white screen rate exceeded threshold" \
+  --note archives/releases/2026.05.15-002/release-note.md
+```
+
+回滚脚本行为：
+
+- 将 `stableVersion` 切到目标版本。
+- 删除 `grayVersion` 和 `forceVersion`。
+- 将 `grayRules.percentage` 置 0。
+- 将异常版本写入 `blacklistVersions`。
+- 保留 `assets.serviceBaseUrl`、`assets.basePath` 和路由配置。
+- 追加 release note 回滚记录。
+
+回滚发布行为：
+
+1. 校验回滚后的 manifest。
+2. 发布 candidate manifest。
+3. 验证 WebView 重新解析到目标版本。
+4. 审批后覆盖 active manifest。
+5. 观察异常指标是否恢复。
+
+回滚不重新构建 SSR 产物，不上传静态 HTML，不刷新静态版本目录。
+
+## 客户端加载策略
+
+真实 App Shell 推荐流程：
+
+1. 拉取 active `manifest.json`。
+2. 使用 `validateManifestFile(input)` 校验 schema。
+3. 校验通过后写入 last-known-good 缓存。
+4. 网络失败或 manifest 非法时读取缓存。
+5. 使用 `resolveH5Version(ctx, manifest)` 计算目标版本。
+6. 读取 `routes[route]` 并拼接 SSR URL。
+7. WebView 加载 `serviceBaseUrl + basePath + path`。
+8. 路由不存在时打开内置 fallback 或错误页。
+
+runtime 只返回结构化结果，不直接操作 WebView 或 DOM。
 
 ## 待确认问题
 
-- manifest 托管在哪里？
-- 原生 App 是否缓存 manifest？
-- 谁负责灰度分组决策？
-- 是否需要资源完整性校验？
-- `manifest.json` 最终由 H5 拉取、原生拉取，还是二者都拉取？
+- active manifest 的最终托管服务和审批系统。
+- SSR 运行平台的健康检查接口路径是否固定为 `/api/health`。
+- 灰度命中结果由原生 App 固定缓存，还是每次启动重新解析。
+- 监控阈值触发自动回滚的审批边界。

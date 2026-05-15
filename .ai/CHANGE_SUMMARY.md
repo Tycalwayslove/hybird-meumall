@@ -1,5 +1,199 @@
 # 变更摘要
 
+## 2026-05-15 - 收敛为 SSR-only 发布与回滚
+
+### 变更
+
+- 将 `ManifestFile.assets` 从静态 CDN 目录模型改为 SSR 服务模型：`serviceBaseUrl`、`basePath`、`staticAssetPath`、`healthCheckPath`。
+- 更新 manifest runtime，远程路由 URL 由 SSR 服务地址和路由 path 拼接，不再拼版本目录。
+- 更新 `ai:release-prepare`、`ai:update-manifest` 和 `ai:rollback`，发布与回滚只面向 SSR manifest。
+- 新增 `config/ssr-release.config.example.json`、`ai:prepare-ssr-release` 和 `ai:smoke-ssr-release`。
+- 新增 `/api/health` 健康检查接口。
+- 删除默认配置面的 OSS 配置模板、OSS 配置测试、OSS release ops 测试和 OSS 发布脚本；`.env.example` 改为 SSR 服务变量。
+- 更新 GitHub Actions、发布规范、架构、编码规则、AI 工作流、状态、TODO、变更记录和决策文档。
+
+### 验证
+
+- 已通过 `H5_BASE_PATH=/hybird pnpm build`，构建输出确认当前路由均为 `ƒ (Dynamic) server-rendered on demand`，且未生成 `out/`。
+- 已通过 `ai:release-prepare` 生成 SSR manifest 草案。
+- 已通过 `ai:prepare-ssr-release` 生成 SSR 发布计划。
+- 已通过本地 standalone 服务和 `ai:smoke-ssr-release`，健康检查和 4 个核心页面 smoke 通过。
+- 已通过 `pnpm test`、脚本 Vitest、`pnpm typecheck`、`pnpm lint`、`pnpm run ai:check-workflow --strict` 和 `git diff --check`。
+
+### 后续
+
+- 需要接入真实 SSR 部署平台和 manifest active 发布审批。
+
+## 2026-05-15 - 切回 Next.js SSR 发布模式
+
+### 变更
+
+- 更新 `next.config.ts`，移除静态导出，改为 `output: "standalone"` 的 SSR 构建。
+- 更新 `src/app/layout.tsx` 和商品详情页，显式强制当前 App Router 路由动态渲染，并移除商品详情静态参数预生成。
+- 更新 `package.json`，补充 `pnpm start`。
+- 更新 `.github/workflows/h5-release.yml`，从 `out/` OSS 静态上传流水线改为 SSR standalone 产物归档流水线。
+- 更新架构、发布规范、AI 工作流、项目状态、TODO、变更记录和决策文档，明确 OSS 静态上传只保留给静态包、fallback 或独立 CDN 静态资源。
+
+### 验证
+
+- 已通过 `rm -rf .next out && pnpm build && test -f .next/standalone/server.js && test -d .next/static && test ! -d out`，构建输出确认当前路由均为 `ƒ (Dynamic) server-rendered on demand`。
+- 已通过 `PORT=3106 HOSTNAME=127.0.0.1 pnpm start` 启动本地 standalone 服务，并用 `curl -I` 验证 `/`、`/category`、`/product/p-1001` 均返回 `200 OK` 和 `text/html`。
+- 已通过 `pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm run ai:check-workflow --strict` 和 `git diff --check`。
+
+### 后续
+
+- 需要确认 SSR 部署平台、`H5_ORIGIN`、健康检查、日志采集和 active manifest 发布审批。
+
+## 2026-05-15 - 完善 static smoke manifest 草案
+
+### 变更
+
+- 修正 `ai:release-prepare` 和 `ai:update-manifest` 的 assets 生成逻辑，避免 `cdnBaseUrl` 和 `immutablePathPattern` 重复包含 `/hybird/h5/prod`。
+- 完善 `archives/releases/2026.05.15-static-smoke/manifest.draft.json`：
+  - `cdnBaseUrl` 调整为 OSS 公网域名根。
+  - 远程路由 `path` 指向真实静态导出对象，例如 `index.html`、`category/index.html`。
+  - 补全 6 个商品详情静态路由。
+  - 补全 `/offline`、`/not-found`、`/error`、`/maintenance` 本地 fallback 路由。
+  - 补充灰度平台范围、最低 App 版本和远程 fallback URL。
+- 更新 release note、build metadata、发布规范、变更记录和决策文档。
+- 已重新生成 manifest 发布计划，并同步上传 candidate manifest，不覆盖 active `manifest.json`。
+
+### 验证
+
+- 已先运行 `pnpm exec vitest run --config scripts/ai/vitest.config.ts scripts/ai/release-manifest.test.ts` 并确认旧 assets 生成逻辑导致测试失败。
+- 已通过 `pnpm exec vitest run --config scripts/ai/vitest.config.ts scripts/ai/release-manifest.test.ts`。
+- 已通过 manifest 草案结构和 route URL 拼接检查。
+- 已通过 `pnpm run ai:publish-oss-manifest ... --stage candidate --execute` 上传 2 个 candidate manifest 对象。
+- 已通过公网读取 `manifest.candidate.json`，确认 `routeCount = 14` 且 `/` 拼接到 `.../index.html`。
+
+### 后续
+
+- active manifest 仍未覆盖，需发布审批后执行。
+- OSS/CDN 强制下载响应头仍需在外部平台侧修复。
+
+## 2026-05-15 - 补齐发布运维脚本和手动 CI/CD
+
+### 变更
+
+- 新增 `ai:smoke-oss-release`，读取 `oss-upload-plan.json` 后检查关键 HTML、CSS 和 JS 的公网可访问性、content-type、cache-control 和强制下载头。
+- 新增 `ai:publish-oss-manifest`，生成 manifest candidate/active 发布计划，并支持显式 `--execute` 上传到 OSS。
+- 新增 `ai:prepare-release-pointers`，生成 `latest/` 辅助指针计划，只覆盖 HTML、config 和 fallback，不镜像 `_next/static` 不可变资源。
+- 新增 `ai:refresh-cdn`，生成 CDN 刷新计划，并可构造阿里云 CDN `RefreshObjectCaches` 签名请求。
+- 新增 `.github/workflows/h5-release.yml` 手动发布流水线，串联质量检查、静态构建、OSS 上传、smoke、candidate manifest、latest 指针计划和 CDN 刷新计划。
+- 为 release ops 增加 Vitest 回归测试。
+- 已对 `2026.05.15-static-smoke` 生成 release pointer/CDN refresh/manifest publish 计划，并真实上传 candidate manifest。
+
+### 验证
+
+- 已先运行 `pnpm exec vitest run --config scripts/ai/vitest.config.ts scripts/ai/release-ops.test.ts` 并确认新增脚本缺失导致失败。
+- 已通过 `pnpm exec vitest run --config scripts/ai/vitest.config.ts scripts/ai/release-ops.test.ts`，5 个测试通过。
+- 已通过 `pnpm run ai:smoke-oss-release --plan archives/releases/2026.05.15-static-smoke/oss-upload-plan.json --routes index.html,category/index.html --allow-force-download`，4 个关键资源返回 200。
+- 严格 `ai:smoke-oss-release` 已验证会因当前 OSS 强制下载响应头失败，可作为 CI 阻断门禁。
+- 已通过 `pnpm run ai:prepare-release-pointers ...` 和 `pnpm run ai:refresh-cdn ...` 生成计划。
+- 已通过 `pnpm run ai:publish-oss-manifest ... --stage candidate --execute` 上传 2 个 manifest 对象。
+- 已通过公网 `curl` 验证 `manifest.candidate.json` 返回 200 且内容可解析。
+- 已通过 `pnpm test`、`pnpm typecheck` 和 `pnpm lint`。
+
+### 后续
+
+- 关闭 OSS/CDN 强制下载响应头后，CI smoke 可改为严格通过并阻断错误平台配置。
+- 配置 GitHub Actions secrets、受保护环境和 CDN 刷新权限后，再执行远端 workflow。
+- active manifest 覆盖仍需人工审批，不在本次自动执行。
+
+## 2026-05-15 - 补构建静态产物并上传 OSS smoke 版本
+
+### 变更
+
+- 更新 `next.config.ts`，启用 `output: "export"`，并支持通过 `H5_BASE_PATH`、`H5_ASSET_PREFIX` 构建可部署到 OSS 版本目录的静态产物。
+- 更新 `.env.example` 和 `config/oss.config.example.json`，使 `OSS_PUBLIC_BASE_URL`/`publicBaseUrl` 对齐 bucket 内目录 `/hybird/h5`。
+- 更新 `ai:prepare-oss-release` 上传计划和 PutObject 元数据，记录并尝试写入 `contentDisposition: "inline"`。
+- 重新构建 `out/` 并上传真实 OSS smoke 版本 `2026.05.15-static-smoke`。
+- 更新发布规范、变更记录、决策文档和验证报告。
+
+### 验证
+
+- 已通过 `pnpm test -- config/oss-config.test.ts`。
+- 已通过 `pnpm run ai:prepare-oss-release --version 2026.05.15-static-smoke --environment prod --env-file .env.example --check-config`。
+- 已通过带 `H5_BASE_PATH` 和 `H5_ASSET_PREFIX` 的 `pnpm build`。
+- 已通过 `ai:prepare-oss-release --execute` 上传 112 个对象到 OSS。
+- 已通过公网 `curl -I` 验证 `index.html`、`category/index.html` 和 `_next/static` JS 资源返回 200。
+- 已验证远程 HTML 内容包含版本目录下的 `_next/static` 资源前缀和站内链接前缀。
+- 已通过 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm run ai:check-workflow --strict`。
+
+### 后续
+
+- OSS 当前仍返回 `Content-Disposition: attachment` 和 `x-oss-force-download: true`，需要在 OSS bucket 或 CDN 侧关闭强制下载/覆盖响应头。
+- 接入 CDN 刷新和正式 manifest 发布审批。
+
+## 2026-05-15 - 落地版本发布与回滚基础机制
+
+### 变更
+
+- 新增客户端 manifest runtime，支持远程拉取、schema 校验、last-known-good 缓存、版本解析和路由加载结果。
+- 统一 `ai:release-prepare`、`ai:update-manifest` 和 `ai:rollback` 输出/修改的 manifest 草案为 `ManifestFile` schema。
+- 新增 `ai:prepare-oss-release`，基于 OSS 配置和本地构建目录生成 `oss-upload-plan.json`。
+- 更新 `config/oss.config.example.json` 的 `remotePrefix` 为 `h5`，避免 OSS 对象路径重复环境名。
+- 更新发布、架构、编码规则、AI 工作流、变更记录和决策文档。
+- 新增 `.ai/tasks/2026-05-15-release-rollback-system-implementation.md`。
+
+### 验证
+
+- 已通过 `pnpm test -- config/oss-config.test.ts`。
+- 已通过 `pnpm exec vitest run --config scripts/ai/vitest.config.ts scripts/ai/release-manifest.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+- 已通过 `pnpm build`。
+- 已通过 `pnpm run ai:check-workflow --strict`。
+- 已通过 release prepare、prepare OSS release 和 rollback CLI 烟测。
+
+### 后续
+
+- 接入真实 OSS 上传、CDN 刷新和 manifest 发布审批。
+- 明确 manifest 最终由原生 App、H5 runtime 或两者共同拉取。
+
+## 2026-05-15 - 接入真实 OSS 平台参数体检
+
+### 变更
+
+- 为 `ai:prepare-oss-release` 增加 `--check-config` 参数体检模式。
+- 为 `ai:prepare-oss-release` 增加 `--env-file` 支持，从 `.env.local` 或 `.env.example` 读取 OSS 参数并覆盖配置模板。
+- 为 `ai:prepare-oss-release` 增加显式 `--execute` 真实 OSS PutObject 上传入口。
+- 增加 OSS V1 Authorization Header 签名构造、STS token header 支持和 Cache-Control 对象元数据写入。
+- 更新发布规范、AI 工作流、变更记录和 AI 状态文件。
+
+### 验证
+
+- 已通过 `pnpm test -- config/oss-config.test.ts`。
+- 已运行 `pnpm run ai:prepare-oss-release --version 2026.05.15-verify --environment prod --env-file .env.example --check-config`。
+- 当前体检结果：AK/SK 已可读取，但 `OSS_BUCKET`、`OSS_REGION`、`OSS_ENDPOINT` 和 `OSS_PUBLIC_BASE_URL`/CDN public base URL 仍缺真实值或仍为占位符。
+- 已通过 `pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm build` 和 `pnpm run ai:check-workflow --strict`。
+
+### 后续
+
+- 补齐真实 OSS bucket、region、root endpoint 和 CDN public base URL 后，再执行 `--check-config`。
+- 体检通过后，可使用 `--execute` 执行真实 OSS 上传。
+
+## 2026-05-15 - 补充 OSS bucket 内目录配置
+
+### 变更
+
+- 更新 `config/oss.config.example.json`，新增 `ossDirectory: "/hybird"`。
+- 更新 `config/oss-config.test.ts`，覆盖 OSS 配置模板 bucket 内目录字段。
+- 更新 `docs/03_RELEASE_SPEC.md`、`docs/08_CHANGELOG.md`、`docs/09_DECISIONS.md` 和 AI 状态文件。
+
+### 验证
+
+- 已先运行 `pnpm test -- config/oss-config.test.ts` 并确认测试因缺少 `ossDirectory` 失败。
+- 已通过 `pnpm test -- config/oss-config.test.ts`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+- 已通过 `pnpm run ai:check-workflow --strict`。
+
+### 后续
+
+- 后续实现真实 OSS 上传脚本时，应继续区分 `ossDirectory`、`publicBaseUrl` 和 `remotePrefix`。
+
 ## 2026-05-15 - 接入 Git 提交信息规范检查
 
 ### 变更
@@ -540,6 +734,32 @@
 ### 验证
 
 - pnpm test、pnpm typecheck、pnpm lint、pnpm build、pnpm run ai:check-workflow --strict 和浏览器抽查均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-release-rollback-system-implementation.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-release-rollback-system-implementation.md 归档到 archives/tasks/2026-05-15-release-rollback-system-implementation.md。
+
+### 验证
+
+- pnpm-test-typecheck-lint-build-workflow-and-release-cli-smoke-passed
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-real-oss-platform-integration.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-real-oss-platform-integration.md 归档到 archives/tasks/2026-05-15-real-oss-platform-integration.md。
+
+### 验证
+
+- pnpm-test-typecheck-lint-build-workflow-and-oss-config-check-passed
 
 ### 后续
 

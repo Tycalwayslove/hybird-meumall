@@ -3,7 +3,7 @@
 ## 架构目标
 
 - 支持 H5 在原生 App WebView 中运行。
-- 支持远程加载和 App 内置静态包两种交付方式。
+- 支持远程 SSR 加载和 App 内置兜底页。
 - 明确 Native Bridge、manifest、主题、API 和业务 UI 的边界。
 - 让后续 AI 任务容易规划、验证和交接。
 
@@ -56,29 +56,26 @@ src/
 
 ## 交付模型
 
-### 远程交付
+### 远程 SSR 交付
 
 适用于可以依赖网络、需要快速发布和回滚的页面。
 
-待定义：
+- 远程资源域名：由 `H5_SERVICE_BASE_URL` 提供。
+- 路由前缀：当前默认 `/hybird`，由 `H5_BASE_PATH` 提供。
+- 运行时：Next.js `output: "standalone"`，由 Node.js 或 Serverless 平台启动 `.next/standalone/server.js`。
+- 发布控制：manifest 只切 stable/gray/rollback 版本和路由，不拼静态版本目录。
+- 回滚方式：发布回滚后的 manifest，指向已部署且验证通过的 SSR 版本。
 
-- 远程资源域名：
-- 路由前缀：
-- CDN 缓存策略：
-- manifest 获取策略：
-- 回滚触发方式：
+### App 内置兜底页
 
-### 静态包交付
-
-适用于必须随 App 包可用的页面。
+适用于远程 SSR 服务不可达、网络不可用或 manifest 不可用时的兜底场景。
 
 待定义：
 
-- 静态路由列表：
-- 导出命令：
+- 兜底页列表：
 - 原生资源路径：
 - 所需原生能力：
-- fallback 路由：
+- fallback 触发规则：
 
 ### 当前模拟业务壳
 
@@ -100,10 +97,21 @@ manifest 负责：
 
 - 选择 H5 版本。
 - 选择发布渠道。
-- 将路由映射到远程或本地资源。
+- 将路由映射到远程 SSR 服务或原生兜底页。
 - 声明最低 App 能力要求。
 - 定义回滚目标。
 - 提供缓存失效信息。
+
+当前 `src/lib/manifest` 已提供首版客户端 manifest runtime：
+
+- 通过注入的 `fetchManifest` 拉取远程 manifest。
+- 使用 `validateManifestFile(input)` 校验 schema。
+- 校验通过后写入 last-known-good 缓存。
+- 网络失败或 manifest 非法时回退到缓存。
+- 使用 `resolveH5Version(ctx, manifest)` 选择 H5 版本。
+- 按路由配置返回 SSR URL、local fallback path、fallback 或 not-found/error 结果。
+
+真实 App 集成时，原生或 App Shell 应只依赖该 runtime 的结果，不在业务页面内自行拼接 CDN URL。
 
 ## Native Bridge 集成原则
 
@@ -190,7 +198,7 @@ Telemetry 访问必须经过共享 reporter 边界。
 ## 待确认问题
 
 - manifest 由原生 App 获取、H5 获取，还是二者都获取？
-- 静态页面是否与远程页面共用同一个 runtime shell？
+- 原生兜底页是否需要独立版本号？
 - Bridge ready 前的调用是否需要排队？
 - WebView 内可用的埋点 SDK 是什么？
 - 白屏检测的真实采样点、阈值和采样率是多少？

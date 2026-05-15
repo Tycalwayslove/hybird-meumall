@@ -1,0 +1,85 @@
+{
+  "ok": true,
+  "version": "2026.05.15-ssr-only-check",
+  "environment": "prod",
+  "checks": [
+    {
+      "ok": true,
+      "kind": "health",
+      "url": "http://127.0.0.1:3107/hybird/api/health",
+      "statusCode": 200,
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+        "content-type": "application/json",
+        "date": "Fri, 15 May 2026 10:04:11 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5"
+      },
+      "issues": []
+    },
+    {
+      "ok": true,
+      "kind": "route",
+      "url": "http://127.0.0.1:3107/hybird",
+      "statusCode": 200,
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding",
+        "x-powered-by": "Next.js",
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Fri, 15 May 2026 10:04:11 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5"
+      },
+      "issues": []
+    },
+    {
+      "ok": true,
+      "kind": "route",
+      "url": "http://127.0.0.1:3107/hybird/category",
+      "statusCode": 200,
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding",
+        "x-powered-by": "Next.js",
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Fri, 15 May 2026 10:04:11 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5"
+      },
+      "issues": []
+    },
+    {
+      "ok": true,
+      "kind": "route",
+      "url": "http://127.0.0.1:3107/hybird/cart",
+      "statusCode": 200,
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding",
+        "x-powered-by": "Next.js",
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Fri, 15 May 2026 10:04:11 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5"
+      },
+      "issues": []
+    },
+    {
+      "ok": true,
+      "kind": "route",
+      "url": "http://127.0.0.1:3107/hybird/profile",
+      "statusCode": 200,
+      "headers": {
+        "vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding",
+        "x-powered-by": "Next.js",
+        "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "content-type": "text/html; charset=utf-8",
+        "date": "Fri, 15 May 2026 10:04:11 GMT",
+        "connection": "keep-alive",
+        "keep-alive": "timeout=5"
+      },
+      "issues": []
+    }
+  ]
+}

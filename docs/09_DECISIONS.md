@@ -226,3 +226,164 @@ API client 需要在真实后端、token 刷新策略和原生代理模式尚未
 - 只写文档不加 hook：拒绝，因为不能自动阻止不规范提交。
 - 自定义私有提交格式：拒绝，因为社区生态和工具兼容性更弱。
 - 强制英文 subject：拒绝，因为项目协作文档和用户偏好以中文为主。
+
+## ADR-0009 - OSS 配置显式声明 bucket 内目录
+
+日期：2026-05-15
+
+状态：Superseded by ADR-0014
+
+### 背景
+
+OSS 配置模板已有 CDN 公开访问地址和发布前缀，但缺少 OSS bucket 内约定的一级目录，发布与回滚流程无法从配置中明确资源上传根目录。
+
+### 决策
+
+在 `config/oss.config.example.json` 中新增 `ossDirectory`，当前固定为 `/hybird`。该字段只表达 OSS bucket 内目录，不承载公网 CDN URL；`remotePrefix` 保持为该目录下的 H5 资源根目录 `h5`，环境和版本由 `versionPathPattern` 表达。
+
+### 影响
+
+- 发布准备和回滚机制后续可以从配置模板读取 OSS 上传根目录。
+- CDN 公开访问地址、OSS bucket 内目录、H5 资源根目录和环境/版本目录保持各自独立。
+- 真实 OSS 上传脚本已可基于该目录约定生成对象 key，并在显式 `--execute` 时上传。
+
+### 备选方案
+
+- 复用 `publicBaseUrl`：拒绝，因为它是公网访问地址，不适合表达 OSS bucket 内目录。
+- 直接把 `/hybird` 或环境名合并进 `remotePrefix`：拒绝，因为会导致 bucket 根目录、H5 资源根目录和环境/版本目录边界不清。
+
+## ADR-0010 - 发布控制面统一采用 ManifestFile schema
+
+日期：2026-05-15
+
+状态：Accepted
+
+### 背景
+
+发布脚本早期生成 `activeVersion`、`rollout` 和数组路由草案，而运行时 schema 使用 `stableVersion`、`grayVersion`、`grayRules` 和路由 record。两套结构并存会导致发布草案、客户端 runtime 和文档契约漂移。
+
+### 决策
+
+发布准备、manifest 更新、回滚和客户端加载统一采用 `src/config/remote-config.ts` 中的 `ManifestFile` schema。灰度发布时，`stableVersion` 保持旧稳定版，`grayVersion` 指向新版本；全量发布时，`stableVersion` 指向新版本并移除 `grayVersion`。
+
+### 影响
+
+- `ai:release-prepare` 生成的 `manifest.draft.json` 可被 `validateManifestFile` 校验。
+- `ai:rollback` 只修改 manifest 草案，不重建资源。
+- 客户端 manifest runtime 可以直接消费发布草案同构的远程 manifest。
+- 旧草案中的 `activeVersion`、`rollout` 和数组路由会在脚本更新时被归一化。
+
+### 备选方案
+
+- 保留脚本自定义 manifest 结构：拒绝，因为会增加转换和发布风险。
+- 让客户端 runtime 兼容多套 schema：拒绝，因为控制面应在发布前收敛，不应把历史草案复杂度下放到客户端。
+
+## ADR-0011 - 静态导出构建注入版本目录前缀
+
+日期：2026-05-15
+
+状态：Superseded by ADR-0014
+
+### 背景
+
+H5 静态产物需要上传到 OSS bucket 内的不可变版本目录，例如 `/hybird/h5/prod/2026.05.15-static-smoke/`。如果静态 HTML 中的 `_next/static` 资源仍使用 bucket 根路径，页面在版本目录下打开时会加载不到 JS/CSS。
+
+### 决策
+
+Next.js 配置启用 `output: "export"` 和 `trailingSlash: true`。构建发布版本时，通过 `H5_BASE_PATH` 注入站内路由前缀，通过 `H5_ASSET_PREFIX` 注入 `_next/static` 资源前缀；本地开发或普通构建未设置这些变量时保持默认根路径。
+
+### 影响
+
+- 同一套源码可以生成本地根路径构建，也可以生成 OSS 版本目录构建。
+- OSS 上传脚本仍按 `ossDirectory + remotePrefix + environment + version` 上传 `out/` 内容。
+- CI/CD 必须在正式静态发布构建阶段传入和目标版本目录一致的 `H5_BASE_PATH` 与 `H5_ASSET_PREFIX`。
+- manifest 的 `assets.cdnBaseUrl` 只表达域名或 CDN 根路径，`immutablePathPattern` 承载 `/hybird/h5/<env>/{version}/`，避免客户端 runtime 拼接时重复目录。
+
+### 备选方案
+
+- 只依赖 CDN origin path 重写：暂不采用，因为直接访问 bucket 公网 URL 时仍会暴露路径问题。
+- 把版本目录写死在代码中：拒绝，因为版本号每次发布变化，会污染源码并增加回滚风险。
+
+## ADR-0012 - 发布运维脚本默认 dry-run，真实发布必须显式执行
+
+日期：2026-05-15
+
+状态：Superseded by ADR-0014
+
+### 背景
+
+当前发布链路已经具备真实 OSS 上传能力，但 active manifest、latest 指针和 CDN 刷新都会影响线上用户或缓存行为，需要避免本地脚本误触发生产变更。
+
+### 决策
+
+新增发布运维脚本统一采用 dry-run 默认行为：先生成 plan 文件，只有显式传入 `--execute` 才会访问外部平台。manifest 发布拆分为 `candidate` 和 `active` 两个 stage；CI 默认只发布 candidate manifest，active 覆盖必须经人工审批后单独执行。`latest/` 仅作为排查辅助指针，不作为生产固定入口。
+
+### 影响
+
+- 本地和 CI 都能复用同一批计划文件进行审查。
+- OSS smoke 可以在 candidate 前阻断 404、错误缓存和强制下载响应头。
+- CDN 刷新可以先审查 URL 清单，再由受控环境执行。
+
+### 备选方案
+
+- 上传资源后自动覆盖 active manifest：拒绝，因为缺少发布审批和监控门禁。
+- 自动镜像完整版本目录到 `latest/`：拒绝，因为 `_next/static` 已是不可变资源，镜像会扩大刷新面并误导生产入口。
+
+## ADR-0013 - 默认远程交付切回 Next.js SSR
+
+日期：2026-05-15
+
+状态：Superseded by ADR-0014
+
+### 背景
+
+当前业务页面尚未接真实接口。继续使用 Next.js 静态导出会把远程 H5 固定为预渲染 HTML 和客户端二次请求模式，不利于后续服务端渲染、登录态服务端校验、接口聚合和动态页面缓存策略设计。
+
+### 决策
+
+默认远程发布切回 Next.js SSR，并使用 `output: "standalone"` 生成可部署到 Node.js 或 Serverless 运行时的产物。当前 App Router 根 layout 显式设置 `dynamic = "force-dynamic"`，避免纯 mock 页面被自动静态优化；后续接入真实接口后再按页面粒度收敛 SSR、SSG 或 ISR。`H5_BASE_PATH` 仅在服务挂载到子路径时配置，`H5_ASSET_PREFIX` 仅在静态资源走独立 CDN 时配置。OSS 静态上传脚本继续保留，但只用于 App 内置静态包、fallback 页面、历史 smoke 或可选 CDN 静态资源，不作为完整远程 H5 的默认发布方式。
+
+### 影响
+
+- 发布平台需要承载 `.next/standalone/server.js`，并同时发布 `.next/static` 和 `public`。
+- manifest 的远程路由在 SSR 模式下应指向应用路由，例如 `/category`，不应指向 `category/index.html`。
+- GitHub Actions 默认归档 SSR 运行时包，不再上传 `out/` 到 OSS。
+- 历史 `2026.05.15-static-smoke` 仍可作为 OSS 静态发布验证记录，但不应直接提升为默认远程 H5 发布方案。
+
+### 备选方案
+
+- 继续使用静态导出作为默认远程交付：拒绝，因为真实业务接口接入后，动态数据、登录态和服务端渲染能力会受限。
+- 同时维护 SSR 和静态导出两条默认发布链路：暂不采用，因为会增加 manifest、CI 和缓存策略复杂度；静态包需求应通过明确任务单独收敛。
+
+## ADR-0014 - 发布配置收敛为 SSR-only
+
+日期：2026-05-15
+
+状态：Accepted
+
+### 背景
+
+项目已经明确不需要兼容此前的 SSG/OSS 静态导出发布链路。继续保留 `cdnBaseUrl + immutablePathPattern`、OSS 上传配置和静态 smoke 配置，会让 manifest、CI/CD、回滚语义同时存在两套路径，增加发布风险。
+
+### 决策
+
+当前远程 H5 发布配置收敛为 SSR-only：
+
+- manifest `assets` 改为 `serviceBaseUrl`、`basePath`、`staticAssetPath` 和 `healthCheckPath`。
+- 客户端 runtime 使用 SSR 服务地址拼路由，不再拼版本目录。
+- `release-prepare` 和 `update-manifest` 使用 `--service-base-url` 与 `--base-path`。
+- 新增 `prepare-ssr-release` 和 `smoke-ssr-release`，替代 OSS 上传计划、OSS smoke、latest 指针和 CDN 刷新计划。
+- `.env.example` 不再提供 OSS 参数。
+- 默认 CI/CD 只归档 standalone SSR 产物和 release 草案。
+
+### 影响
+
+- 回滚只通过 manifest 指针切回已部署 SSR 版本。
+- H5 版本号不再参与页面 URL 拼接。
+- 原生 App 内置内容只保留兜底页语义，不再作为业务页面 SSG 兼容链路。
+- 历史 OSS smoke 记录保留为历史验证资料，但不再代表当前发布方案。
+
+### 备选方案
+
+- 保留 OSS 静态脚本作为默认可选分支：拒绝，因为用户明确不需要兼容以前的 SSG。
+- 继续让 manifest 同时支持 SSR 和静态目录：拒绝，因为客户端 URL 拼接和回滚语义会变复杂。

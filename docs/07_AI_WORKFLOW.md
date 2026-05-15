@@ -72,10 +72,14 @@
 | `npm run ai:check-docs-sync` | 检查核心文档是否存在，严格模式下检查非空。 |
 | `npm run ai:check-workflow` | 检查文档、Skills、活跃任务、package scripts 和脚本文件是否同步。 |
 | `npm run ai:release-prepare` | 本地生成 `build.json`、`release-note.md`、`manifest.draft.json` 草案。 |
+| `npm run ai:prepare-ssr-release` | 基于 standalone 产物生成 SSR 发布计划，包含运行入口、artifact、服务地址、健康检查和回滚策略。 |
+| `npm run ai:smoke-ssr-release` | 基于 SSR 发布计划检查健康检查和核心页面 HTTP 响应。 |
 | `npm run ai:update-manifest` | 更新本地 manifest 草案。 |
 | `npm run ai:rollback` | 只修改 manifest 草案生成回滚记录，不重新构建。 |
 
 项目应用工程使用 `pnpm` 管理依赖和运行脚本。AI 辅助脚本仍可通过 `npm run` 或 `pnpm run` 执行；使用 `pnpm run` 传参时直接追加参数，例如 `pnpm run ai:check-workflow --strict`。
+
+`.github/workflows/h5-release.yml` 提供手动触发的 H5 SSR 发布流水线。流水线运行质量门禁、`pnpm build`、release 草案生成、standalone 产物校验和 SSR 发布计划生成，并上传 `.next/standalone`、`.next/static`、`public` 与 `archives/releases/<version>` 作为发布归档。manifest candidate/active 覆盖由受保护环境或发布平台审批后执行。
 
 ## 提交信息检查
 
