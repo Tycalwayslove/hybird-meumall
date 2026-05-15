@@ -50,6 +50,32 @@ const colors = {
 };
 ```
 
+## 当前实现位置
+
+- 默认 CSS Variables 定义在 `src/styles/globals.css`。
+- Tailwind token 映射定义在 `src/lib/theme/tokens.ts`，并由 `tailwind.config.ts` 消费。
+- light/dark token 定义在 `src/lib/theme/tokens.ts`。
+- 主题 runtime 定义在 `src/lib/theme/runtime.ts`。
+- 当前实现 light/dark runtime，不包含品牌主题、远程主题拉取、原生注入或 manifest 注入逻辑。
+
+## Light/Dark Runtime
+
+首版只支持 `light` 和 `dark`：
+
+```ts
+applyTheme("dark");
+```
+
+runtime 行为：
+
+- `getThemeConfig(mode)` 返回 light/dark 主题配置，未知 mode fallback 到 light。
+- `applyTheme(theme, target?)` 将 allowlist 内 CSS Variables 写入目标 root。
+- `applyTheme` 同时设置 `data-theme="light"` 或 `data-theme="dark"`。
+- `sanitizeThemeVariables` 会忽略未知变量、不以 `--` 开头的变量和不在 allowlist 内的变量。
+- 默认 fallback 为 light。
+
+无 JavaScript 或首屏 runtime 未执行时，`src/styles/globals.css` 仍提供 `:root` 默认变量和 `[data-theme="dark"]` CSS fallback。
+
 ## 主题对象模板
 
 ```ts
@@ -90,5 +116,6 @@ type ThemeConfig = {
 ## 待确认问题
 
 - 原生 App 是否能在首屏渲染前同步注入主题？
-- 主题需要支持品牌切换、暗色模式，还是两者都要？
+- 后续是否需要支持品牌主题。
 - 设计 token 由设计、原生、H5 还是平台统一维护？
+- 后续是否需要持久化用户主题偏好。

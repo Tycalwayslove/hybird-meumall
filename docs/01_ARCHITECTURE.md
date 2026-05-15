@@ -19,6 +19,7 @@ Native App
       -> Native Bridge Adapter
       -> API Client
       -> Manifest Runtime Config
+      -> Telemetry
 ```
 
 ## 推荐模块边界
@@ -30,8 +31,28 @@ Native App
 | Manifest | 版本、渠道、灰度、回滚和资源路由。 |
 | Theme | CSS Variables、Tailwind token 映射和运行时切换。 |
 | API | 请求客户端、错误归一化、鉴权和追踪。 |
+| Telemetry | 错误事件、性能事件、白屏检测、通用埋点和 reporter 接入边界。 |
 | Business Features | 页面和领域业务逻辑。 |
 | AI Workflow | 任务状态、变更摘要、决策和验证记录。 |
+
+## 当前源码边界
+
+首版工程骨架采用 Next.js App Router 和 `src/` 目录：
+
+```text
+src/
+  app/
+  components/
+  lib/
+    bridge/
+    manifest/
+    theme/
+    api/
+    telemetry/
+  styles/
+```
+
+业务页面和业务逻辑必须在后续明确任务中补充。
 
 ## 交付模型
 
@@ -58,6 +79,18 @@ Native App
 - 原生资源路径：
 - 所需原生能力：
 - fallback 路由：
+
+### 当前模拟业务壳
+
+当前项目提供一组本地 mock 电商页面，用于验证 H5 App Router、WebView 页面结构和静态兜底资源：
+
+- 首页 `/`
+- 分类 `/category`
+- 商品详情 `/product/[id]`
+- 购物车 `/cart`
+- 我的 `/profile`
+
+这些页面只使用 `src/lib/commerce/mock-data.ts` 中的本地模拟数据，不接真实 API、登录、购物车、订单或支付。页面中需要 icon 的位置先使用色块占位，后续统一替换正式 icon。
 
 ## Manifest 集成原则
 
@@ -108,12 +141,51 @@ API 层负责：
 - 管理重试和超时。
 - 必要时接入原生代理。
 
+## Telemetry 架构
+
+Telemetry 访问必须经过共享 reporter 边界。
+
+首版 telemetry 位于 `src/lib/telemetry`，只提供本地能力：
+
+- 定义通用埋点事件、错误事件、首屏性能事件和白屏事件类型。
+- 提供 `createNoopTelemetryReporter()`，默认不发送网络请求或原生调用。
+- 提供 `createTelemetryClient()`，统一补充 context 和 timestamp。
+- 通过 `TelemetryReporter` interface 预留 Sentry、原生 `trackEvent` 或内部监控平台接入点。
+- 提供 `evaluateWhiteScreen(samples, options)`，基于采样点空白比例判断白屏。
+- 提供 `createFirstScreenPerformanceEvent(metrics, options)`，记录首屏基础指标。
+
+### 白屏检测基础策略
+
+首版不直接操作 DOM，只定义可测试的评估策略：
+
+1. 由运行时或页面层提供一组采样点。
+2. 每个采样点标记是否为空白。
+3. 计算 `blankRatio = blankCount / sampleSize`。
+4. 当 `blankRatio >= threshold` 时判定为白屏。
+5. 空采样结果视为不可判断，不判定为白屏。
+
+默认建议阈值为 `0.8`。真实 DOM 采样点、采样时间、采样率和误报处理需后续结合页面结构确认。
+
+### 首屏性能基础指标
+
+首版预留以下指标字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `firstContentfulPaintMs` | 首次内容绘制耗时。 |
+| `largestContentfulPaintMs` | 最大内容绘制耗时。 |
+| `domContentLoadedMs` | DOMContentLoaded 耗时。 |
+| `loadMs` | window load 耗时。 |
+
+首版只构造事件，不读取浏览器 Performance API，不上报真实平台。
+
 ## 错误处理原则
 
 - Bridge 调用失败不能导致整页崩溃。
 - manifest 解析失败应回退到安全默认版本或错误页。
 - 主题注入失败应回退到默认 CSS Variables。
 - API 失败应输出统一、对用户安全的错误。
+- Telemetry reporter 失败不能影响页面主流程。
 
 ## 待确认问题
 
@@ -121,3 +193,4 @@ API 层负责：
 - 静态页面是否与远程页面共用同一个 runtime shell？
 - Bridge ready 前的调用是否需要排队？
 - WebView 内可用的埋点 SDK 是什么？
+- 白屏检测的真实采样点、阈值和采样率是多少？

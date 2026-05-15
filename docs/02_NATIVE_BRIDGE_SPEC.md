@@ -23,6 +23,21 @@
 | 响应格式 | 原生如何返回成功或失败。 |
 | 超时策略 | H5 等待原生响应的最长时间。 |
 
+## 首版 H5 Adapter
+
+当前 H5 侧 Bridge adapter 位于 `src/lib/bridge`。
+
+| 字段 | 当前约定 |
+| --- | --- |
+| H5 调用入口 | `nativeBridge.call(method, payload, options?)` |
+| 默认原生 namespace | `window.MeumallNativeBridge` |
+| 原生方法入口 | `MeumallNativeBridge.call(method, payload)` |
+| Web Mock | `createWebBridgeAdapter()` |
+| 默认超时 | 3000ms |
+| 响应结构 | `BridgeResult<T>` |
+
+真实 iOS/Android namespace 和通信模式仍需原生团队确认。当前实现通过 adapter 隔离差异，后续如改为 callback-id 或 message-channel，可替换 adapter 而不改变业务调用入口。
+
 ## 方法定义模板
 
 ```markdown
@@ -91,16 +106,114 @@ type BridgeResult<T> =
 
 | 方法 | 状态 | 说明 |
 | --- | --- | --- |
-| getAppInfo | 计划中 | App 版本、平台、渠道。 |
-| getDeviceInfo | 计划中 | 设备和系统信息。 |
-| getAuthToken | 计划中 | 原生向 H5 传递认证信息。 |
-| setNavigationBar | 计划中 | 控制原生导航栏。 |
-| openNativePage | 计划中 | 打开原生页面。 |
-| closeWebView | 计划中 | 关闭当前 WebView。 |
-| share | 计划中 | 调起原生分享。 |
-| scanQRCode | 计划中 | 调起扫码。 |
-| selectImage | 计划中 | 调起图片选择。 |
-| trackEvent | 计划中 | 通过原生埋点。 |
+| app.getVersion | 已定义 | App 版本、平台、渠道。 |
+| user.getToken | 已定义 | 原生向 H5 传递认证 token。 |
+| webview.close | 已定义 | 关闭当前 WebView。 |
+| webview.setTitle | 已定义 | 设置 WebView 标题。 |
+
+## 首批方法
+
+### app.getVersion
+
+**描述**
+
+获取原生 App 版本、平台和渠道。
+
+**请求**
+
+```ts
+type Request = undefined;
+```
+
+**响应**
+
+```ts
+type Response = {
+  appVersion: string;
+  platform: "ios" | "android" | "web";
+  channel: string;
+  bridgeVersion?: string;
+};
+```
+
+**Fallback**
+
+Web mock 返回本地可预测版本信息。
+
+### user.getToken
+
+**描述**
+
+获取原生提供的短期鉴权 token。
+
+**请求**
+
+```ts
+type Request = undefined;
+```
+
+**响应**
+
+```ts
+type Response = {
+  token: string | null;
+  expiresAt: string | null;
+};
+```
+
+**Fallback**
+
+Web mock 默认返回 `token: null`，可在测试或本地开发中注入 mock token。H5 不持久化长生命周期 token。
+
+### webview.close
+
+**描述**
+
+请求原生关闭当前 WebView。
+
+**请求**
+
+```ts
+type Request = undefined;
+```
+
+**响应**
+
+```ts
+type Response = {
+  closed: boolean;
+};
+```
+
+**Fallback**
+
+能力不可用时返回统一错误，由调用方决定是否隐藏关闭按钮或使用浏览器历史回退。
+
+### webview.setTitle
+
+**描述**
+
+设置当前 WebView 标题。
+
+**请求**
+
+```ts
+type Request = {
+  title: string;
+};
+```
+
+**响应**
+
+```ts
+type Response = {
+  applied: boolean;
+};
+```
+
+**Fallback**
+
+能力不可用时返回统一错误，可退化为 H5 内标题展示。
 
 ## 安全要求
 
@@ -111,7 +224,7 @@ type BridgeResult<T> =
 
 ## 待确认问题
 
-- 原生暴露的 Bridge namespace 是什么？
-- Bridge 是 Promise、callback-id 还是 message-channel 模式？
+- 原生是否采用 `window.MeumallNativeBridge` 作为 namespace？
+- Bridge 真实协议是 Promise、callback-id 还是 message-channel 模式？
 - 原生如何暴露能力版本？
-- 首版必须支持哪些 Bridge 方法？
+- 首版四个方法的最低 App 版本分别是多少？

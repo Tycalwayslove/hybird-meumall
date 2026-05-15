@@ -75,6 +75,8 @@
 | `npm run ai:update-manifest` | 更新本地 manifest 草案。 |
 | `npm run ai:rollback` | 只修改 manifest 草案生成回滚记录，不重新构建。 |
 
+项目应用工程使用 `pnpm` 管理依赖和运行脚本。AI 辅助脚本仍可通过 `npm run` 或 `pnpm run` 执行；使用 `pnpm run` 传参时直接追加参数，例如 `pnpm run ai:check-workflow --strict`。
+
 ## 任务结束检查清单
 
 - [ ] 运行相关验证。

@@ -15,11 +15,11 @@
 
 ## 推荐目录职责
 
-最终目录结构以实际项目为准，以下作为方向：
+当前基础工程采用以下目录结构：
 
 ```text
 src/
-  app/ or pages/
+  app/
   components/
   features/
   lib/
@@ -30,6 +30,8 @@ src/
     telemetry/
   styles/
 ```
+
+首版 `src/lib/bridge`、`src/lib/manifest`、`src/lib/theme` 和 `src/lib/api` 可以先提供模块边界和类型入口。具体 Bridge、manifest、theme runtime 和 API client 行为必须通过后续任务实现。
 
 ## TypeScript 规则
 
@@ -44,6 +46,7 @@ src/
 - 平台集成放在 hook 或 service module 后面。
 - 深层组件不要直接调用 Native Bridge。
 - 处理 loading、empty、error 和 native capability unsupported 状态。
+- 模拟页面中的 icon 位置暂时使用色块占位，后续统一替换为正式 icon 体系。
 
 ## Tailwind 规则
 
@@ -68,12 +71,15 @@ src/
 
 ## 测试规则
 
+当前测试运行器使用 Vitest，命令为 `pnpm test`。
+
 后续实现至少覆盖：
 
 - manifest 解析和 fallback。
 - Bridge 成功、失败、超时和方法不可用。
 - 主题变量应用和 fallback。
 - API 错误归一化。
+- telemetry reporter、事件类型和白屏检测策略。
 - 静态包路由配置。
 
 ## 文档规则

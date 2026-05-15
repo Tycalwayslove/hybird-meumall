@@ -1,5 +1,262 @@
 # 变更摘要
 
+## 2026-05-15 - 实现模拟电商页面、静态缺省页与 OSS 配置模板
+
+### 变更
+
+- 新增本地电商 mock 数据和测试。
+- 新增首页、分类页、商品详情页、购物车页和我的页。
+- 新增电商共享组件：页面壳、底部导航、商品卡片和色块 icon 占位。
+- 新增 `public/static/fallback/` 下的 offline、not-found、error、maintenance 静态 HTML。
+- 新增 `config/oss.config.example.json` 和 `.env.example`。
+- 更新发布、架构、编码规则和决策文档。
+- 更新 `.ai/PROJECT_STATE.md`、`.ai/TODO.md` 和 `docs/08_CHANGELOG.md`。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/lib/commerce/mock-data.test.ts config/oss-config.test.ts` 并确认测试因模块缺失失败。
+- 已通过 `pnpm test -- src/lib/commerce/mock-data.test.ts config/oss-config.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+- 已通过 `pnpm build`。
+- 已通过 `pnpm run ai:check-workflow --strict`。
+- 已通过浏览器抽查 `/`、`/category`、`/product/p-1001`、`/cart`、`/profile` 和 `/static/fallback/offline.html`。
+
+### 后续
+
+- 后续可接入真实 icon、真实业务接口和 OSS 上传脚本。
+
+## 2026-05-15 - 创建模拟电商页面与静态资源任务
+
+### 变更
+
+- 新增 `.ai/tasks/2026-05-15-commerce-mock-pages-static-fallback-oss-config.md`。
+- 更新 `.ai/TODO.md`，将模拟电商页面、静态缺省页与 OSS 配置模板加入 Active。
+
+### 验证
+
+- 任务创建阶段未修改业务实现。
+
+### 后续
+
+- 按任务计划实现模拟页面、静态缺省资源和 OSS 配置模板。
+
+## 2026-05-15 - 实现监控、白屏检测与性能埋点基础
+
+### 变更
+
+- 新增 `src/lib/telemetry/types.ts`，定义错误、性能、白屏和通用埋点事件类型。
+- 新增 `src/lib/telemetry/reporter.ts`，实现 `TelemetryReporter` interface、noop reporter 和 telemetry client。
+- 新增 `src/lib/telemetry/white-screen.ts`，实现白屏采样评估纯函数。
+- 新增 `src/lib/telemetry/performance.ts`，实现首屏性能事件构造。
+- 新增 `src/lib/telemetry/index.ts`，统一导出 telemetry 模块边界。
+- 新增 `src/lib/telemetry/telemetry.test.ts`，覆盖事件类型、noop reporter、client 上报、错误归一化、白屏阈值和首屏性能事件。
+- 更新 `docs/01_ARCHITECTURE.md`、`docs/06_CODING_RULES.md` 和 `docs/09_DECISIONS.md`，记录 telemetry 边界、白屏策略和首版 noop reporter 决策。
+- 更新 `.ai/PROJECT_STATE.md`、`.ai/TODO.md` 和 `docs/08_CHANGELOG.md`。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/lib/telemetry/telemetry.test.ts` 并确认测试因 `./index` 缺失失败。
+- 已通过 `pnpm test -- src/lib/telemetry/telemetry.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+- 已通过 `pnpm run ai:check-workflow --strict`。
+
+### 后续
+
+- 后续需确认真实 Sentry/埋点平台、白屏采样点、采样率和隐私脱敏策略。
+
+## 2026-05-15 - 实现 API Client、鉴权与请求追踪
+
+### 变更
+
+- 新增 `src/lib/api/types.ts`，定义 `ApiResult<T>`、`ApiError`、`RequestMeta`、client 配置和请求选项。
+- 新增 `src/lib/api/errors.ts`，实现统一 API 错误构造。
+- 新增 `src/lib/api/client.ts`，实现 base URL 拼接、requestId/header 注入、Bridge token 来源、JSON 请求、超时和错误归一化。
+- 更新 `src/lib/api/index.ts`，统一导出 API client、错误和类型。
+- 新增 `src/lib/api/client.test.ts`，覆盖成功、base URL、requestId、Bridge token、token 缺失、鉴权失败、网络失败和超时。
+- 更新 `docs/05_API_SPEC.md` 和 `docs/09_DECISIONS.md`，记录首版 API client 行为和架构决策。
+- 更新 `.ai/PROJECT_STATE.md`、`.ai/TODO.md` 和 `docs/08_CHANGELOG.md`。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/lib/api/client.test.ts` 并确认测试因 `./client` 缺失失败。
+- 已通过 `pnpm test -- src/lib/api/client.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+- 已通过 `pnpm run ai:check-workflow --strict`。
+
+### 后续
+
+- 后续需确认真实 base URL、token 刷新、重新登录和原生代理策略。
+
+## 2026-05-15 - 实现 Theme Runtime 与 Light/Dark 切换
+
+### 变更
+
+- 更新 `src/lib/theme/tokens.ts`，新增 light/dark 主题变量和变量 allowlist。
+- 新增 `src/lib/theme/runtime.ts`，实现 `getThemeConfig`、`sanitizeThemeVariables` 和 `applyTheme`。
+- 更新 `src/lib/theme/index.ts`，统一导出主题 runtime API。
+- 更新 `src/styles/globals.css`，补充 `[data-theme="dark"]` CSS fallback。
+- 新增 `src/lib/theme/runtime.test.ts`，覆盖 light、dark、fallback、allowlist 和变量应用。
+- 更新 `docs/04_THEME_SPEC.md`、`.ai/PROJECT_STATE.md`、`.ai/TODO.md` 和 `docs/08_CHANGELOG.md`。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/lib/theme/runtime.test.ts` 并确认测试因 runtime API 缺失失败。
+- 已通过 `pnpm test -- src/lib/theme/runtime.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+
+### 后续
+
+- 后续可补充品牌主题、远程主题拉取、用户偏好持久化和对比度检查。
+
+## 2026-05-15 - 实现 Manifest Schema 与远程配置中心
+
+### 变更
+
+- 新增 `src/config/remote-config.ts`，定义 `ManifestFile`、`AppConfigFile`、`ThemeConfigFile` 和本地校验函数。
+- 新增 `src/config/remote-config.test.ts`，覆盖合法 manifest、缺字段、版本黑名单、灰度配置、路由交付、敏感配置拒绝和 theme config。
+- 更新 `docs/03_RELEASE_SPEC.md`，记录 manifest/app-config/theme-config 结构、三类版本、不可变资源目录、`latest` 指针和客户端非敏感配置边界。
+- 更新 `.ai/PROJECT_STATE.md`、`.ai/TODO.md` 和 `docs/08_CHANGELOG.md`。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/config/remote-config.test.ts` 并确认测试因模块缺失失败。
+- 已通过 `pnpm test -- src/config/remote-config.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+
+### 后续
+
+- 确认 manifest 托管、缓存、灰度归属，以及由 H5 还是原生负责拉取 manifest。
+
+## 2026-05-15 - 实现 Native Bridge 协议与 Web Mock
+
+### 变更
+
+- 新增 `src/lib/bridge/types.ts`，定义首批 Bridge 方法、请求/响应类型、`BridgeResult<T>` 和 `BridgeError`。
+- 新增 `src/lib/bridge/errors.ts`，统一 Bridge 错误构造。
+- 新增 `src/lib/bridge/web-mock.ts`，提供 Web mock adapter。
+- 新增 `src/lib/bridge/native-adapter.ts`，封装 `window.MeumallNativeBridge.call`。
+- 更新 `src/lib/bridge/index.ts`，导出 `nativeBridge`、adapter factory、类型和默认边界信息。
+- 新增 `src/lib/bridge/bridge.test.ts`，覆盖 Web mock、方法不存在、Bridge 不可用、超时、原生异常和 window adapter。
+- 更新 `docs/02_NATIVE_BRIDGE_SPEC.md`、`.ai/PROJECT_STATE.md`、`.ai/TODO.md` 和 `docs/08_CHANGELOG.md`。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/lib/bridge/bridge.test.ts` 并确认测试因能力缺失失败。
+- 已通过 `pnpm test -- src/lib/bridge/bridge.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+
+### 后续
+
+- 与原生团队确认最终 namespace、通信协议和首批方法最低 App 版本。
+
+## 2026-05-15 - 创建第一批运行时基础能力任务
+
+### 变更
+
+- 新增 `.ai/tasks/2026-05-15-native-bridge-adapter-and-web-mock.md`。
+- 新增 `.ai/tasks/2026-05-15-manifest-schema-and-remote-config.md`。
+- 新增 `.ai/tasks/2026-05-15-theme-runtime-light-dark.md`。
+- 新增 `.ai/tasks/2026-05-15-api-client-auth-tracing.md`。
+- 新增 `.ai/tasks/2026-05-15-telemetry-white-screen-performance.md`。
+- 更新 `.ai/TODO.md`，将第一批基础能力任务加入 Active，并将静态包、离线兜底、业务目录和 UI 组件库事项放入 Backlog。
+
+### 验证
+
+- 仅创建任务文档和 TODO 记录，未修改业务代码或实现文件。
+
+### 后续
+
+- 逐个使用 `task-plan` 为第一批任务制定实现计划。
+
+## 2026-05-15 - 实现 Root Manifest Resolver
+
+### 变更
+
+- 新增 `src/config/manifest.ts`，导出 `RootManifest`、`GrayRules`、`ResolveH5VersionContext` 和 `resolveH5Version(ctx, manifest)`。
+- 新增 `src/config/manifest.test.ts`，覆盖 stable、gray、force、blacklist、rollback 和 fallback 行为。
+- 更新 `docs/03_RELEASE_SPEC.md`，记录本地版本解析优先级和 fallback 规则。
+- 更新 `docs/09_DECISIONS.md`，记录 Root Manifest 本地版本解析优先级决策。
+- 更新 `.ai/PROJECT_STATE.md`、`.ai/TODO.md` 和 `docs/08_CHANGELOG.md`。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/config/manifest.test.ts` 并确认测试因模块缺失失败。
+- 已通过 `pnpm test -- src/config/manifest.test.ts`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+
+### 后续
+
+- 补充 manifest schema 校验任务，统一字段名和发布平台结构。
+
+## 2026-05-15 - 实现 H5 基础工程架构
+
+### 变更
+
+- 初始化 Next.js App Router、React、TypeScript、Tailwind CSS、pnpm 和 Vitest 工程骨架。
+- 新增 `src/app` 最小 App Shell、`src/styles/globals.css` 默认主题变量和 `src/lib/*` 运行时模块边界。
+- 新增 Tailwind、PostCSS、Vitest、ESLint、TypeScript 和 Next.js 配置。
+- 新增 `.gitignore` 和 `pnpm-lock.yaml`。
+- 更新架构、主题、编码规则、AI 工作流、变更记录、决策记录和项目状态。
+
+### 验证
+
+- 已通过 `pnpm install --frozen-lockfile`。
+- 已通过 `pnpm build`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm run ai:check-workflow --strict`。
+- 已启动 `pnpm dev`，并通过 `curl -I http://localhost:3000` 确认返回 200。
+
+### 后续
+
+- 使用 `task-test` 和 `task-review` 完成任务验证与审查记录后归档。
+
+## 2026-05-15 - 规划 H5 基础工程架构任务
+
+### 变更
+
+- 更新 `.ai/tasks/2026-05-15-h5-foundation-architecture.md`，补充 `## 计划` 章节。
+- 明确基础工程架构任务的影响范围、文件影响、实施步骤、验证计划、风险和待确认问题。
+
+### 验证
+
+- 计划阶段未修改业务代码或工程实现。
+
+### 后续
+
+- 使用 `task-implement` 按计划初始化 Next.js App Router、pnpm、Tailwind 和 Vitest 工程骨架。
+
+## 2026-05-15 - 创建 H5 基础工程架构任务
+
+### 变更
+
+- 新增 `.ai/tasks/2026-05-15-h5-foundation-architecture.md`。
+- 将 H5 基础工程架构任务加入 `.ai/TODO.md`。
+- 记录已确认技术选型：Next.js App Router、pnpm、Vitest。
+
+### 验证
+
+- 仅创建任务文档和 TODO 记录，未修改业务代码或实现文件。
+
+### 后续
+
+- 使用 `task-plan` 为 H5 基础工程架构任务制定实现计划。
+
 ## 2026-05-15 - 完善 AI 工作流自动化
 
 ### 变更
@@ -155,6 +412,110 @@
 ### 验证
 
 - 语法检查、docs sync、workflow check、release-prepare 烟测、archive-task 失败路径、task-test 和 task-review 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-h5-foundation-architecture.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-h5-foundation-architecture.md 归档到 archives/tasks/2026-05-15-h5-foundation-architecture.md。
+
+### 验证
+
+- pnpm install --frozen-lockfile、pnpm build、pnpm typecheck、pnpm lint、pnpm test、pnpm run ai:check-workflow --strict、dev server 200 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-root-manifest-version-resolver.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-root-manifest-version-resolver.md 归档到 archives/tasks/2026-05-15-root-manifest-version-resolver.md。
+
+### 验证
+
+- pnpm test -- src/config/manifest.test.ts、pnpm test、pnpm typecheck、pnpm lint、pnpm run ai:check-workflow --strict 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-native-bridge-adapter-and-web-mock.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-native-bridge-adapter-and-web-mock.md 归档到 archives/tasks/2026-05-15-native-bridge-adapter-and-web-mock.md。
+
+### 验证
+
+- pnpm test -- src/lib/bridge/bridge.test.ts、pnpm test、pnpm typecheck、pnpm lint、pnpm run ai:check-workflow --strict 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-manifest-schema-and-remote-config.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-manifest-schema-and-remote-config.md 归档到 archives/tasks/2026-05-15-manifest-schema-and-remote-config.md。
+
+### 验证
+
+- pnpm test -- src/config/remote-config.test.ts、pnpm test、pnpm typecheck、pnpm lint、pnpm run ai:check-workflow --strict 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-theme-runtime-light-dark.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-theme-runtime-light-dark.md 归档到 archives/tasks/2026-05-15-theme-runtime-light-dark.md。
+
+### 验证
+
+- pnpm test -- src/lib/theme/runtime.test.ts、pnpm test、pnpm typecheck、pnpm lint、pnpm run ai:check-workflow --strict 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-api-client-auth-tracing.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-api-client-auth-tracing.md 归档到 archives/tasks/2026-05-15-api-client-auth-tracing.md。
+
+### 验证
+
+- pnpm test -- src/lib/api/client.test.ts、pnpm test、pnpm typecheck、pnpm lint、pnpm run ai:check-workflow --strict 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-telemetry-white-screen-performance.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-telemetry-white-screen-performance.md 归档到 archives/tasks/2026-05-15-telemetry-white-screen-performance.md。
+
+### 验证
+
+- pnpm test -- src/lib/telemetry/telemetry.test.ts、pnpm test、pnpm typecheck、pnpm lint、pnpm run ai:check-workflow --strict 均通过
+
+### 后续
+
+- 暂无。
+## 2026-05-15 - 归档任务 2026-05-15-commerce-mock-pages-static-fallback-oss-config.md
+
+### 变更
+
+- 已将 .ai/tasks/2026-05-15-commerce-mock-pages-static-fallback-oss-config.md 归档到 archives/tasks/2026-05-15-commerce-mock-pages-static-fallback-oss-config.md。
+
+### 验证
+
+- pnpm test、pnpm typecheck、pnpm lint、pnpm build、pnpm run ai:check-workflow --strict 和浏览器抽查均通过
 
 ### 后续
 

@@ -20,6 +20,64 @@
 - 归一化错误结构。
 - 管理超时、重试和取消。
 
+## 首版 API Client
+
+首版实现位于 `src/lib/api`，只提供共享请求边界，不包含任何业务接口。
+
+```ts
+const client = createApiClient({
+  baseUrl: "https://api.example.com",
+  h5Version: "2026.05.15-001"
+});
+
+const result = await client.request<UserProfile>("/profile", {
+  auth: true,
+  route: "/profile"
+});
+```
+
+### 配置
+
+| 字段 | 说明 |
+| --- | --- |
+| `baseUrl` | 必填，API 请求基础地址。 |
+| `fetcher` | 可选，默认使用 `globalThis.fetch`，测试中可注入 mock。 |
+| `bridge` | 可选，默认使用项目 Native Bridge；用于读取 `user.getToken`。 |
+| `tokenProvider` | 可选，覆盖默认 Bridge token 来源。 |
+| `requestIdFactory` | 可选，默认使用 `crypto.randomUUID()`，测试中可固定。 |
+| `timeoutMs` | 可选，默认 `10000`。 |
+| `h5Version`、`appVersion`、`platform`、`channel`、`route` | 可选，请求追踪上下文。 |
+
+### 请求规则
+
+- `path` 会和 `baseUrl` 做安全拼接，避免重复或缺失 `/`。
+- 默认方法为 `GET`；存在 `body` 时默认方法为 `POST`。
+- `body` 以 JSON 发送，并自动补充 `content-type: application/json`。
+- `auth: true` 时必须拿到 token，否则不发起网络请求。
+- 首版不实现自动重试，避免在幂等性策略未确认前重复请求。
+- 首版不持久化 token，不实现 token 刷新闭环。
+
+### 请求头
+
+首版固定注入以下 header：
+
+| Header | 来源 |
+| --- | --- |
+| `x-request-id` | `requestIdFactory` 或默认 requestId 生成器。 |
+| `x-h5-version` | `createApiClient` 的 `h5Version`，缺省为 `unknown`。 |
+| `x-route` | 单次请求 `route`、client 默认 `route` 或 `unknown`。 |
+| `authorization` | `auth: true` 时注入 `Bearer <token>`。 |
+
+### 鉴权 token 来源
+
+默认 token 来源预留给 Native Bridge：
+
+```ts
+nativeBridge.call("user.getToken")
+```
+
+若 Bridge 不可用、方法不存在、调用失败或返回空 token，`auth: true` 请求返回 `TOKEN_MISSING`，不会继续请求后端。
+
 ## 请求元信息模板
 
 ```ts
@@ -45,7 +103,13 @@ type ApiResult<T> =
 
 ```ts
 type ApiError = {
-  code: string;
+  code:
+    | "TOKEN_MISSING"
+    | "AUTH_FAILED"
+    | "NETWORK_ERROR"
+    | "TIMEOUT"
+    | "HTTP_ERROR"
+    | "PARSE_ERROR";
   message: string;
   httpStatus?: number;
   requestId?: string;
@@ -54,12 +118,24 @@ type ApiError = {
 };
 ```
 
+## 首版错误归一化
+
+| Code | 触发条件 | recoverable | 备注 |
+| --- | --- | --- | --- |
+| `TOKEN_MISSING` | `auth: true` 但 token 不可用。 | `true` | 不发起网络请求，不暴露敏感信息。 |
+| `AUTH_FAILED` | HTTP `401` 或 `403`。 | `true` | 后续接入统一重新登录或刷新策略。 |
+| `NETWORK_ERROR` | `fetch` reject 或网络异常。 | `true` | `details.message` 只记录安全错误信息。 |
+| `TIMEOUT` | 请求超过 `timeoutMs`。 | `true` | 通过 `AbortController` 取消请求。 |
+| `HTTP_ERROR` | 非 `2xx` 且非鉴权失败。 | `true` | 保留 `httpStatus` 和安全响应体摘要。 |
+| `PARSE_ERROR` | 响应体无法按预期解析。 | `false` | 当前作为预留错误码。 |
+
 ## 鉴权规则
 
 - 未明确批准时，H5 不持久化长生命周期 token。
 - 原生提供的鉴权信息必须通过 Bridge 契约处理。
 - 鉴权失败应有统一重新登录或刷新策略。
 - 敏感信息不得写入日志。
+- 首版 API client 只读取 token，不负责刷新、登出或跳登录页。
 
 ## 环境模板
 
