@@ -19,10 +19,10 @@ export type RouteDeliveryConfig = {
 };
 
 export type ManifestAssetsConfig = {
-  cdnBaseUrl: string;
-  immutablePathPattern: string;
-  latestPath: string;
-  integrity?: Record<string, string>;
+  serviceBaseUrl: string;
+  basePath: string;
+  staticAssetPath: string;
+  healthCheckPath: string;
 };
 
 export type RemoteConfigRefs = {
@@ -143,12 +143,10 @@ function validateGrayRules(value: unknown, issues: string[]): void {
 
 function validateAssets(value: unknown, issues: string[]): void {
   const assets = asRecord(value);
-  requireString(assets, "cdnBaseUrl", issues, "assets.cdnBaseUrl");
-  requireString(assets, "immutablePathPattern", issues, "assets.immutablePathPattern");
-  requireString(assets, "latestPath", issues, "assets.latestPath");
-  if (assets.integrity !== undefined) {
-    validateStringRecord(assets.integrity, "assets.integrity", issues);
-  }
+  requireString(assets, "serviceBaseUrl", issues, "assets.serviceBaseUrl");
+  requireString(assets, "basePath", issues, "assets.basePath");
+  requireString(assets, "staticAssetPath", issues, "assets.staticAssetPath");
+  requireString(assets, "healthCheckPath", issues, "assets.healthCheckPath");
 }
 
 function validateRoutes(value: unknown, issues: string[]): void {

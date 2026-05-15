@@ -2,17 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { IconBlock } from "@/components/commerce/IconBlock";
 import { PageShell } from "@/components/commerce/PageShell";
-import { featuredProducts, getProductById } from "@/lib/commerce/mock-data";
+import { getProductById } from "@/lib/commerce/mock-data";
 
 type ProductDetailPageProps = {
   params: Promise<{
     id: string;
   }>;
 };
-
-export function generateStaticParams() {
-  return featuredProducts.map((product) => ({ id: product.id }));
-}
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { id } = await params;

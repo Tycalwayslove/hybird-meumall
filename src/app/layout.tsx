@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "@/styles/globals.css";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Hybrid H5",
   description: "Hybrid App H5 runtime shell"

@@ -23,9 +23,10 @@ const validManifest: ManifestFile = {
     includeUserIds: ["u1"]
   },
   assets: {
-    cdnBaseUrl: "https://cdn.example.com/h5/prod",
-    immutablePathPattern: "/h5/prod/{version}/",
-    latestPath: "/h5/prod/latest/"
+    serviceBaseUrl: "https://h5.example.com",
+    basePath: "/hybird",
+    staticAssetPath: "/_next/static",
+    healthCheckPath: "/api/health"
   },
   routes: {
     "/home": {
@@ -37,7 +38,7 @@ const validManifest: ManifestFile = {
     "/offline": {
       delivery: "local",
       path: "/offline",
-      fallbackUrl: "https://cdn.example.com/h5/prod/latest/offline"
+      fallbackUrl: "app://fallback/offline"
     }
   },
   remoteConfig: {
