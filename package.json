@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "start": "node .next/standalone/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "lint:commit": "commitlint --from HEAD~1 --to HEAD --verbose",
@@ -19,6 +20,8 @@
     "ai:review-task": "node scripts/ai/review-task.ts",
     "ai:build-json": "node scripts/ai/generate-build-json.ts",
     "ai:release-prepare": "node scripts/ai/release-prepare.ts",
+    "ai:prepare-ssr-release": "node scripts/ai/prepare-ssr-release.ts",
+    "ai:smoke-ssr-release": "node scripts/ai/smoke-ssr-release.ts",
     "ai:update-changelog": "node scripts/ai/update-changelog.ts",
     "ai:update-manifest": "node scripts/ai/update-manifest.ts",
     "ai:rollback": "node scripts/ai/rollback.ts"

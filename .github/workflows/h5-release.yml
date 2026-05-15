@@ -1,0 +1,95 @@
+name: H5 Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: H5 version, for example 2026.05.15-001
+        required: true
+      environment:
+        description: dev, test, staging, or prod
+        required: true
+        default: prod
+      channel:
+        description: release channel
+        required: true
+        default: stable
+      rollback_version:
+        description: known good rollback version
+        required: true
+      rollout_percentage:
+        description: gray rollout percentage
+        required: true
+        default: "0"
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    env:
+      H5_SERVICE_BASE_URL: ${{ secrets.H5_SERVICE_BASE_URL }}
+      H5_BASE_PATH: /hybird
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.19.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Quality gates
+        run: |
+          pnpm test
+          pnpm typecheck
+          pnpm lint
+          pnpm run ai:check-workflow --strict
+
+      - name: Build SSR release
+        run: pnpm build
+
+      - name: Prepare release draft
+        run: |
+          SERVICE_BASE_URL="${H5_SERVICE_BASE_URL:-https://h5.example.com}"
+          pnpm run ai:release-prepare \
+            --version "${{ inputs.version }}" \
+            --channel "${{ inputs.channel }}" \
+            --rollback-version "${{ inputs.rollback_version }}" \
+            --rollout-percentage "${{ inputs.rollout_percentage }}" \
+            --routes "/,/category,/cart,/profile" \
+            --service-base-url "$SERVICE_BASE_URL" \
+            --base-path "$H5_BASE_PATH"
+
+      - name: Verify standalone artifact
+        run: |
+          test -f .next/standalone/server.js
+          test -d .next/static
+
+      - name: Prepare SSR release plan
+        run: |
+          SERVICE_BASE_URL="${H5_SERVICE_BASE_URL:-https://h5.example.com}"
+          pnpm run ai:prepare-ssr-release \
+            --version "${{ inputs.version }}" \
+            --environment "${{ inputs.environment }}" \
+            --service-base-url "$SERVICE_BASE_URL" \
+            --base-path "$H5_BASE_PATH"
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: h5-release-${{ inputs.version }}
+          include-hidden-files: true
+          path: |
+            .next/standalone
+            .next/static
+            public
+            archives/releases/${{ inputs.version }}

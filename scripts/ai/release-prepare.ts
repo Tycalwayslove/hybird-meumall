@@ -19,31 +19,80 @@ const help = usage("ai:release-prepare", [
   "--rollback-version <version>",
   "[--rollout-percentage <0-100>]",
   "[--routes /a,/b]",
-  "[--static-routes /offline]",
   "[--artifact dist/h5.zip]",
-  "[--asset-base-url /local/h5/<version>/]",
+  "[--service-base-url https://h5.example.com]",
+  "[--base-path /hybird]",
+  "[--health-check-path /api/health]",
   "[--output-dir archives/releases/<version>]"
 ]);
 
-function toRoute(routePath, staticRoutes, assetBaseUrl) {
-  const isStatic = staticRoutes.includes(routePath);
-  return {
-    path: routePath,
-    delivery: isStatic ? "static" : "remote",
-    assetBaseUrl,
-    staticBundleKey: isStatic ? routePath.replace(/^\//, "").replace(/\//g, "-") || "root" : null,
-    minAppVersion: {
-      ios: "0.0.0",
-      android: "0.0.0"
-    },
-    requiredBridgeCapabilities: []
+function toEnvironment(channel) {
+  const environments = {
+    dev: "dev",
+    qa: "test",
+    test: "test",
+    staging: "staging",
+    beta: "staging",
+    stable: "prod",
+    prod: "prod",
+    rollback: "prod"
   };
+  return environments[channel] || "prod";
+}
+
+function normalizePath(value, fallback) {
+  const raw = String(value || fallback || "").trim();
+  if (!raw || raw === "/") {
+    return "/";
+  }
+  return `/${raw.replace(/^\/+|\/+$/g, "")}`;
+}
+
+function trimTrailingSlash(value) {
+  return String(value || "").replace(/\/+$/, "");
+}
+
+function createAssets(options) {
+  return {
+    serviceBaseUrl: trimTrailingSlash(options.serviceBaseUrl) || "https://h5.example.com",
+    basePath: normalizePath(options.basePath, "/hybird"),
+    staticAssetPath: "/_next/static",
+    healthCheckPath: normalizePath(options.healthCheckPath, "/api/health")
+  };
+}
+
+function createRoutes(routes) {
+  return routes.reduce((acc, routePath) => {
+    acc[routePath] = {
+      delivery: "remote",
+      path: routePath,
+      minAppVersion: "0.0.0",
+      requiredBridgeMethods: []
+    };
+    return acc;
+  }, {});
+}
+
+function toRouteRows(routes) {
+  const entries = Object.entries(routes);
+  if (entries.length === 0) {
+    return "| 无 | 无 | 未配置路由 |";
+  }
+  return entries.map(([routePath, route]) => `| ${routePath} | ${route.delivery} |  |`).join("\n");
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2), {
     required: ["version", "channel", "rollback-version"],
-    optional: ["rollout-percentage", "routes", "static-routes", "artifact", "asset-base-url", "output-dir"]
+    optional: [
+      "rollout-percentage",
+      "routes",
+      "artifact",
+      "service-base-url",
+      "base-path",
+      "health-check-path",
+      "output-dir"
+    ]
   });
 
   const percentage = args["rollout-percentage"] === undefined ? 0 : Number(args["rollout-percentage"]);
@@ -52,10 +101,10 @@ function main() {
   }
 
   const routes = listFromCsv(args.routes);
-  const staticRoutes = listFromCsv(args["static-routes"]);
   const artifacts = listFromCsv(args.artifact);
   const outputDir = rootPath(args["output-dir"] || path.join("archives/releases", args.version));
-  const assetBaseUrl = args["asset-base-url"] || `/local/h5/${args.version}/`;
+  const routeConfig = createRoutes(routes);
+  const isGrayRelease = percentage > 0 && percentage < 100;
 
   const buildJson = {
     version: args.version,
@@ -63,8 +112,14 @@ function main() {
     buildTime: timestamp(),
     gitCommit: getGitCommit(),
     source: "local",
+    renderMode: "ssr",
     artifacts,
-    staticRoutes,
+    runtime: {
+      output: "standalone",
+      entry: ".next/standalone/server.js",
+      staticDir: ".next/static",
+      publicDir: "public"
+    },
     verification: {
       commands: [],
       status: "pending"
@@ -74,19 +129,26 @@ function main() {
   const manifest = {
     schemaVersion: "1.0.0",
     appId: "hybrid-h5",
-    channel: args.channel,
-    activeVersion: args.version,
+    configVersion: `config-${args.version}`,
+    environment: toEnvironment(args.channel),
+    stableVersion: isGrayRelease ? args["rollback-version"] : args.version,
+    grayVersion: isGrayRelease ? args.version : undefined,
     rollbackVersion: args["rollback-version"],
-    rollout: {
-      type: "percentage",
-      percentage,
+    blacklistVersions: [],
+    grayRules: {
+      percentage: isGrayRelease ? percentage : 0,
+      salt: args.channel,
       includeUserIds: [],
       excludeUserIds: []
     },
-    routes: routes.map((routePath) => toRoute(routePath, staticRoutes, assetBaseUrl)),
-    cache: {
-      maxAgeSeconds: 300,
-      staleWhileRevalidateSeconds: 3600
+    assets: createAssets({
+      serviceBaseUrl: args["service-base-url"],
+      basePath: args["base-path"],
+      healthCheckPath: args["health-check-path"]
+    }),
+    routes: routeConfig,
+    remoteConfig: {
+      appConfigUrl: "/config/app-config.json"
     }
   };
 
@@ -109,11 +171,13 @@ function main() {
 
 | Route | Delivery | Notes |
 | --- | --- | --- |
-${manifest.routes.map((route) => `| ${route.path} | ${route.delivery} | ${route.staticBundleKey || ""} |`).join("\n") || "| 无 | 无 | 未配置路由 |"}
+${toRouteRows(manifest.routes)}
 
-## 静态包
+## SSR 产物
 
-${staticRoutes.map((routePath) => `- ${routePath}`).join("\n") || "- 无"}
+- Runtime：.next/standalone/server.js
+- Static：.next/static
+- Public：public
 
 ## Manifest 草案
 
@@ -129,7 +193,7 @@ ${staticRoutes.map((routePath) => `- ${routePath}`).join("\n") || "- 无"}
 
 ## 风险
 
-- 未接真实 CDN。
+- 未接真实 SSR 部署平台。
 - 未发布 manifest。
 `;
 

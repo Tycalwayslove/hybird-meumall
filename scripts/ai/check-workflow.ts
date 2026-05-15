@@ -46,6 +46,8 @@ const requiredScripts = [
   "ai:review-task",
   "ai:build-json",
   "ai:release-prepare",
+  "ai:prepare-ssr-release",
+  "ai:smoke-ssr-release",
   "ai:update-changelog",
   "ai:update-manifest",
   "ai:rollback"
@@ -147,6 +149,8 @@ function checkScriptFiles(errors) {
     "review-task.ts",
     "generate-build-json.ts",
     "release-prepare.ts",
+    "prepare-ssr-release.ts",
+    "smoke-ssr-release.ts",
     "update-changelog.ts",
     "update-manifest.ts",
     "rollback.ts"
