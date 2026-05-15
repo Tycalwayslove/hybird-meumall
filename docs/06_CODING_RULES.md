@@ -98,3 +98,42 @@ src/
 - 一个提交只覆盖一个任务或一个完整小变更。
 - 文档更新属于变更的一部分时要在提交信息中体现。
 - 不把工作流脚手架和业务功能混在一起。
+
+## Git 提交规范
+
+项目使用 Conventional Commits 作为提交信息规范，并通过 `commitlint` 和 `husky` 在 `commit-msg` 阶段自动检查。
+
+提交格式：
+
+```text
+<type>(<scope>): <中文描述>
+```
+
+示例：
+
+```text
+feat(ui): 添加商品详情模拟页
+fix(api): 修复请求超时错误归一化
+docs(workflow): 更新任务归档说明
+chore(git): 接入提交信息规范检查
+```
+
+允许的 `type`：
+
+- `build`
+- `chore`
+- `ci`
+- `docs`
+- `feat`
+- `fix`
+- `perf`
+- `refactor`
+- `revert`
+- `style`
+- `test`
+
+说明：
+
+- 描述可以使用中文。
+- `scope` 推荐使用英文模块名，例如 `ui`、`api`、`bridge`、`release`、`workflow`、`git`。
+- 本地可运行 `pnpm run lint:commit` 检查最近一次提交信息。

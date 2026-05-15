@@ -6,7 +6,9 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "lint:commit": "commitlint --from HEAD~1 --to HEAD --verbose",
     "test": "vitest run",
+    "prepare": "husky",
     "ai:create-task": "node scripts/ai/create-task.ts",
     "ai:diff-summary": "node scripts/ai/generate-diff-summary.ts",
     "ai:check-docs-sync": "node scripts/ai/check-docs-sync.ts",
@@ -27,6 +29,8 @@
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.1",
+    "@commitlint/config-conventional": "^21.0.1",
     "@eslint/js": "^9.39.4",
     "@types/node": "^25.8.0",
     "@types/react": "^19.2.14",
@@ -34,6 +38,7 @@
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.6",
+    "husky": "^9.1.7",
     "postcss": "^8.5.14",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",

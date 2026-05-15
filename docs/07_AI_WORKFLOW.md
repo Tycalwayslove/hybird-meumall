@@ -77,6 +77,22 @@
 
 项目应用工程使用 `pnpm` 管理依赖和运行脚本。AI 辅助脚本仍可通过 `npm run` 或 `pnpm run` 执行；使用 `pnpm run` 传参时直接追加参数，例如 `pnpm run ai:check-workflow --strict`。
 
+## 提交信息检查
+
+项目使用 `commitlint` 和 `husky` 检查 Git 提交信息。提交信息应遵循 Conventional Commits：
+
+```text
+<type>(<scope>): <中文描述>
+```
+
+示例：
+
+```text
+chore(git): 接入提交信息规范检查
+```
+
+本地提交时 `commit-msg` hook 会自动执行 `pnpm exec commitlint --edit "$1"`。也可以运行 `pnpm run lint:commit` 检查最近一次提交。
+
 ## 任务结束检查清单
 
 - [ ] 运行相关验证。

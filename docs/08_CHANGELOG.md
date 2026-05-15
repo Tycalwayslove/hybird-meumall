@@ -40,6 +40,7 @@
 - 添加 API Client 类型、request wrapper、Bridge token 来源、requestId 注入、超时和错误归一化。
 - 添加 telemetry 事件类型、noop reporter、白屏检测策略和首屏性能事件构造。
 - 添加电商模拟页面、静态缺省 HTML 和 OSS 配置模板。
+- 添加 commitlint 和 husky，接入 Git 提交信息规范检查。
 
 ### 变更
 
@@ -55,6 +56,7 @@
 - 补充 API client 首版请求规则、错误码、鉴权 token 来源和可注入请求边界决策。
 - 补充 telemetry 模块边界、白屏检测基础策略、首屏性能指标和 noop reporter 决策。
 - 补充模拟电商路由、静态 fallback 资源和 OSS 配置模板说明。
+- 补充 Conventional Commits 提交格式、中文描述规则和本地检查命令。
 
 ### 废弃
 
@@ -86,6 +88,7 @@
 - 已通过 telemetry 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过电商 mock 数据和 OSS 配置模板单测。
 - 已通过模拟电商页面全量测试、类型检查、lint、生产构建、AI 工作流检查和浏览器抽查。
+- 已通过 commitlint 正反向样例、husky commit-msg hook、全量测试、类型检查、lint、生产构建和 AI 工作流检查。
 ## 2026-05-15 - 归档任务
 
 ### 变更

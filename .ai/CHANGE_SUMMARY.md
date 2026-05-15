@@ -1,5 +1,29 @@
 # 变更摘要
 
+## 2026-05-15 - 接入 Git 提交信息规范检查
+
+### 变更
+
+- 新增 `commitlint.config.cjs`，采用 `@commitlint/config-conventional` 并允许中文提交描述。
+- 新增 `.husky/commit-msg`，提交时自动执行 commitlint。
+- 更新 `package.json`，增加 `prepare` 和 `lint:commit` 脚本。
+- 更新 `docs/06_CODING_RULES.md`、`docs/07_AI_WORKFLOW.md` 和 `.ai/PROJECT_STATE.md`。
+
+### 验证
+
+- 已通过规范提交信息样例：`chore(git): 接入提交信息规范检查`。
+- 已确认非规范提交信息样例会失败：`接入提交信息规范检查`。
+- 已通过 `.husky/commit-msg` 正反向检查。
+- 已通过 `pnpm test`。
+- 已通过 `pnpm typecheck`。
+- 已通过 `pnpm lint`。
+- 已通过 `pnpm build`。
+- 已通过 `pnpm run ai:check-workflow --strict`。
+
+### 后续
+
+- 后续可按需接入 commitizen 或 changelog 生成工具。
+
 ## 2026-05-15 - 实现模拟电商页面、静态缺省页与 OSS 配置模板
 
 ### 变更
