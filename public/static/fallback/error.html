@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>加载异常</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #fff7ed;
+        color: #111827;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main {
+        width: min(360px, calc(100vw - 40px));
+      }
+      .mark {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        background: #f97316;
+      }
+      h1 {
+        margin: 20px 0 8px;
+        font-size: 24px;
+      }
+      p {
+        margin: 0;
+        color: #6b7280;
+        line-height: 1.7;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true"></div>
+      <h1>页面加载异常</h1>
+      <p>当前页面暂时无法加载。此资源用于 WebView 异常兜底。</p>
+    </main>
+  </body>
+</html>
