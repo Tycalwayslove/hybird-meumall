@@ -2,6 +2,11 @@
   "name": "hybird-meumall",
   "private": true,
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
     "ai:create-task": "node scripts/ai/create-task.ts",
     "ai:diff-summary": "node scripts/ai/generate-diff-summary.ts",
     "ai:check-docs-sync": "node scripts/ai/check-docs-sync.ts",
@@ -15,5 +20,24 @@
     "ai:update-changelog": "node scripts/ai/update-changelog.ts",
     "ai:update-manifest": "node scripts/ai/update-manifest.ts",
     "ai:rollback": "node scripts/ai/rollback.ts"
+  },
+  "dependencies": {
+    "next": "^16.2.6",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^25.8.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.6",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.3",
+    "vitest": "^4.1.6"
   }
 }
