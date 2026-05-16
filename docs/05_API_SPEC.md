@@ -129,6 +129,26 @@ type ApiError = {
 | `HTTP_ERROR` | 非 `2xx` 且非鉴权失败。 | `true` | 保留 `httpStatus` 和安全响应体摘要。 |
 | `PARSE_ERROR` | 响应体无法按预期解析。 | `false` | 当前作为预留错误码。 |
 
+## Active Manifest 请求
+
+active manifest 属于发布控制面请求，不走业务 `createApiClient`，避免鉴权、业务 base URL 和重试策略影响发布切流。
+
+H5 通过 `src/lib/manifest/server-fetcher.ts` 拉取 server-meumall 提供的 active manifest：
+
+```ts
+const fetchManifest = createHttpManifestFetcher({
+  url: process.env.NEXT_PUBLIC_H5_MANIFEST_URL
+});
+```
+
+请求规则：
+
+- 默认 endpoint 由 `NEXT_PUBLIC_H5_MANIFEST_URL` 或 `H5_MANIFEST_URL` 提供。
+- 默认发送 `accept: application/json`。
+- HTTP 非 2xx 直接抛错。
+- JSON 解析失败直接抛错。
+- schema 校验、last-known-good 缓存和路由解析仍由 manifest runtime 负责。
+
 ## 鉴权规则
 
 - 未明确批准时，H5 不持久化长生命周期 token。

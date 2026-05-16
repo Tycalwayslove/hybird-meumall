@@ -47,7 +47,10 @@ const requiredScripts = [
   "ai:build-json",
   "ai:release-prepare",
   "ai:prepare-ssr-release",
+  "ai:prepare-standalone-assets",
   "ai:smoke-ssr-release",
+  "ai:register-release",
+  "ai:resolve-manifest",
   "ai:update-changelog",
   "ai:update-manifest",
   "ai:rollback"
@@ -150,7 +153,10 @@ function checkScriptFiles(errors) {
     "generate-build-json.ts",
     "release-prepare.ts",
     "prepare-ssr-release.ts",
+    "prepare-standalone-assets.ts",
     "smoke-ssr-release.ts",
+    "register-release.ts",
+    "resolve-manifest.ts",
     "update-changelog.ts",
     "update-manifest.ts",
     "rollback.ts"

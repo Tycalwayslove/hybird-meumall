@@ -17,7 +17,9 @@
 - [ ] 将模拟页面中的色块占位替换为正式 icon 体系。
 - [ ] 接入真实商品、分类、购物车、订单和用户接口。
 - [ ] 配置 GitHub Actions 所需 SSR secrets 和受保护发布环境。
+- [ ] 在真实 CI 环境配置 `H5_RELEASE_SERVER_URL`，验证 `register_release=true` 的 candidate release 注册链路。
 - [ ] 确认 manifest active 发布审批人和执行窗口。
+- [ ] 将 server-meumall 部署到生产/测试环境后，补充权限控制、审批流、审计日志、发布人记录和 WebView 访问策略验证。
 
 ## Done
 
@@ -47,3 +49,8 @@
 - [x] 补齐 OSS smoke、manifest candidate 发布、latest 指针计划、CDN 刷新计划和手动 CI/CD workflow。
 - [x] 将默认远程发布切回 Next.js SSR/standalone 构建。
 - [x] 将发布配置、manifest 资源模型和 CI/CD 收敛为 SSR-only。
+- [x] 完成 SSR 切流和回滚本地演练。
+- [x] 接入 server-meumall active manifest HTTP fetcher。
+- [x] 跑通 admin-meumall、server-meumall 和 hybird-meumall 的本地 SQLite 配置发布闭环。
+- [x] 打包并启动蓝/绿/粉三份本地 H5 SSR 版本，用于 admin 切 active 后在 iOS WebView 中验证效果。
+- [x] 落地正式发版入口：H5 CI 注册 candidate release、server-meumall 发布/灰度/回滚 API、admin-meumall 正式发版操作台。

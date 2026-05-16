@@ -7,3 +7,4 @@ tsconfig.tsbuildinfo
 
 .DS_Store
 *.log
+.ai/test-reports/*.pid

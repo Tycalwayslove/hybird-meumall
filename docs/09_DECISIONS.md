@@ -329,6 +329,37 @@ Next.js 配置启用 `output: "export"` 和 `trailingSlash: true`。构建发布
 - 上传资源后自动覆盖 active manifest：拒绝，因为缺少发布审批和监控门禁。
 - 自动镜像完整版本目录到 `latest/`：拒绝，因为 `_next/static` 已是不可变资源，镜像会扩大刷新面并误导生产入口。
 
+## ADR-0017 - 正式发版入口由 H5 CI 注册 candidate，admin 控制 active
+
+日期：2026-05-16
+
+状态：Accepted
+
+### 背景
+
+本地蓝/绿/粉演练阶段通过直接写入 server-meumall 数据库来模拟多个 H5 版本。正式流程中，版本应由 hybird-meumall 的构建流水线产生并通知配置中心，admin-meumall 只负责查看候选版本、灰度、全量和回滚。
+
+### 决策
+
+正式发版入口拆分为两个控制面：
+
+- hybird-meumall CI 使用 `ai:register-release --execute` 在构建、部署和 smoke 后向 server-meumall 注册 candidate release。
+- server-meumall 负责持久化 release，生成或保存兼容 `ManifestFile` 的 manifest，并提供 promote、gray 和 rollback API。
+- admin-meumall 不构建 H5，只消费 release API 执行发布 active、设置灰度和回滚。
+- active manifest endpoint 仍是 App/WebView 唯一读取入口。
+
+### 影响
+
+- 发版产物来源和发布操作分离，避免 admin 直接拥有构建和部署权限。
+- 回滚仍然是 manifest 指针切换，不重新构建 SSR 产物。
+- CI 可以使用参数式 payload 注册 release；特殊场景仍可提交完整 manifest。
+- 真实环境需要为 `H5_RELEASE_SERVER_URL`、权限、审计、审批和网络访问策略补生产配置。
+
+### 备选方案
+
+- 在 admin-meumall 中直接触发构建和部署：拒绝，因为会把源码构建权限和线上切流权限混在一个后台入口。
+- 继续人工把版本写入数据库：拒绝，因为无法沉淀可追溯、可自动化、可审计的发版链路。
+
 ## ADR-0013 - 默认远程交付切回 Next.js SSR
 
 日期：2026-05-15
@@ -387,3 +418,54 @@ Next.js 配置启用 `output: "export"` 和 `trailingSlash: true`。构建发布
 
 - 保留 OSS 静态脚本作为默认可选分支：拒绝，因为用户明确不需要兼容以前的 SSG。
 - 继续让 manifest 同时支持 SSR 和静态目录：拒绝，因为客户端 URL 拼接和回滚语义会变复杂。
+
+## ADR-0015 - active manifest 由 server-meumall 提供
+
+日期：2026-05-15
+
+状态：Accepted
+
+### 背景
+
+客户端 manifest runtime 已支持注入 `fetchManifest`，但 hybird 缺少面向 server-meumall active manifest endpoint 的标准 fetcher。继续只依赖调用方手写 fetcher 会让 HTTP 错误处理、JSON 解析错误和默认 URL 读取分散在 App Shell 或原生集成层。
+
+### 决策
+
+新增 `src/lib/manifest/server-fetcher.ts`，由 `createHttpManifestFetcher()` 通过 URL 拉取 server-meumall active manifest JSON。默认 URL 依次读取 `NEXT_PUBLIC_H5_MANIFEST_URL` 和 `H5_MANIFEST_URL`；非 2xx 和 JSON 解析失败直接抛错，交由既有 manifest runtime fallback 到 last-known-good 缓存。
+
+### 影响
+
+- hybird 有统一入口接入 server-meumall active manifest。
+- 现有 manifest runtime API 不变，仍通过 `fetchManifest` 注入远程来源。
+- 测试可通过 `fetchImpl` 注入覆盖网络成功、HTTP 失败和解析失败。
+- 真实环境还需要验证 server-meumall endpoint、CORS、WebView 访问策略和发布审批。
+
+### 备选方案
+
+- 在 `createManifestRuntime` 内直接绑定 server-meumall URL：拒绝，因为会破坏现有注入边界，也不利于原生或测试替换来源。
+- 让业务 API client 拉取 active manifest：拒绝，因为 manifest 是发布控制面请求，不应受业务鉴权、业务 base URL 或重试策略影响。
+
+## ADR-0016 - 本地配置中心使用 FastAPI + SQLite 跑通闭环
+
+日期：2026-05-15
+
+状态：Accepted
+
+### 背景
+
+发布切流和回滚需要一个后台可操作的 active manifest 控制面。当前阶段目标是先跑通本地闭环：后台编辑配置、服务端持久化并发布 active、hybird 读取 active manifest。
+
+### 决策
+
+`server-meumall` 首版使用 Python FastAPI + SQLite 实现本地配置中心，提供 manifest 配置 CRUD、发布 active 和 H5 只读 active manifest endpoint。`admin-meumall` 使用 Vite + React 提供简单配置发布后台。hybird 不直接依赖后台管理接口，只通过 `GET /api/h5/manifest/active?environment=prod` 获取已发布配置。
+
+### 影响
+
+- 本地可以完整体验配置创建、保存、发布、读取和 H5 URL 解析。
+- SQLite 适合本地联调和早期验证，后续生产化可以迁移到 MySQL/PostgreSQL 或内部配置平台。
+- 后台管理接口和 H5 只读接口分离，降低 WebView 暴露管理能力的风险。
+
+### 备选方案
+
+- Node.js + Express 配置中心：用户明确希望后端使用 Python + FastAPI，因此不采用。
+- 直接读写 OSS/CDN manifest JSON：暂不采用，因为本地管理和审批能力不足，且不便于后续补审计和权限。

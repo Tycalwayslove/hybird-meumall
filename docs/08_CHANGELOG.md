@@ -52,7 +52,9 @@
 - 添加手动 GitHub Actions H5 发布流水线。
 - 添加 Next.js SSR/standalone 发布产物归档流程。
 - 添加 SSR-only 发布计划脚本、SSR smoke 脚本和 SSR release 配置模板。
+- 添加 manifest 本地解析脚本，用于体验 SSR 切流和回滚命中结果。
 - 添加 `/api/health` 健康检查接口。
+- 添加 server-meumall active manifest HTTP fetcher，支持环境变量默认 URL 和测试注入 `fetchImpl`。
 
 ### 变更
 
@@ -83,6 +85,10 @@
 - 调整 `.github/workflows/h5-release.yml`，默认归档 `.next/standalone`、`.next/static`、`public` 和 release 草案，不再自动上传 `out/` 到 OSS。
 - 将 manifest 资源模型从静态版本目录收敛为 SSR 服务入口：`serviceBaseUrl`、`basePath`、`staticAssetPath` 和 `healthCheckPath`。
 - 移除默认配置面的 OSS/SSG 发布入口，`.env.example` 改为 SSR 服务变量。
+- active manifest 来源明确为 server-meumall，H5 通过 `NEXT_PUBLIC_H5_MANIFEST_URL` 或 `H5_MANIFEST_URL` 拉取。
+- 本地配置中心闭环已跑通：`server-meumall` 使用 FastAPI + SQLite 管理 manifest 配置，`admin-meumall` 提供配置发布后台，hybird 通过 active manifest endpoint 获取配置。
+- 新增 `ai:prepare-standalone-assets`，用于将 `.next/static` 和 `public` 复制到 `.next/standalone` 运行目录，修复直接运行 standalone SSR 时 `_next/static` CSS/JS 404 的问题。
+- 新增 H5 本地多版本演练标识：通过 `H5_RELEASE_VARIANT` 和 `H5_RELEASE_LABEL` 区分 blue、green、rose 三份 SSR 服务，便于 admin 切 active manifest 后在 iOS WebView 中确认效果。
 
 ### 废弃
 
@@ -109,7 +115,9 @@
 - 已通过真实 OSS smoke 上传和公网 `curl` 验证静态 HTML/JS 对象可访问。
 - 已通过 release ops 单测、真实 OSS smoke、manifest candidate 上传和公网 manifest 读取验证。
 - 已通过 Next.js SSR/standalone 构建、standalone 产物检查、本地 SSR 服务 smoke 和 SSR release 脚本测试。
+- 已通过 SSR 切流与回滚本地演练，覆盖稳定用户、灰度用户和异常版本回滚。
 - 已通过 `pnpm install --frozen-lockfile`、`pnpm build`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm run ai:check-workflow --strict`。
+- 已通过 server-meumall active manifest fetcher 的红绿测试，覆盖成功、非 2xx 和 JSON 解析失败路径。
 - 已通过 `pnpm test -- src/config/manifest.test.ts`、`pnpm test`、`pnpm typecheck` 和 `pnpm lint`。
 - 已通过 Bridge adapter 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过远程配置 schema 单测、全量测试、类型检查、lint 和 AI 工作流检查。
@@ -221,3 +229,16 @@
 ### 验证
 
 - pnpm-test-typecheck-lint-build-workflow-and-oss-config-check-passed
+## 2026-05-16 - 正式发版入口
+
+### 变更
+
+- H5 CI 增加 candidate release 注册入口：`pnpm run ai:register-release`。
+- GitHub Actions 增加可选 `register_release` 输入，支持构建归档后注册到 server-meumall。
+- server-meumall 增加 release 注册、列表、发布 active、设置灰度和回滚 API。
+- admin-meumall 增加“正式发版”操作区，承接候选版本发布、灰度和回滚。
+
+### 验证
+
+- server/admin/hybird 自动化测试和构建通过。
+- 本地 FastAPI smoke 已验证注册 candidate、发布 active、灰度和回滚链路。

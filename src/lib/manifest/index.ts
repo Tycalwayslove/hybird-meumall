@@ -1,6 +1,13 @@
 import { resolveH5Version, type ResolveH5VersionContext } from "@/config/manifest";
 import { validateManifestFile, type ManifestFile, type RouteDeliveryConfig } from "@/config/remote-config";
 
+export { createHttpManifestFetcher, getDefaultManifestUrl } from "./server-fetcher";
+export type {
+  CreateHttpManifestFetcherOptions,
+  ManifestFetchImplementation,
+  ManifestUrlEnvironment
+} from "./server-fetcher";
+
 export type ManifestFetcher = () => Promise<unknown> | unknown;
 
 export type ManifestStorageAdapter = {

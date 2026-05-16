@@ -60,8 +60,37 @@ node .next/standalone/server.js
 - `PORT`
 - `HOSTNAME`
 - `H5_BASE_PATH=/hybird`
+- `H5_RELEASE_VARIANT`，本地多版本演练可用 `blue`、`green`、`rose`。
+- `H5_RELEASE_LABEL`，显示在 H5 右上角的版本标识。
 
 `H5_BASE_PATH` 是 SSR 服务挂载路径，必须在构建和运行环境保持一致。
+
+## 本地多版本演练
+
+为了在原生 App WebView 中肉眼确认 active manifest 切换效果，可以将同一份 standalone 产物复制成多份，并用不同运行时变量启动：
+
+```bash
+H5_BASE_PATH=/hybird pnpm build
+pnpm run ai:prepare-standalone-assets
+
+cp -R .next/standalone .next/variant-packages/blue
+cp -R .next/standalone .next/variant-packages/green
+cp -R .next/standalone .next/variant-packages/rose
+
+PORT=3109 H5_RELEASE_VARIANT=blue H5_RELEASE_LABEL="BLUE 2026.05.16" node .next/variant-packages/blue/server.js
+PORT=3110 H5_RELEASE_VARIANT=green H5_RELEASE_LABEL="GREEN 2026.05.16" node .next/variant-packages/green/server.js
+PORT=3111 H5_RELEASE_VARIANT=rose H5_RELEASE_LABEL="ROSE 2026.05.16" node .next/variant-packages/rose/server.js
+```
+
+然后在 `server-meumall` 中创建三份 manifest 配置：
+
+| 版本 | `assets.serviceBaseUrl` |
+| --- | --- |
+| `2026.05.16-blue` | `http://127.0.0.1:3109` |
+| `2026.05.16-green` | `http://127.0.0.1:3110` |
+| `2026.05.16-rose` | `http://127.0.0.1:3111` |
+
+在 `admin-meumall` 发布不同 active manifest 后，iOS App 点击“刷新配置”即可重新拉取 active manifest 并加载对应 H5 版本。
 
 ## Manifest 模型
 
@@ -124,12 +153,68 @@ https://h5.example.com/hybird/category
 
 H5 版本号只用于发布选择、灰度和回滚，不参与拼接 HTML 静态目录。
 
+## Active Manifest 来源
+
+active manifest 由 `server-meumall` 提供，不再要求 H5 只能通过本地注入 fetcher 消费 manifest。默认本地联调 endpoint：
+
+```text
+http://127.0.0.1:4100/api/h5/manifest/active?environment=prod
+```
+
+H5 侧通过环境变量配置 active manifest URL：
+
+| 变量 | 用途 |
+| --- | --- |
+| `NEXT_PUBLIC_H5_MANIFEST_URL` | 浏览器/WebView 中可见的 active manifest URL，适用于 App Shell 客户端拉取。 |
+| `H5_MANIFEST_URL` | SSR 或服务端上下文使用的 active manifest URL，不应暴露敏感服务内网信息到浏览器 bundle。 |
+
+`src/lib/manifest/server-fetcher.ts` 提供 `createHttpManifestFetcher(options)`：
+
+- `url` 可显式传入 server-meumall active manifest URL。
+- `fetchImpl` 可注入，便于单元测试或 WebView 容器替换请求实现。
+- 未传 `url` 时会依次读取 `NEXT_PUBLIC_H5_MANIFEST_URL`、`H5_MANIFEST_URL`。
+- HTTP 非 2xx 会抛错，JSON 解析失败会抛错，由既有 manifest runtime 继续执行 last-known-good 缓存 fallback。
+
+后台发布流程：
+
+1. 后台或发布平台完成 SSR 版本部署和 smoke。
+2. H5 CI 调用 `server-meumall` 的 `POST /api/releases` 注册 candidate release。
+3. admin-meumall 在“正式发版”列表中展示 candidate release。
+4. 发布人员在 admin-meumall 中执行灰度、全量或回滚操作。
+5. server-meumall 更新 active manifest 指针或 active manifest 的灰度字段。
+6. hybird App Shell 使用 `createHttpManifestFetcher()` 拉取 active manifest JSON。
+7. 既有 manifest runtime 执行 schema 校验、last-known-good 缓存、版本解析和路由 URL 构造。
+8. 后台执行回滚时只更新 server-meumall active manifest 指针；hybird 下一次拉取后按相同 runtime 逻辑切回目标版本。
+
+`POST /api/releases` 推荐由 CI 使用参数式 payload，server-meumall 会生成兼容 `ManifestFile` 的 manifest：
+
+```json
+{
+  "version": "2026.05.16-001",
+  "environment": "prod",
+  "serviceBaseUrl": "https://h5.example.com",
+  "basePath": "/hybird",
+  "rollbackVersion": "2026.05.15-001",
+  "rolloutPercentage": 0,
+  "routes": ["/", "/category", "/cart", "/profile"],
+  "source": "hybird-ci",
+  "buildMeta": {
+    "renderMode": "ssr",
+    "runtime": "next-standalone",
+    "gitCommit": "abc123"
+  }
+}
+```
+
+服务端也兼容提交完整 `manifest`，用于后台手工修正或特殊版本导入。
+
 ## 当前已落地能力
 
 - `next.config.ts`：使用 `output: "standalone"`，支持 `H5_BASE_PATH`。
 - `src/app/layout.tsx`：当前路由强制动态渲染，避免 mock 页面被自动静态优化。
 - `src/config/remote-config.ts`：校验 SSR manifest schema。
 - `src/lib/manifest`：拉取 manifest、缓存 last-known-good、解析版本并返回 SSR 路由 URL。
+- `src/lib/manifest/server-fetcher.ts`：通过 server-meumall active manifest URL 拉取 JSON，并保持可注入 `fetchImpl`。
 - `scripts/ai/release-prepare.ts`：生成 SSR manifest draft、build metadata 和 release note。
 - `scripts/ai/prepare-ssr-release.ts`：生成可审查的 SSR 部署计划。
 - `scripts/ai/smoke-ssr-release.ts`：对 SSR 服务做 HTTP smoke。
@@ -191,7 +276,22 @@ test -d .next/static
 test -d public
 ```
 
-6. 生成 SSR 发布计划：
+6. 准备 standalone 运行目录静态资源：
+
+```bash
+pnpm run ai:prepare-standalone-assets
+```
+
+说明：Next.js standalone 输出不会自动把 `.next/static` 和 `public` 放进 `.next/standalone`。本地或平台直接运行 `.next/standalone/server.js` 时，必须确保：
+
+```text
+.next/standalone/.next/static
+.next/standalone/public
+```
+
+存在，否则 SSR HTML 可以返回，但 `/_next/static/*` CSS/JS 会 404。
+
+7. 生成 SSR 发布计划：
 
 ```bash
 pnpm run ai:prepare-ssr-release \
@@ -201,18 +301,35 @@ pnpm run ai:prepare-ssr-release \
   --base-path "/hybird"
 ```
 
-7. 上传 release archive：`.next/standalone`、`.next/static`、`public`、`archives/releases/<version>`。
-8. 部署到 SSR 运行平台。
-9. 部署后 smoke：
+8. 上传 release archive：`.next/standalone`、`.next/static`、`public`、`archives/releases/<version>`。
+9. 部署到 SSR 运行平台。
+10. 部署后 smoke：
 
 ```bash
 pnpm run ai:smoke-ssr-release --plan archives/releases/2026.05.15-001/ssr-release-plan.json
 ```
 
-10. 发布 candidate manifest，完成 WebView 验证。
-11. 审批后覆盖 active manifest。
-12. 监控白屏、JS error、接口错误、首屏性能和核心路径打开率。
-13. 按灰度结果提升比例或回滚。
+11. 发布 candidate manifest，完成 WebView 验证。
+12. 注册 candidate release：
+
+```bash
+pnpm run ai:register-release \
+  --version 2026.05.15-001 \
+  --environment prod \
+  --service-base-url "https://h5.example.com" \
+  --base-path "/hybird" \
+  --rollback-version 2026.05.14-001 \
+  --rollout-percentage 0 \
+  --routes "/,/category,/cart,/profile" \
+  --server-url "https://release.example.com" \
+  --execute
+```
+
+未追加 `--execute` 时，脚本只生成 `archives/releases/<version>/release-registration.json` 草案，不提交服务端。
+
+13. admin-meumall 展示 candidate release，审批后执行灰度或发布 active。
+14. 监控白屏、JS error、接口错误、首屏性能和核心路径打开率。
+15. 按灰度结果提升比例或回滚。
 
 ## 回滚流程
 
@@ -255,7 +372,7 @@ pnpm run ai:rollback \
 
 真实 App Shell 推荐流程：
 
-1. 拉取 active `manifest.json`。
+1. 从 server-meumall active manifest endpoint 拉取 manifest JSON。
 2. 使用 `validateManifestFile(input)` 校验 schema。
 3. 校验通过后写入 last-known-good 缓存。
 4. 网络失败或 manifest 非法时读取缓存。

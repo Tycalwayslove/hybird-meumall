@@ -1,5 +1,103 @@
 # 变更摘要
 
+## 2026-05-16 - 本地多版本 H5 切换演练
+
+### 变更
+
+- H5 根布局新增 `H5_RELEASE_VARIANT` 和 `H5_RELEASE_LABEL` 支持，页面右上角展示可肉眼识别的版本标识。
+- 全局样式新增 blue、green、rose 三套本地演练主题。
+- 打包并启动三份 standalone SSR 服务：blue `3109`、green `3110`、rose `3111`。
+- 在 `server-meumall` 中创建 `H5 BLUE/GREEN/ROSE 2026.05.16` 三份 manifest 配置，当前 active 恢复为 blue。
+- iOS App 增加 manifest 刷新调试入口，便于 admin 切 active 后在 WebView 中立即重新拉取配置。
+
+### 验证
+
+- 已通过 `pnpm typecheck`、`pnpm lint`、`H5_BASE_PATH=/hybird pnpm build` 和 `pnpm run ai:prepare-standalone-assets`。
+- 已验证 `3109/3110/3111` 三个 H5 SSR 服务均返回 200，并分别输出 `BLUE/GREEN/ROSE 2026.05.16` 标识。
+- 已通过 server publish smoke：green active 切换成功后恢复 blue active。
+- 已通过 iOS `Info.plist` / entitlements 校验和 `git diff --check`。
+
+### 后续
+
+- 真机调试时需要把 manifest URL 和各 H5 `serviceBaseUrl` 从 `127.0.0.1` 切换为 Mac 局域网 IP。
+
+## 2026-05-15 - 修复 standalone SSR 静态资源 404
+
+### 变更
+
+- 定位 `/hybird/_next/static/chunks/0fhdp5vz98u_y.css` 404 根因：standalone 运行目录缺少 `.next/standalone/.next/static`。
+- 新增 `ai:prepare-standalone-assets`，将 `.next/static` 和 `public` 复制到 `.next/standalone` 运行目录。
+- 更新发布规范和 AI 工作流文档，明确直接运行 `.next/standalone/server.js` 前必须准备静态资源。
+
+### 验证
+
+- 已复制当前构建产物静态资源并重启 standalone SSR 服务。
+- 已验证 CSS chunk、页面引用的前 10 个 `_next/static` 资源和 `/hybird/category` 均返回 200。
+- 已通过 `pnpm run ai:prepare-standalone-assets`、`pnpm run ai:check-workflow --strict` 和 `git diff --check`。
+
+### 后续
+
+- CI/CD 在部署 standalone 产物前应执行 `pnpm run ai:prepare-standalone-assets` 或在打包步骤中等价复制 `.next/static` 与 `public`。
+
+## 2026-05-15 - 跑通本地配置中心闭环
+
+### 变更
+
+- 在 `server-meumall` 落地 Python FastAPI + SQLite manifest 配置中心，支持配置 CRUD、发布 active 和 H5 只读 active manifest。
+- 在 `admin-meumall` 落地 Vite + React 配置发布后台，支持编辑 manifest JSON、保存、发布和删除。
+- 修正 server seed manifest 和 admin 默认 manifest 为 hybird 当前 `ManifestFile` 对象结构，保证 `grayRules`、`routes`、`assets` 与 H5 schema 一致。
+- 修正 admin 对 server snake_case 时间字段和 FastAPI `detail` 错误字段的兼容。
+
+### 验证
+
+- 已通过 `server-meumall` 的 `. .venv/bin/activate && pytest`。
+- 已通过 `admin-meumall` 的 `pnpm test` 和 `pnpm build`。
+- 已通过 `hybird-meumall` 的 `pnpm exec vitest run src/lib/manifest/server-fetcher.test.ts`、`pnpm typecheck` 和 `pnpm lint`。
+- 已通过临时 SQLite 数据库的 HTTP smoke：读取 active manifest、创建 draft、发布 active、重新读取 active。
+- 已启动本地联调服务：server `4100`、admin `5173`、hybird SSR `3109`，并验证 active manifest、admin 首页和 `/hybird/category` 均可访问。
+
+### 后续
+
+- 生产化时补充登录权限、审批流、审计日志、配置 diff 和生产数据库迁移。
+
+## 2026-05-15 - 接入 server-meumall active manifest fetcher
+
+### 变更
+
+- 新增 `src/lib/manifest/server-fetcher.ts`，提供 `createHttpManifestFetcher()` 和默认 manifest URL 读取 helper。
+- 新增 `src/lib/manifest/server-fetcher.test.ts`，覆盖成功拉取、非 2xx、JSON 解析失败和环境变量优先级。
+- 更新 `.env.example`，增加 `NEXT_PUBLIC_H5_MANIFEST_URL` 和 `H5_MANIFEST_URL`，默认指向 server-meumall 本地 active manifest endpoint。
+- 更新发布/API 文档、项目状态、TODO、变更记录和决策记录，明确 active manifest 由 server-meumall 提供。
+
+### 验证
+
+- 已先运行 `pnpm test -- src/lib/manifest/server-fetcher.test.ts` 确认新增测试因模块缺失失败。
+- 已通过 `pnpm test -- src/lib/manifest/server-fetcher.test.ts`。
+- 已通过 `pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm run ai:check-workflow --strict` 和 `git diff --check`。
+
+### 后续
+
+- 使用真实 server-meumall 环境验证 active manifest endpoint、CORS 和 WebView 访问策略。
+
+## 2026-05-15 - SSR 切流与回滚本地演练
+
+### 变更
+
+- 新增 `ai:resolve-manifest`，用于本地观察 manifest 在不同用户、路由和当前版本下的命中结果。
+- 新增 `archives/releases/2026.05.15-switch-drill/`，包含 stable、gray、rollback 三份演练 manifest 和操作 README。
+- 新增 `.ai/test-reports/2026-05-15-ssr-switch-rollback-drill.md`，记录切流和回滚验证过程。
+
+### 验证
+
+- 已通过本地 SSR 服务 `http://127.0.0.1:3109/hybird` 的 smoke 检查。
+- stable manifest 命中 `2026.05.15-001`。
+- gray manifest 中 `demo-gray` 命中 `2026.05.15-002`，`demo-stable` 留在 `2026.05.15-001`。
+- rollback manifest 将当前异常版本 `2026.05.15-002` 切回 `2026.05.15-001`。
+
+### 后续
+
+- 真实 App 接入后，需要把 `ai:resolve-manifest` 对应的观察结果映射到 WebView 实际加载日志。
+
 ## 2026-05-15 - 收敛为 SSR-only 发布与回滚
 
 ### 变更
@@ -764,3 +862,41 @@
 ### 后续
 
 - 暂无。
+## 2026-05-16 - 本地发布 2026.05.16-003
+
+### 变更
+
+- 启动 server-meumall、admin-meumall 和 H5 SSR 新版本服务。
+- 生成 `archives/releases/2026.05.16-003/` 发布草案、SSR 发布计划和验证记录。
+- 将 `2026.05.16-003` 注册为 candidate release，并发布为 prod active。
+
+### 验证
+
+- `GET /api/health`、admin 首页和 H5 `/hybird/category` 均返回 200。
+- `pnpm run ai:smoke-ssr-release --plan archives/releases/2026.05.16-003/ssr-release-plan.json` 通过。
+- active manifest 已指向 `http://127.0.0.1:3112/hybird/category`。
+
+### 后续
+
+- iOS Simulator 点击“刷新配置”后可看到 `NEW 2026.05.16-003` 绿色标识。
+
+## 2026-05-16 - 落地正式发版入口
+
+### 变更
+
+- 新增 `scripts/ai/register-release.ts` 和 `ai:register-release`，支持生成 release 注册草案，并在 `--execute` 时提交到 server-meumall。
+- 更新 `.github/workflows/h5-release.yml`，增加可选 `register_release` 输入和 candidate release 注册步骤。
+- 扩展 server-meumall release API，支持 CI 参数式注册、完整 manifest 注册、发布 active、设置灰度和回滚。
+- 扩展 admin-meumall 正式发版操作区，展示 release 列表并支持发布、灰度和回滚。
+- 更新发布规范、AI 工作流、server/admin README 和项目状态记录。
+
+### 验证
+
+- server-meumall：`. .venv/bin/activate && pytest` 通过，10 tests。
+- admin-meumall：`pnpm test && pnpm build` 通过。
+- hybird-meumall：`pnpm exec vitest run --config scripts/ai/vitest.config.ts scripts/ai/release-manifest.test.ts`、`pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm run ai:check-workflow --strict` 均通过。
+- 本地 HTTP smoke：`ai:register-release --execute` 成功注册 candidate，随后通过 release API 完成 promote、gray 和 rollback，active manifest 指针符合预期。
+
+### 后续
+
+- 在真实 CI 中配置 `H5_RELEASE_SERVER_URL` 并验证受保护环境注册链路。

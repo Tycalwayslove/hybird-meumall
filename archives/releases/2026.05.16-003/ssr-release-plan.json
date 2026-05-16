@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0.0",
+  "kind": "ssr-release-plan",
+  "version": "2026.05.16-003",
+  "environment": "prod",
+  "createdAt": "2026-05-16T03:13:04.854Z",
+  "gitCommit": "ebee6b4",
+  "runtime": {
+    "type": "node-standalone",
+    "entry": ".next/standalone/server.js",
+    "startCommand": "node .next/standalone/server.js",
+    "requiredEnv": [
+      "NODE_ENV",
+      "PORT",
+      "HOSTNAME",
+      "H5_BASE_PATH"
+    ]
+  },
+  "service": {
+    "serviceBaseUrl": "http://127.0.0.1:3112",
+    "basePath": "/hybird",
+    "healthCheckUrl": "http://127.0.0.1:3112/hybird/api/health",
+    "smokeUrls": [
+      "http://127.0.0.1:3112/hybird",
+      "http://127.0.0.1:3112/hybird/category",
+      "http://127.0.0.1:3112/hybird/cart",
+      "http://127.0.0.1:3112/hybird/profile"
+    ]
+  },
+  "artifacts": [
+    {
+      "path": ".next/standalone/server.js",
+      "exists": true,
+      "type": "file"
+    },
+    {
+      "path": ".next/standalone",
+      "exists": true,
+      "type": "directory"
+    },
+    {
+      "path": ".next/static",
+      "exists": true,
+      "type": "directory"
+    },
+    {
+      "path": "public",
+      "exists": true,
+      "type": "directory"
+    }
+  ],
+  "cacheControl": {
+    "html": "private, no-cache, no-store, max-age=0, must-revalidate",
+    "static": "public, max-age=31536000, immutable",
+    "manifest": "no-cache, max-age=0, must-revalidate"
+  },
+  "rollback": {
+    "strategy": "manifest-pointer",
+    "command": "pnpm run ai:rollback -- --manifest <manifest> --target-version <version> --reason <reason>",
+    "rebuildRequired": false
+  }
+}

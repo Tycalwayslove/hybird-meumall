@@ -21,7 +21,10 @@
     "ai:build-json": "node scripts/ai/generate-build-json.ts",
     "ai:release-prepare": "node scripts/ai/release-prepare.ts",
     "ai:prepare-ssr-release": "node scripts/ai/prepare-ssr-release.ts",
+    "ai:prepare-standalone-assets": "node scripts/ai/prepare-standalone-assets.ts",
+    "ai:register-release": "node scripts/ai/register-release.ts",
     "ai:smoke-ssr-release": "node scripts/ai/smoke-ssr-release.ts",
+    "ai:resolve-manifest": "node scripts/ai/resolve-manifest.ts",
     "ai:update-changelog": "node scripts/ai/update-changelog.ts",
     "ai:update-manifest": "node scripts/ai/update-manifest.ts",
     "ai:rollback": "node scripts/ai/rollback.ts"

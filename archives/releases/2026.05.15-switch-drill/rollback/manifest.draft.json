@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "appId": "hybrid-h5",
+  "configVersion": "config-2026.05.15-002",
+  "environment": "prod",
+  "stableVersion": "2026.05.15-001",
+  "rollbackVersion": "2026.05.15-001",
+  "blacklistVersions": [],
+  "grayRules": {
+    "percentage": 0,
+    "salt": "rollback",
+    "includeUserIds": [],
+    "excludeUserIds": []
+  },
+  "assets": {
+    "serviceBaseUrl": "http://127.0.0.1:3109",
+    "basePath": "/hybird",
+    "staticAssetPath": "/_next/static",
+    "healthCheckPath": "/api/health"
+  },
+  "routes": {
+    "/": {
+      "delivery": "remote",
+      "path": "/",
+      "minAppVersion": "0.0.0",
+      "requiredBridgeMethods": []
+    },
+    "/category": {
+      "delivery": "remote",
+      "path": "/category",
+      "minAppVersion": "0.0.0",
+      "requiredBridgeMethods": []
+    },
+    "/cart": {
+      "delivery": "remote",
+      "path": "/cart",
+      "minAppVersion": "0.0.0",
+      "requiredBridgeMethods": []
+    },
+    "/profile": {
+      "delivery": "remote",
+      "path": "/profile",
+      "minAppVersion": "0.0.0",
+      "requiredBridgeMethods": []
+    }
+  },
+  "remoteConfig": {
+    "appConfigUrl": "/config/app-config.json"
+  }
+}

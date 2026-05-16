@@ -1,0 +1,19 @@
+{
+  "version": "2026.05.15-002",
+  "channel": "stable",
+  "buildTime": "2026-05-15T10:42:08.414Z",
+  "gitCommit": "ebee6b4",
+  "source": "local",
+  "renderMode": "ssr",
+  "artifacts": [],
+  "runtime": {
+    "output": "standalone",
+    "entry": ".next/standalone/server.js",
+    "staticDir": ".next/static",
+    "publicDir": "public"
+  },
+  "verification": {
+    "commands": [],
+    "status": "pending"
+  }
+}

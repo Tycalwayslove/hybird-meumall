@@ -1,0 +1,26 @@
+{
+  "version": "2026.05.16-003",
+  "channel": "stable",
+  "buildTime": "2026-05-16T03:13:04.540Z",
+  "gitCommit": "ebee6b4",
+  "source": "local",
+  "renderMode": "ssr",
+  "artifacts": [],
+  "runtime": {
+    "output": "standalone",
+    "entry": ".next/standalone/server.js",
+    "staticDir": ".next/static",
+    "publicDir": "public"
+  },
+  "verification": {
+    "status": "passed",
+    "commands": [
+      "curl http://127.0.0.1:4100/api/health",
+      "curl -I http://127.0.0.1:5173/",
+      "curl -I http://127.0.0.1:3112/hybird/category",
+      "pnpm run ai:prepare-ssr-release --version 2026.05.16-003 --environment prod --service-base-url http://127.0.0.1:3112 --base-path /hybird",
+      "pnpm run ai:smoke-ssr-release --plan archives/releases/2026.05.16-003/ssr-release-plan.json",
+      "pnpm run ai:register-release --version 2026.05.16-003 --environment prod --service-base-url http://127.0.0.1:3112 --base-path /hybird --rollback-version 2026.05.16-green --rollout-percentage 0 --routes /,/category,/cart,/profile --server-url http://127.0.0.1:4100 --execute"
+    ]
+  }
+}

@@ -19,9 +19,17 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const releaseVariant = process.env.H5_RELEASE_VARIANT || "blue";
+  const releaseLabel =
+    process.env.H5_RELEASE_LABEL ||
+    process.env.H5_VERSION ||
+    `H5 ${releaseVariant}`;
+
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body data-release-variant={releaseVariant} data-release-label={releaseLabel}>
+        {children}
+      </body>
     </html>
   );
 }

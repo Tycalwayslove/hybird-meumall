@@ -73,13 +73,16 @@
 | `npm run ai:check-workflow` | 检查文档、Skills、活跃任务、package scripts 和脚本文件是否同步。 |
 | `npm run ai:release-prepare` | 本地生成 `build.json`、`release-note.md`、`manifest.draft.json` 草案。 |
 | `npm run ai:prepare-ssr-release` | 基于 standalone 产物生成 SSR 发布计划，包含运行入口、artifact、服务地址、健康检查和回滚策略。 |
+| `npm run ai:prepare-standalone-assets` | 将 `.next/static` 和 `public` 复制到 `.next/standalone` 运行目录，避免 standalone SSR 服务静态资源 404。 |
 | `npm run ai:smoke-ssr-release` | 基于 SSR 发布计划检查健康检查和核心页面 HTTP 响应。 |
+| `npm run ai:register-release` | 生成 release 注册草案，或在 `--execute` 时将 candidate release 注册到 server-meumall。 |
+| `npm run ai:resolve-manifest` | 本地解析 manifest 在指定用户、路由和当前版本下命中的 H5 版本与 SSR URL。 |
 | `npm run ai:update-manifest` | 更新本地 manifest 草案。 |
 | `npm run ai:rollback` | 只修改 manifest 草案生成回滚记录，不重新构建。 |
 
 项目应用工程使用 `pnpm` 管理依赖和运行脚本。AI 辅助脚本仍可通过 `npm run` 或 `pnpm run` 执行；使用 `pnpm run` 传参时直接追加参数，例如 `pnpm run ai:check-workflow --strict`。
 
-`.github/workflows/h5-release.yml` 提供手动触发的 H5 SSR 发布流水线。流水线运行质量门禁、`pnpm build`、release 草案生成、standalone 产物校验和 SSR 发布计划生成，并上传 `.next/standalone`、`.next/static`、`public` 与 `archives/releases/<version>` 作为发布归档。manifest candidate/active 覆盖由受保护环境或发布平台审批后执行。
+`.github/workflows/h5-release.yml` 提供手动触发的 H5 SSR 发布流水线。流水线运行质量门禁、`pnpm build`、release 草案生成、standalone 静态资源准备、SSR 发布计划生成，并上传 `.next/standalone`、`.next/static`、`public` 与 `archives/releases/<version>` 作为发布归档。当 `register_release=true` 且配置了 `H5_RELEASE_SERVER_URL` secret 时，流水线会调用 `ai:register-release --execute` 将 candidate release 注册到 server-meumall。active、灰度和回滚仍由 admin-meumall 或受保护发布环境审批后执行。
 
 ## 提交信息检查
 
