@@ -1,5 +1,34 @@
 # 变更摘要
 
+## 2026-05-16 - 本地 Jenkins H5 构建链路修复
+
+### 变更
+
+- 修复本地 Jenkins `mac-studio` agent 离线问题，将 agent 接入 launchd 守护。
+- 将 Jenkins Pipeline 调整为启动本机 detached 构建脚本，避免长时间 Docker 构建导致 remoting channel 不稳定。
+- 为 `/Users/mac/meumall-ci/ops/hybird-local-deploy.sh` 增加本地 Git mirror 缓存：网络可用时刷新 GitHub，网络不可用时使用本地缓存继续构建。
+- 为 launchd 启动的 Jenkins agent 固化代理环境，解决后台 GitHub 直连超时。
+- release 注册改为通过 SSH tunnel 访问服务器本机 FastAPI，避免 CI 走公网 nginx 管理鉴权入口。
+- H5 激活后的 smoke 检查增加重试等待，避免容器刚重启时短暂 502 导致 Jenkins 误判失败。
+- 修复服务器 nginx 中 `/hybird` 与 `/hybird/` 的重定向循环，避免首页打开 `ERR_TOO_MANY_REDIRECTS`。
+- 保留 Jenkins 参数化构建入口，可指定分支、版本、服务器地址、SSH key、是否注册 release 和是否激活部署。
+
+### 验证
+
+- Jenkins build #7 成功，版本 `2026.05.16-local-smoke-007`。
+- Jenkins build #11 成功，版本 `2026.05.16-local-11`。
+- 已完成 `pnpm install`、`pnpm build` 和 `pnpm run ai:prepare-standalone-assets`。
+- 已完成 `pnpm test` 和 `pnpm typecheck`。
+- 已上传 standalone SSR 产物到服务器 `/opt/meumall/releases/hybird/2026.05.16-local-11`。
+- 已通过 SSH tunnel 注册 candidate release `2026.05.16-local-11`。
+- 已激活远端 `/opt/meumall/current/hybird -> /opt/meumall/releases/hybird/2026.05.16-local-11`。
+- 已验证公网 `http://118.196.24.12/hybird/api/health` 和 `/hybird/category` 可访问。
+- 已验证 `http://118.196.24.12/hybird` 直接返回 200，`/hybird/` 只跳转一次后返回 200。
+
+### 后续
+
+- 长期生产化建议为 server-meumall 增加独立 CI token，替代 SSH tunnel 作为外部 CI 的 release 注册认证方式。
+
 ## 2026-05-16 - 本地多版本 H5 切换演练
 
 ### 变更

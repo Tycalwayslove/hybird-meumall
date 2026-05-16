@@ -55,6 +55,7 @@
 - 添加 manifest 本地解析脚本，用于体验 SSR 切流和回滚命中结果。
 - 添加 `/api/health` 健康检查接口。
 - 添加 server-meumall active manifest HTTP fetcher，支持环境变量默认 URL 和测试注入 `fetchImpl`。
+- 添加 Mac Studio 本地 Jenkins H5 参数化构建链路，构建完成后通过 SSH/rsync 上传 SSR standalone 产物到云服务器 release 目录。
 
 ### 变更
 
@@ -89,6 +90,9 @@
 - 本地配置中心闭环已跑通：`server-meumall` 使用 FastAPI + SQLite 管理 manifest 配置，`admin-meumall` 提供配置发布后台，hybird 通过 active manifest endpoint 获取配置。
 - 新增 `ai:prepare-standalone-assets`，用于将 `.next/static` 和 `public` 复制到 `.next/standalone` 运行目录，修复直接运行 standalone SSR 时 `_next/static` CSS/JS 404 的问题。
 - 新增 H5 本地多版本演练标识：通过 `H5_RELEASE_VARIANT` 和 `H5_RELEASE_LABEL` 区分 blue、green、rose 三份 SSR 服务，便于 admin 切 active manifest 后在 iOS WebView 中确认效果。
+- 本地 Jenkins H5 Pipeline 改为启动 detached 本机构建脚本并轮询状态，构建脚本使用本地 Git mirror 缓存降低 GitHub 连接失败对演练的影响。
+- 本地 Jenkins agent 固化代理环境，构建脚本通过 SSH tunnel 注册 release，并为激活后的 H5 smoke 增加重试等待。
+- 服务器 nginx `/hybird` 入口改为直接代理 H5，修复 `/hybird` 与 `/hybird/` 之间的重定向循环。
 
 ### 废弃
 
@@ -130,6 +134,9 @@
 - 已通过 OSS 配置模板 bucket 内目录单测。
 - 已通过客户端 manifest runtime、发布 manifest 脚本和 OSS 上传计划测试。
 - 已通过 OSS 参数体检测试，当前 `.env.example` 可用于真实 OSS smoke 上传；正式 CI 仍应使用安全环境变量或密钥管理注入参数。
+- 已通过 Jenkins build #7 构建并上传 `2026.05.16-local-smoke-007`，远端 `standalone/server.js` 和 `deploy.json` 校验通过。
+- 已通过 Jenkins build #11 完整验证：测试、类型检查、SSR 构建、release 注册、远端激活和公网 smoke 均通过。
+- 已验证 `http://118.196.24.12/hybird`、`/hybird/`、`/` 不再出现无限重定向。
 ## 2026-05-15 - 归档任务
 
 ### 变更

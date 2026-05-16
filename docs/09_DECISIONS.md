@@ -20,6 +20,43 @@
 ### 备选方案
 ```
 
+## ADR-0018 - 本地 Jenkins 采用 Mac agent 与本地 Git mirror 缓存
+
+日期：2026-05-16
+
+状态：Accepted
+
+### 背景
+
+云服务器配置较低，不适合长期承担 Jenkins、Node 依赖安装和 Next.js 构建。Mac Studio 本地性能更适合做构建机，但 Jenkins Controller 运行在 Docker Desktop 中，直接让容器内完成构建会遇到 Docker in Docker、宿主机 SSH key 和本机工具链访问复杂度。实际演练中还出现 `mac-studio` agent offline 和 GitHub 连接超时导致构建失败。
+
+### 决策
+
+本地 Jenkins 架构采用：
+
+- Jenkins Controller 继续运行在 Docker Desktop。
+- Mac Studio 作为固定 Jenkins agent，由 launchd 守护，负责执行构建任务。
+- Pipeline 只启动 detached 本机部署脚本并轮询状态，长时间 Docker 构建和 rsync 上传由本机脚本承接。
+- H5 构建脚本维护本地 Git mirror 缓存；每次构建先短超时刷新 GitHub，失败时使用本地缓存继续构建。
+- launchd 启动的 Jenkins agent 固化代理环境，避免后台进程绕过本机代理直连 GitHub。
+- release 注册阶段通过 SSH tunnel 访问服务器本机 FastAPI `127.0.0.1:4100`，公网 nginx 继续保护 `/api/releases` 管理接口。
+- 云服务器只保存部署产物和运行服务，不承担 H5 编译。
+
+### 影响
+
+- 点 Jenkins 参数化 Build 可以选择分支、版本、服务器和是否激活发布。
+- GitHub 网络短时不可用不会阻断已有分支的本地构建演练。
+- CI 注册 release 不需要在 Jenkins 中保存 nginx Basic Auth 凭据，也不需要放开公网管理 API。
+- 迁移到新 Mac 或重装系统时，需要恢复 `/Users/mac/meumall-ci`、launchd agent、Docker Desktop、Java 17、SSH key 和 Git mirror。
+
+### 备选方案
+
+- Jenkins 完全部署在云服务器：拒绝，因为当前轻量云服务器 CPU 和内存不足，构建慢且影响线上服务。
+- Jenkins Controller 容器内直接构建并上传：暂不采用，因为需要处理 Docker socket、SSH key、跨架构 Node 镜像和宿主机路径映射，复杂度更高。
+- 每次构建都强依赖 GitHub HTTPS clone：拒绝，因为本地网络到 GitHub 可能失败，会让可重复发版演练不稳定。
+- Jenkins 通过公网 `/api/releases` + Basic Auth 注册 release：暂不采用，因为会复用后台管理认证面，并把 CI 绑定到公网管理入口。
+- 立即新增 server-meumall CI token：暂缓，因为当前本地 Jenkins 已有 SSH 发布通道；该方案适合作为后续外部 CI 生产化改造。
+
 ## ADR-0001 - 初始化 AI 工程化工作流文档
 
 日期：2026-05-15
