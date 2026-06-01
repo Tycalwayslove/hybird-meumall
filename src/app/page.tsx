@@ -23,22 +23,22 @@ export default function HomePage() {
   return (
     <ReplicaShell>
       <div className="px-3 pt-3">
-        <header className="flex h-9 items-center gap-3">
-          <Link href="/" className="flex w-[118px] items-center gap-2">
+        <header className="flex h-9 items-center gap-2.5">
+          <Link href="/" className="flex w-[112px] shrink-0 items-center gap-2 max-[340px]:w-[100px] max-[340px]:gap-1.5">
             <span className="relative inline-flex size-[22px] rounded-[5px] bg-[#75e92e]">
               <span className="absolute left-[5px] top-[4px] h-[14px] w-[3px] rotate-[-28deg] rounded-full bg-white" />
               <span className="absolute left-[11px] top-[3px] h-[16px] w-[3px] rotate-[-28deg] rounded-full bg-white" />
             </span>
-            <span className="text-[22px] font-black tracking-[-1px]">喵呜AI</span>
+            <span className="text-[21px] font-black max-[340px]:text-[18px]">喵呜AI</span>
           </Link>
           <Link
             href="/category"
-            className="flex h-9 flex-1 items-center gap-2 rounded-full border border-[#78de2d] bg-white px-3 text-[14px] text-[#b7b7b7]"
+            className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full border border-[#78de2d] bg-white px-3 text-[14px] text-[#b7b7b7] max-[340px]:px-2 max-[340px]:text-[12px]"
           >
-            <span className="relative size-[15px] rounded-full border-2 border-[#111] after:absolute after:-bottom-[3px] after:-right-[3px] after:h-[7px] after:w-0.5 after:rotate-[-45deg] after:rounded-full after:bg-[#111]" />
-            请输入关键词
+            <span className="relative size-[15px] shrink-0 rounded-full border-2 border-[#111] after:absolute after:-bottom-[3px] after:-right-[3px] after:h-[7px] after:w-0.5 after:rotate-[-45deg] after:rounded-full after:bg-[#111]" />
+            <span className="truncate">请输入关键词</span>
           </Link>
-          <Link href="/messages" className="relative flex size-[28px] items-center justify-center">
+          <Link href="/messages" className="relative flex size-[28px] shrink-0 items-center justify-center">
             <span className="h-[18px] w-[17px] rounded-t-full border-2 border-[#111] border-b-0" />
             <span className="absolute bottom-[4px] h-0.5 w-[19px] rounded-full bg-[#111]" />
             <span className="absolute -right-1 -top-0.5 rounded-full bg-[#ff3f62] px-1 text-[9px] font-bold leading-[12px] text-white">22</span>
@@ -53,32 +53,32 @@ export default function HomePage() {
               一套D计划
             </div>
             <div className="absolute bottom-3 left-5 rounded-full bg-white/80 px-3 py-0.5 text-[11px] font-bold">精绩春光，温腻相伴</div>
-            <div className="absolute right-5 top-2 size-[70px] rounded-[22px] bg-[#4ca9ff] shadow-[0_12px_22px_rgba(71,156,255,0.25)]" />
-            <div className="absolute right-[82px] top-7 h-7 w-12 rotate-[-24deg] rounded-full bg-[#ffe86b]" />
+            <div className="absolute right-5 top-2 size-[clamp(58px,18vw,70px)] rounded-[22px] bg-[#4ca9ff] shadow-[0_12px_22px_rgba(71,156,255,0.25)]" />
+            <div className="absolute right-[clamp(68px,21vw,82px)] top-7 h-7 w-12 rotate-[-24deg] rounded-full bg-[#ffe86b]" />
             <div className="absolute bottom-3 right-12 size-8 rounded-full bg-[#ffb335]" />
           </ReplicaImage>
         </Link>
 
-        <section className="mt-4 grid grid-cols-5 gap-x-[23px] gap-y-3">
+        <section className="mt-4 grid grid-cols-5 gap-x-0 gap-y-3">
           {categories.map((category, index) => (
-            <Link key={category} href="/category" className="flex w-[50px] flex-col items-center">
-              <ReplicaIcon className={`size-[50px] ${iconColors[index]}`} />
+            <Link key={category} href="/category" className="flex min-w-0 flex-col items-center">
+              <ReplicaIcon className={`size-[clamp(38px,12vw,50px)] ${iconColors[index]}`} />
               <span className="mt-2 whitespace-nowrap text-center text-[12px] leading-[18px] text-[#333]">{category}</span>
             </Link>
           ))}
         </section>
 
         <section className="mt-4 grid grid-cols-2 gap-2.5">
-          <Link href="/seckill" className="relative h-[68px] overflow-hidden rounded-[10px] bg-[linear-gradient(105deg,#fff7f4,#ffe5e8)] px-4 py-3">
-            <p className="text-[18px] font-black leading-[22px]">限时秒杀</p>
-            <p className="mt-1 text-[14px] leading-[18px] text-[#6f6f6f]">让实惠飞一会</p>
-            <span className="absolute right-3 top-2 size-[46px] rotate-[-12deg] rounded-[12px] bg-[#ff4b73] shadow-[0_8px_18px_rgba(255,75,115,0.25)]" />
-            <span className="absolute right-[42px] top-1 h-4 w-10 rotate-[-18deg] rounded-full bg-[#ff9ab0]" />
+          <Link href="/seckill" className="relative h-[68px] overflow-hidden rounded-[10px] bg-[linear-gradient(105deg,#fff7f4,#ffe5e8)] px-3 py-3">
+            <p className="relative z-10 text-[18px] font-black leading-[22px] max-[340px]:text-[16px]">限时秒杀</p>
+            <p className="relative z-10 mt-1 text-[14px] leading-[18px] text-[#6f6f6f] max-[340px]:text-[12px]">让实惠飞一会</p>
+            <span className="absolute right-2 top-2 size-[clamp(34px,12vw,46px)] rotate-[-12deg] rounded-[12px] bg-[#ff4b73] shadow-[0_8px_18px_rgba(255,75,115,0.25)]" />
+            <span className="absolute right-[clamp(30px,11vw,42px)] top-1 h-4 w-10 rotate-[-18deg] rounded-full bg-[#ff9ab0]" />
           </Link>
-          <Link href="/promotion" className="relative h-[68px] overflow-hidden rounded-[10px] bg-[linear-gradient(105deg,#fff9ec,#fff1cc)] px-4 py-3">
-            <p className="text-[18px] font-black leading-[22px]">推广带货</p>
-            <p className="mt-1 text-[14px] leading-[18px] text-[#6f6f6f]">佣金至高50%!</p>
-            <span className="absolute right-4 top-3 size-[44px] rounded-full bg-[#ffb03b]" />
+          <Link href="/promotion" className="relative h-[68px] overflow-hidden rounded-[10px] bg-[linear-gradient(105deg,#fff9ec,#fff1cc)] px-3 py-3">
+            <p className="relative z-10 text-[18px] font-black leading-[22px] max-[340px]:text-[16px]">推广带货</p>
+            <p className="relative z-10 mt-1 text-[14px] leading-[18px] text-[#6f6f6f] max-[340px]:text-[12px]">佣金至高50%!</p>
+            <span className="absolute right-3 top-3 size-[clamp(34px,11vw,44px)] rounded-full bg-[#ffb03b]" />
             <span className="absolute right-1 top-2 rotate-[16deg] rounded-full bg-[#ff5572] px-1.5 py-1 text-[10px] font-black text-white">免费</span>
           </Link>
         </section>
@@ -99,7 +99,7 @@ export default function HomePage() {
           <div className="mt-3 grid grid-cols-2 gap-2">
             {recommendedProducts.map((product, index) => (
               <Link key={product.id} href={product.href} className="overflow-hidden rounded-[7px] bg-white shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-                <ReplicaImage className="h-[174px] rounded-none bg-[#d7d1c2]">
+                <ReplicaImage className="h-[clamp(138px,45vw,174px)] rounded-none bg-[#d7d1c2]">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_22%,#f4f4f0_0_22%,transparent_23%),linear-gradient(180deg,#8d9f67_0%,#e6dbc6_100%)]" />
                   <span className="absolute left-1 top-1 rounded-[3px] bg-[#111] px-1 text-[10px] font-bold leading-[16px] text-[#fbf347]">
                     {index === 0 ? "热卖" : "推荐"}
@@ -107,10 +107,10 @@ export default function HomePage() {
                 </ReplicaImage>
                 <div className="px-2 pb-2 pt-1.5">
                   <p className="line-clamp-2 text-[14px] font-bold leading-[18px]">夏季纯棉短袖的仙男女同款宽松百搭休闲圆领上...</p>
-                  <div className="mt-1 flex items-center gap-1">
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
                     <span className="rounded-[3px] bg-[#111] px-1 text-[10px] font-bold leading-[16px] text-white">喵呜达人</span>
                     <span className="rounded-[3px] bg-[#97f341] px-1 text-[10px] font-bold leading-[16px]">V2</span>
-                    <span className="ml-auto text-[12px] text-[#8a8a8a]">已售 2300</span>
+                    <span className="text-[11px] text-[#8a8a8a]">已售 2300</span>
                   </div>
                   <div className="mt-1 flex items-end gap-1">
                     <span className="text-[13px] font-bold text-[#ff3f5f]">¥</span>

@@ -16,16 +16,16 @@ export default function PromotionPage() {
         <div className="absolute left-0 top-0 size-[210px] rounded-full bg-white/20 blur-[1px]" />
         <div className="relative px-3 pt-[58px]">
           <section className="flex items-center">
-            <div className="size-[58px] overflow-hidden rounded-full bg-[#f1dbc7] ring-4 ring-white">
+            <div className="size-[58px] shrink-0 overflow-hidden rounded-full bg-[#f1dbc7] ring-4 ring-white">
               <div className="mx-auto mt-2 size-[38px] rounded-full bg-[#111]" />
               <div className="mx-auto h-8 w-11 rounded-t-full bg-white" />
             </div>
-            <div className="ml-3">
-              <h1 className="text-[21px] font-black leading-[26px]">深圳喵小猫</h1>
+            <div className="ml-3 min-w-0">
+              <h1 className="truncate text-[21px] font-black leading-[26px]">深圳喵小猫</h1>
               <div className="mt-1 h-2 w-[92px] rounded-full bg-white" />
               <p className="mt-1 text-[12px] leading-[16px] text-[#ffac16]">238/500</p>
             </div>
-            <Link href="/promotion/level" className="relative ml-auto mr-2 size-[116px]">
+            <Link href="/promotion/level" className="relative ml-auto mr-1 size-[clamp(88px,28vw,116px)] shrink-0">
               <div className="absolute inset-[10px] rotate-45 rounded-[24px] bg-[linear-gradient(135deg,#ffc75a,#ffe6a1,#f4a21d)] shadow-[0_12px_28px_rgba(211,132,21,0.26)]" />
               <div className="absolute inset-[26px] rotate-45 rounded-[16px] border-[6px] border-white/40" />
               <span className="absolute bottom-7 right-2 text-[32px] font-black italic text-white drop-shadow">3</span>
@@ -50,22 +50,22 @@ export default function PromotionPage() {
           </section>
 
           <section className="mt-2 grid grid-cols-2 gap-2.5">
-            <Link href="/promotion/benefits" className="flex h-[72px] items-center gap-3 rounded-[12px] bg-white px-4">
-              <ReplicaIcon className="size-[42px] bg-[#fff0f5]">
+            <Link href="/promotion/benefits" className="flex h-[72px] min-w-0 items-center gap-2 rounded-[12px] bg-white px-3">
+              <ReplicaIcon className="size-[clamp(36px,11vw,42px)] bg-[#fff0f5]">
                 <span className="size-6 rounded-[5px] bg-[#ff5877]" />
               </ReplicaIcon>
-              <div>
-                <p className="text-[16px] font-black">奖励活动</p>
+              <div className="min-w-0">
+                <p className="truncate text-[16px] font-black">奖励活动</p>
                 <p className="mt-1 text-[12px] text-[#777]">3个进行中</p>
               </div>
             </Link>
-            <Link href="/promotion/ranking" className="flex h-[72px] items-center gap-3 rounded-[12px] bg-white px-4">
-              <ReplicaIcon className="size-[42px] bg-[#fff5dd]">
+            <Link href="/promotion/ranking" className="flex h-[72px] min-w-0 items-center gap-2 rounded-[12px] bg-white px-3">
+              <ReplicaIcon className="size-[clamp(36px,11vw,42px)] bg-[#fff5dd]">
                 <span className="size-6 rounded-full bg-[#ffc42d]" />
               </ReplicaIcon>
-              <div>
-                <p className="text-[16px] font-black text-[#a31111]">排行榜</p>
-                <p className="mt-1 text-[12px] text-[#777]">看看谁是第一</p>
+              <div className="min-w-0">
+                <p className="truncate text-[16px] font-black text-[#a31111]">排行榜</p>
+                <p className="truncate text-[12px] text-[#777]">看看谁是第一</p>
               </div>
             </Link>
           </section>

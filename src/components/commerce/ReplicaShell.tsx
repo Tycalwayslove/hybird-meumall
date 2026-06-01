@@ -8,7 +8,7 @@ type ReplicaShellProps = {
 export function ReplicaShell({ children, className = "bg-[#f5f6f8]" }: ReplicaShellProps) {
   return (
     <main className={`min-h-screen text-[#111111] ${className}`}>
-      <div className="mx-auto min-h-screen w-full max-w-[375px] overflow-hidden pb-8">{children}</div>
+      <div className="mx-auto min-h-screen w-full max-w-[430px] overflow-hidden pb-8">{children}</div>
     </main>
   );
 }
