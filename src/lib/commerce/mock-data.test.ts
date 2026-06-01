@@ -1,16 +1,19 @@
 import { describe, expect, test } from "vitest";
 import {
   commerceCategories,
-  commerceNavItems,
   featuredProducts,
   getProductById,
-  mockCartItems
+  homeEntries,
+  mineEntries,
+  mockOrders,
+  primaryH5Entrances,
+  promotionEntries
 } from "./mock-data";
 
 describe("commerce mock data", () => {
-  test("provides stable navigation routes for the simulated commerce shell", () => {
-    expect(commerceNavItems.map((item) => item.href)).toEqual(["/", "/category", "/cart", "/profile"]);
-    expect(commerceNavItems.every((item) => item.iconTone.length > 0)).toBe(true);
+  test("provides H5 entrance routes without native tab rendering semantics", () => {
+    expect(primaryH5Entrances.map((item) => item.href)).toEqual(["/", "/promotion", "/mine", "/agent-placeholder"]);
+    expect(primaryH5Entrances.map((item) => item.label)).toEqual(["首页内容", "推广内容", "我的内容", "智能体占位"]);
   });
 
   test("provides product cards that can resolve to detail pages", () => {
@@ -26,8 +29,14 @@ describe("commerce mock data", () => {
     expect(commerceCategories.every((category) => category.products.length > 0)).toBe(true);
   });
 
-  test("uses local cart mock items with positive quantities", () => {
-    expect(mockCartItems.length).toBeGreaterThan(0);
-    expect(mockCartItems.every((item) => item.quantity > 0)).toBe(true);
+  test("provides first-level page action entries", () => {
+    expect(homeEntries.map((item) => item.href)).toContain("/messages");
+    expect(promotionEntries.map((item) => item.href)).toContain("/promotion/commission");
+    expect(mineEntries.map((item) => item.href)).toContain("/orders");
+  });
+
+  test("uses local order mock items for purchase records", () => {
+    expect(mockOrders.length).toBeGreaterThan(0);
+    expect(mockOrders.every((item) => item.amount > 0)).toBe(true);
   });
 });

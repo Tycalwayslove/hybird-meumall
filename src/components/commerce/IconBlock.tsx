@@ -2,6 +2,7 @@ type IconBlockProps = {
   tone: string;
   label?: string;
   size?: "sm" | "md" | "lg";
+  className?: string;
 };
 
 const sizeClass = {
@@ -10,6 +11,8 @@ const sizeClass = {
   lg: "size-10 rounded-md"
 };
 
-export function IconBlock({ tone, label, size = "md" }: IconBlockProps) {
-  return <span aria-label={label} className={`inline-block shrink-0 ${sizeClass[size]} ${tone}`} />;
+export function IconBlock({ tone, label, size = "md", className = "" }: IconBlockProps) {
+  return <span aria-label={label} className={`inline-block shrink-0 ${sizeClass[size]} ${tone} ${className}`} />;
 }
+
+export const PlaceholderIcon = IconBlock;
