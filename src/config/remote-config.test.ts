@@ -26,6 +26,7 @@ const validManifest: ManifestFile = {
     serviceBaseUrl: "https://h5.example.com",
     basePath: "/hybird",
     staticAssetPath: "/_next/static",
+    publicAssetBaseUrl: "https://cdn.example.com/meumall/h5/2026.05.14-001",
     healthCheckPath: "/api/health"
   },
   routes: {
@@ -82,6 +83,19 @@ describe("remote config schema", () => {
 
     expect(result.ok).toBe(false);
     expect(result.ok ? undefined : result.error.issues).toContain("grayRules.percentage must be between 0 and 100.");
+  });
+
+  it("rejects invalid public asset CDN config", () => {
+    const result = validateManifestFile({
+      ...validManifest,
+      assets: {
+        ...validManifest.assets,
+        publicAssetBaseUrl: 123
+      }
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.ok ? undefined : result.error.issues).toContain("assets.publicAssetBaseUrl must be a string.");
   });
 
   it("rejects route delivery values outside remote or local", () => {

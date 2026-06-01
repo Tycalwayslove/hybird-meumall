@@ -19,6 +19,7 @@ const help = usage("ai:update-manifest", [
   "[--routes /a,/b]",
   "[--service-base-url https://h5.example.com]",
   "[--base-path /hybird]",
+  "[--public-asset-base-url https://cdn.example.com/meumall/h5/<version>]",
   "[--health-check-path /api/health]"
 ]);
 
@@ -49,12 +50,19 @@ function trimTrailingSlash(value) {
 }
 
 function createAssets(options = {}) {
-  return {
+  const publicAssetBaseUrl = trimTrailingSlash(options.publicAssetBaseUrl);
+  const assets = {
     serviceBaseUrl: trimTrailingSlash(options.serviceBaseUrl) || "https://h5.example.com",
     basePath: normalizePath(options.basePath, "/hybird"),
     staticAssetPath: "/_next/static",
     healthCheckPath: normalizePath(options.healthCheckPath, "/api/health")
   };
+
+  if (publicAssetBaseUrl) {
+    assets.publicAssetBaseUrl = publicAssetBaseUrl;
+  }
+
+  return assets;
 }
 
 function routeRecordFromArray(routes) {
@@ -129,7 +137,7 @@ function normalizeManifest(rawManifest, version, channel, assetOptions) {
     ...fallback.assets,
     ...(manifest.assets || {})
   };
-  if (assetOptions.serviceBaseUrl || assetOptions.basePath || assetOptions.healthCheckPath) {
+  if (assetOptions.serviceBaseUrl || assetOptions.basePath || assetOptions.publicAssetBaseUrl || assetOptions.healthCheckPath) {
     manifest.assets = createAssets({
       ...manifest.assets,
       ...assetOptions
@@ -159,6 +167,7 @@ function main() {
       "routes",
       "service-base-url",
       "base-path",
+      "public-asset-base-url",
       "health-check-path"
     ]
   });
@@ -176,6 +185,7 @@ function main() {
     {
       serviceBaseUrl: args["service-base-url"],
       basePath: args["base-path"],
+      publicAssetBaseUrl: args["public-asset-base-url"],
       healthCheckPath: args["health-check-path"]
     }
   );

@@ -65,6 +65,8 @@ describe("release manifest scripts", () => {
       "https://h5.example.com",
       "--base-path",
       "/hybird",
+      "--public-asset-base-url",
+      "https://cdn.example.com/meumall/h5/2026.05.15-001",
       "--output-dir",
       outDir
     ]);
@@ -87,6 +89,7 @@ describe("release manifest scripts", () => {
         serviceBaseUrl: "https://h5.example.com",
         basePath: "/hybird",
         staticAssetPath: "/_next/static",
+        publicAssetBaseUrl: "https://cdn.example.com/meumall/h5/2026.05.15-001",
         healthCheckPath: "/api/health"
       },
       routes: {
@@ -125,7 +128,9 @@ describe("release manifest scripts", () => {
       "--service-base-url",
       "https://h5-test.example.com",
       "--base-path",
-      "/hybird"
+      "/hybird",
+      "--public-asset-base-url",
+      "https://cdn.example.com/meumall/h5/2026.05.15-002"
     ]);
 
     const manifest = readManifest(manifestPath);
@@ -139,6 +144,7 @@ describe("release manifest scripts", () => {
       serviceBaseUrl: "https://h5-test.example.com",
       basePath: "/hybird",
       staticAssetPath: "/_next/static",
+      publicAssetBaseUrl: "https://cdn.example.com/meumall/h5/2026.05.15-002",
       healthCheckPath: "/api/health"
     });
     expect(manifest.routes).toEqual({
@@ -228,6 +234,8 @@ describe("release manifest scripts", () => {
       "https://h5.example.com",
       "--base-path",
       "/hybird",
+      "--public-asset-base-url",
+      "https://cdn.example.com/meumall/h5/2026.05.16-001",
       "--rollback-version",
       "2026.05.15-001",
       "--routes",
@@ -246,6 +254,7 @@ describe("release manifest scripts", () => {
       status: "candidate",
       serviceBaseUrl: "https://h5.example.com",
       basePath: "/hybird",
+      publicAssetBaseUrl: "https://cdn.example.com/meumall/h5/2026.05.16-001",
       rollbackVersion: "2026.05.15-001",
       rolloutPercentage: 20,
       routes: ["/", "/category", "/cart"],

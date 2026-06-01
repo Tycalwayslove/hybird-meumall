@@ -6,6 +6,7 @@
   "publicDir": "public",
   "serviceBaseUrl": "https://h5.example.com",
   "basePath": "/hybird",
+  "publicAssetBaseUrl": "https://cdn.example.com/meumall/h5/2026.05.15-001",
   "healthCheckPath": "/api/health",
   "smokeRoutes": ["/", "/category", "/cart", "/profile"],
   "requiredEnv": ["NODE_ENV", "PORT", "HOSTNAME", "H5_BASE_PATH"],

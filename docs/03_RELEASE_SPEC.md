@@ -116,6 +116,7 @@ manifest 不再描述静态版本目录。SSR 模式下，manifest 的 `assets` 
     "serviceBaseUrl": "https://h5.example.com",
     "basePath": "/hybird",
     "staticAssetPath": "/_next/static",
+    "publicAssetBaseUrl": "https://cdn.example.com/meumall/h5/2026.05.15-001",
     "healthCheckPath": "/api/health"
   },
   "routes": {
@@ -152,6 +153,40 @@ https://h5.example.com/hybird/category
 ```
 
 H5 版本号只用于发布选择、灰度和回滚，不参与拼接 HTML 静态目录。
+
+## 静态资源模型
+
+H5 静态资源分三类管理：
+
+| 类型 | 存放位置 | 引用方式 | 发布方式 |
+| --- | --- | --- | --- |
+| Next 构建资源 | `.next/static` | Next 自动生成 `/_next/static/*` | 随 SSR release 归档，可上传 CDN，强缓存。 |
+| H5 内置公共资源 | `public/assets` | `assetUrl("/assets/...")` | 随 `public` 进入 release，可由 `publicAssetBaseUrl` 指向 CDN。 |
+| 业务动态图片 | 对象存储/CDN | 后端接口返回完整 URL | 由后台、CMS 或业务服务管理，不进入 H5 仓库。 |
+
+`public/assets` 只放随 H5 版本一起发布的稳定资源，例如品牌图、固定 icon、默认头像、默认商品图和兜底图。真实商品图、用户头像、后台配置 banner、达人素材和可运营替换活动图不放入 H5 仓库。
+
+组件内禁止裸写 `/assets/...`，必须通过 `src/lib/assets` 的 `assetUrl()` 获取地址：
+
+```ts
+import { assetUrl } from "@/lib/assets";
+
+const bannerUrl = assetUrl("/assets/home/banner-renewal.webp");
+```
+
+路径解析规则：
+
+1. 传入 `https://`、`data:` 等绝对地址时原样返回。
+2. 配置 `NEXT_PUBLIC_H5_ASSET_BASE_URL` 或调用时传入 `assetBaseUrl` 时，返回 `assetBaseUrl + /assets/...`。
+3. 未配置 CDN 时，返回 `H5_BASE_PATH + /assets/...`，例如 `/hybird/assets/home/banner-renewal.webp`。
+
+生产推荐以 CDN 为主：
+
+```text
+NEXT_PUBLIC_H5_ASSET_BASE_URL=https://cdn.example.com/meumall/h5/2026.05.15-001
+```
+
+原生离线包可以把 `public/assets` 和 `.next/static` 作为预下载资源，但它是缓存/兜底层，不作为默认业务页面发布链路。WebView 优先命中本地资源，缺失或校验失败时回源 CDN/SSR。
 
 ## Active Manifest 来源
 
@@ -244,6 +279,7 @@ H5 侧通过环境变量配置 active manifest URL：
 | --- | --- | --- |
 | SSR HTML | `private, no-cache, no-store, max-age=0, must-revalidate` | HTML 由服务端渲染，不缓存跨用户页面。 |
 | `/_next/static/*` | `public, max-age=31536000, immutable` | Next hash 静态资源可长缓存。 |
+| `/assets/*` | `public, max-age=31536000, immutable` | H5 内置公共资源建议使用版本目录或 hash 文件名。 |
 | `manifest.json` | `no-cache, max-age=0, must-revalidate` | 控制面入口，必须能快速切流和回滚。 |
 | `app-config.json` / `theme.json` | `no-cache` | 配置可以短缓存，但必须可回源校验。 |
 | fallback HTML | `no-cache` | 离线、错误、维护兜底页应快速更新。 |
@@ -265,7 +301,8 @@ pnpm run ai:release-prepare \
   --rollout-percentage 0 \
   --routes "/,/category,/cart,/profile" \
   --service-base-url "https://h5.example.com" \
-  --base-path "/hybird"
+  --base-path "/hybird" \
+  --public-asset-base-url "https://cdn.example.com/meumall/h5/2026.05.15-001"
 ```
 
 5. 校验 SSR 产物：
@@ -318,6 +355,7 @@ pnpm run ai:register-release \
   --environment prod \
   --service-base-url "https://h5.example.com" \
   --base-path "/hybird" \
+  --public-asset-base-url "https://cdn.example.com/meumall/h5/2026.05.15-001" \
   --rollback-version 2026.05.14-001 \
   --rollout-percentage 0 \
   --routes "/,/category,/cart,/profile" \

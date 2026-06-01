@@ -456,6 +456,37 @@ Next.js 配置启用 `output: "export"` 和 `trailingSlash: true`。构建发布
 - 保留 OSS 静态脚本作为默认可选分支：拒绝，因为用户明确不需要兼容以前的 SSG。
 - 继续让 manifest 同时支持 SSR 和静态目录：拒绝，因为客户端 URL 拼接和回滚语义会变复杂。
 
+## ADR-0019 - H5 内置静态资源使用 public/assets 与可选 CDN 前缀
+
+日期：2026-06-01
+
+状态：Accepted
+
+### 背景
+
+首页进入生产化改造后，需要接入真实图片和 icon。若页面组件直接写 `/assets/...`、业务图片混入 H5 仓库、或各页面自行处理 CDN 前缀，会导致 WebView `basePath`、SSR、CDN、离线包和回滚策略互相打架。
+
+### 决策
+
+- H5 内置稳定资源放在 `public/assets`，并按 `brand`、`icons`、`home`、`promotion`、`mine`、`placeholders` 分目录管理。
+- 页面和组件统一通过 `assetUrl("/assets/...")` 引用内置资源。
+- manifest `assets` 增加可选 `publicAssetBaseUrl`，用于表达当前 H5 版本的公共资源 CDN 前缀。
+- `release-prepare`、`update-manifest` 和 `register-release` 支持 `--public-asset-base-url`。
+- 商品图、用户头像、后台配置 banner、达人素材等业务动态图片不进入 H5 仓库，由接口返回完整 CDN URL。
+- 原生离线包可预下载 `public/assets` 和 `.next/static`，但只作为缓存/兜底层，不替代 SSR + CDN 主发布链路。
+
+### 影响
+
+- H5 在本地、`/hybird` basePath、CDN 和离线包场景下使用同一套资源引用入口。
+- 首页真实图片替换时，页面不需要关心资源来自本地 public、CDN 还是原生本地缓存。
+- 公共资源如果使用长缓存，必须采用版本目录或 hash 文件名，避免同名替换造成客户端旧缓存。
+
+### 备选方案
+
+- 组件内直接写 `/assets/...`：拒绝，因为生产 `basePath` 下路径容易错误。
+- 所有图片都进入 H5 仓库：拒绝，因为业务运营图片需要后台动态替换。
+- 默认只走原生 zip 离线包：拒绝，因为灰度、回滚和资源缺失回源会更复杂。
+
 ## ADR-0015 - active manifest 由 server-meumall 提供
 
 日期：2026-05-15

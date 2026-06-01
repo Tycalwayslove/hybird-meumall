@@ -22,6 +22,7 @@ const help = usage("ai:release-prepare", [
   "[--artifact dist/h5.zip]",
   "[--service-base-url https://h5.example.com]",
   "[--base-path /hybird]",
+  "[--public-asset-base-url https://cdn.example.com/meumall/h5/<version>]",
   "[--health-check-path /api/health]",
   "[--output-dir archives/releases/<version>]"
 ]);
@@ -53,12 +54,19 @@ function trimTrailingSlash(value) {
 }
 
 function createAssets(options) {
-  return {
+  const publicAssetBaseUrl = trimTrailingSlash(options.publicAssetBaseUrl);
+  const assets = {
     serviceBaseUrl: trimTrailingSlash(options.serviceBaseUrl) || "https://h5.example.com",
     basePath: normalizePath(options.basePath, "/hybird"),
     staticAssetPath: "/_next/static",
     healthCheckPath: normalizePath(options.healthCheckPath, "/api/health")
   };
+
+  if (publicAssetBaseUrl) {
+    assets.publicAssetBaseUrl = publicAssetBaseUrl;
+  }
+
+  return assets;
 }
 
 function createRoutes(routes) {
@@ -90,6 +98,7 @@ function main() {
       "artifact",
       "service-base-url",
       "base-path",
+      "public-asset-base-url",
       "health-check-path",
       "output-dir"
     ]
@@ -144,6 +153,7 @@ function main() {
     assets: createAssets({
       serviceBaseUrl: args["service-base-url"],
       basePath: args["base-path"],
+      publicAssetBaseUrl: args["public-asset-base-url"],
       healthCheckPath: args["health-check-path"]
     }),
     routes: routeConfig,

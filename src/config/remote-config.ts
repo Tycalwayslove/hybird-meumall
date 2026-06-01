@@ -22,6 +22,7 @@ export type ManifestAssetsConfig = {
   serviceBaseUrl: string;
   basePath: string;
   staticAssetPath: string;
+  publicAssetBaseUrl?: string;
   healthCheckPath: string;
 };
 
@@ -146,6 +147,7 @@ function validateAssets(value: unknown, issues: string[]): void {
   requireString(assets, "serviceBaseUrl", issues, "assets.serviceBaseUrl");
   requireString(assets, "basePath", issues, "assets.basePath");
   requireString(assets, "staticAssetPath", issues, "assets.staticAssetPath");
+  optionalString(assets, "publicAssetBaseUrl", issues, "assets.publicAssetBaseUrl");
   requireString(assets, "healthCheckPath", issues, "assets.healthCheckPath");
 }
 

@@ -18,6 +18,7 @@ const help = usage("ai:register-release", [
   "--service-base-url <url>",
   "--rollback-version <version>",
   "[--base-path /hybird]",
+  "[--public-asset-base-url https://cdn.example.com/meumall/h5/<version>]",
   "[--health-check-path /api/health]",
   "[--routes /,/category,/cart,/profile]",
   "[--rollout-percentage <0-100>]",
@@ -78,7 +79,8 @@ function createReleaseRegistrationPayload(args) {
     throw new Error("--service-base-url 不能为空。");
   }
 
-  return {
+  const publicAssetBaseUrl = trimTrailingSlash(args["public-asset-base-url"]);
+  const payload = {
     version: args.version,
     environment: args.environment,
     status: "candidate",
@@ -96,6 +98,12 @@ function createReleaseRegistrationPayload(args) {
       buildTime: timestamp()
     }
   };
+
+  if (publicAssetBaseUrl) {
+    payload.publicAssetBaseUrl = publicAssetBaseUrl;
+  }
+
+  return payload;
 }
 
 async function postRelease(serverUrl, payload) {
@@ -136,6 +144,7 @@ async function main() {
     required: ["version", "environment", "service-base-url", "rollback-version"],
     optional: [
       "base-path",
+      "public-asset-base-url",
       "health-check-path",
       "routes",
       "rollout-percentage",

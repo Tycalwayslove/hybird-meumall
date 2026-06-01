@@ -56,6 +56,7 @@
 - 添加 `/api/health` 健康检查接口。
 - 添加 server-meumall active manifest HTTP fetcher，支持环境变量默认 URL 和测试注入 `fetchImpl`。
 - 添加 Mac Studio 本地 Jenkins H5 参数化构建链路，构建完成后通过 SSH/rsync 上传 SSR standalone 产物到云服务器 release 目录。
+- 添加 `public/assets` 静态资源目录规范和 `assetUrl()` 统一资源路径 helper。
 
 ### 变更
 
@@ -93,6 +94,8 @@
 - 本地 Jenkins H5 Pipeline 改为启动 detached 本机构建脚本并轮询状态，构建脚本使用本地 Git mirror 缓存降低 GitHub 连接失败对演练的影响。
 - 本地 Jenkins agent 固化代理环境，构建脚本通过 SSH tunnel 注册 release，并为激活后的 H5 smoke 增加重试等待。
 - 服务器 nginx `/hybird` 入口改为直接代理 H5，修复 `/hybird` 与 `/hybird/` 之间的重定向循环。
+- manifest `assets` 增加可选 `publicAssetBaseUrl`，`release-prepare`、`update-manifest` 和 `register-release` 支持 `--public-asset-base-url`。
+- 发布规范补充 H5 内置资源、业务动态图片、CDN 和原生离线包的职责边界。
 
 ### 废弃
 
