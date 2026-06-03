@@ -57,7 +57,7 @@ export async function resolveHomeConfigState({
   }
 }
 
-export function HomeScreen({ environment = "prod" }: { environment?: HomeEnvironment }) {
+export function HomeScreen({ environment = "prod", releaseLabel }: { environment?: HomeEnvironment; releaseLabel?: string }) {
   const [state, setState] = useState<HomeConfigState | null>(null);
 
   useEffect(() => {
@@ -112,6 +112,7 @@ export function HomeScreen({ environment = "prod" }: { environment?: HomeEnviron
     <ReplicaShell>
       <div className="px-3 pt-3">
         <HomeHeader />
+        {releaseLabel ? <HomeVersionNotice releaseLabel={releaseLabel} /> : null}
         <HomeModules modules={state.config.modules} />
       </div>
     </ReplicaShell>
@@ -141,6 +142,15 @@ function HomeHeader() {
         <span className="absolute -right-1 -top-0.5 rounded-full bg-[#ff3f62] px-1 text-[9px] font-bold leading-[12px] text-white">22</span>
       </Link>
     </header>
+  );
+}
+
+function HomeVersionNotice({ releaseLabel }: { releaseLabel: string }) {
+  return (
+    <div className="mt-3 flex items-center justify-between rounded-[8px] border border-[#d9f99d] bg-[#f7fee7] px-3 py-2 text-[12px] font-bold text-[#3f6212]">
+      <span>当前 H5 版本</span>
+      <span>{releaseLabel}</span>
+    </div>
   );
 }
 
