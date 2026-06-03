@@ -60,6 +60,8 @@
 
 ### 变更
 
+- H5 route 清单移除旧兼容入口，智能体不再提供 H5 占位页面。
+- 页面右上角版本标识改为显式 DOM 节点，方便 App 联调和截图确认。
 - 将面向协作的项目文档、AI 状态文档、任务文件和 Skill 文档转换为中文。
 - 将 `task-create` Skill 升级为对话式任务创建流程，支持自然语言输入、多轮澄清、草案确认后落盘。
 - 增强 `archive-task`，要求验证和审查通过后才能归档任务。
@@ -252,3 +254,15 @@
 
 - server/admin/hybird 自动化测试和构建通过。
 - 本地 FastAPI smoke 已验证注册 candidate、发布 active、灰度和回滚链路。
+
+## 2026-06-01 - 本地工作区路径收敛
+
+### 变更
+
+- 将本地 Jenkins/CI、launchd agent、pipeline 和 H5 构建脚本的运行路径统一到 `/Users/mac/person_code/meu-mall/meumall-ci`。
+- 将 H5 本地构建种子仓库路径统一到 `/Users/mac/person_code/meu-mall/hybird-meumall`。
+- 移除当前运行配置对旧目录软链接的依赖，便于后续迁移到新机器或新服务器。
+
+### 验证
+
+- 已执行脚本语法检查、Jenkins/Agent 重启验证和旧软链接依赖扫描。

@@ -47,7 +47,14 @@
 - 点 Jenkins 参数化 Build 可以选择分支、版本、服务器和是否激活发布。
 - GitHub 网络短时不可用不会阻断已有分支的本地构建演练。
 - CI 注册 release 不需要在 Jenkins 中保存 nginx Basic Auth 凭据，也不需要放开公网管理 API。
-- 迁移到新 Mac 或重装系统时，需要恢复 `/Users/mac/meumall-ci`、launchd agent、Docker Desktop、Java 17、SSH key 和 Git mirror。
+- 迁移到新 Mac 或重装系统时，需要恢复 `/Users/mac/person_code/meu-mall/meumall-ci`、launchd agent、Docker Desktop、Java 17、SSH key 和 Git mirror。
+
+## 2026-06-01：本地多项目工作区不再依赖旧路径软链接
+
+- 决策：`hybird-meumall`、`server-meumall`、`admin-meumall`、`app-meumall` 和 `meumall-ci` 统一放在 `/Users/mac/person_code/meu-mall/` 下；Jenkins、launchd、pipeline 和 H5 构建脚本全部使用新路径。
+- 原因：软链接适合短期搬迁过渡，但会隐藏真实部署依赖；后续迁移到新服务器或新 Mac 时，旧绝对路径会造成不可见的环境耦合。
+- 替代方案：继续保留 `/Users/mac/company_code/*` 和 `/Users/mac/meumall-ci` 软链接作为兼容层。该方案已拒绝，因为它会让 CI 成功依赖本机历史路径，不利于标准化部署。
+- 影响：历史构建日志和历史测试报告仍可保留旧路径记录；当前运行配置、启动脚本和发布脚本不再依赖旧软链接。
 
 ### 备选方案
 

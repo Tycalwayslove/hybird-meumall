@@ -55,3 +55,4 @@
 - [x] 打包并启动蓝/绿/粉三份本地 H5 SSR 版本，用于 admin 切 active 后在 iOS WebView 中验证效果。
 - [x] 落地正式发版入口：H5 CI 注册 candidate release、server-meumall 发布/灰度/回滚 API、admin-meumall 正式发版操作台。
 - [x] 跑通 Mac Studio 本地 Jenkins 参数化构建 H5，并上传 standalone SSR 产物到云服务器 release 目录。
+- [x] 将本地多项目工作区和 Jenkins/CI 运行路径统一到 `/Users/mac/person_code/meu-mall`，移除旧路径软链接依赖。
