@@ -147,9 +147,12 @@ function HomeHeader() {
 
 function HomeVersionNotice({ releaseLabel }: { releaseLabel: string }) {
   return (
-    <div className="mt-3 flex items-center justify-between rounded-[8px] border border-[#d9f99d] bg-[#f7fee7] px-3 py-2 text-[12px] font-bold text-[#3f6212]">
-      <span>当前 H5 版本</span>
-      <span>{releaseLabel}</span>
+    <div className="mt-3 rounded-[8px] border border-[#d9f99d] bg-[#f7fee7] px-3 py-2 text-[#3f6212]">
+      <div className="flex items-center justify-between text-[12px] font-bold">
+        <span>当前 H5 版本</span>
+        <span>{releaseLabel}</span>
+      </div>
+      <p className="mt-1 text-[11px] font-semibold">首页演练标记：第二次首页改动</p>
     </div>
   );
 }
