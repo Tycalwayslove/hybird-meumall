@@ -20,8 +20,16 @@ const help = usage("ai:register-release", [
   "[--base-path /hybird]",
   "[--public-asset-base-url https://cdn.example.com/meumall/h5/<version>]",
   "[--health-check-path /api/health]",
-  "[--routes /,/category,/cart,/profile]",
+  "[--routes /,/promotion,/mine,/category]",
   "[--rollout-percentage <0-100>]",
+  "[--git-commit <sha>]",
+  "[--git-ref <ref>]",
+  "[--git-tag <tag>]",
+  "[--package-version <version>]",
+  "[--commit-subject <subject>]",
+  "[--jenkins-build-number <number>]",
+  "[--docker-image <image>]",
+  "[--container <name>]",
   "[--server-url http://127.0.0.1:4100]",
   "[--output archives/releases/<version>/release-registration.json]",
   "[--execute]"
@@ -80,6 +88,27 @@ function createReleaseRegistrationPayload(args) {
   }
 
   const publicAssetBaseUrl = trimTrailingSlash(args["public-asset-base-url"]);
+  const buildMeta = {
+    renderMode: "ssr",
+    runtime: "next-standalone",
+    gitCommit: args["git-commit"] || getGitCommit(),
+    gitBranch: getGitBranch(),
+    gitRef: args["git-ref"],
+    gitTag: args["git-tag"],
+    packageVersion: args["package-version"],
+    commitSubject: args["commit-subject"],
+    jenkinsBuildNumber: args["jenkins-build-number"],
+    dockerImage: args["docker-image"],
+    container: args.container,
+    buildTime: timestamp()
+  };
+
+  Object.keys(buildMeta).forEach((key) => {
+    if (buildMeta[key] === undefined || buildMeta[key] === null || buildMeta[key] === "") {
+      delete buildMeta[key];
+    }
+  });
+
   const payload = {
     version: args.version,
     environment: args.environment,
@@ -89,14 +118,8 @@ function createReleaseRegistrationPayload(args) {
     healthCheckPath: normalizePath(args["health-check-path"], "/api/health"),
     rollbackVersion: args["rollback-version"],
     rolloutPercentage: parsePercentage(args["rollout-percentage"]),
-    routes: routes.length > 0 ? routes : ["/", "/category", "/cart", "/profile"],
-    buildMeta: {
-      renderMode: "ssr",
-      runtime: "next-standalone",
-      gitCommit: getGitCommit(),
-      gitBranch: getGitBranch(),
-      buildTime: timestamp()
-    }
+    routes: routes.length > 0 ? routes : ["/", "/promotion", "/mine", "/category"],
+    buildMeta
   };
 
   if (publicAssetBaseUrl) {
@@ -148,6 +171,14 @@ async function main() {
       "health-check-path",
       "routes",
       "rollout-percentage",
+      "git-commit",
+      "git-ref",
+      "git-tag",
+      "package-version",
+      "commit-subject",
+      "jenkins-build-number",
+      "docker-image",
+      "container",
       "server-url",
       "output"
     ],

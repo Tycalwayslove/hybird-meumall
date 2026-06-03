@@ -8,32 +8,45 @@
 
 - 远程 H5 只按 SSR 服务发布，不再维护 SSG/静态导出发布链路。
 - 通过 manifest 选择稳定版本、灰度版本和回滚版本。
-- 通过 `standalone` 产物部署 Node.js 或 Serverless 运行时。
+- 通过 `standalone` 产物构建版本镜像，并以多容器方式保留当前版本、回滚版本和灰度版本。
 - 回滚只切 manifest 指针，不重新构建、不重新发布原生 App。
 - 保留可审查的 release archive、SSR release plan、manifest draft 和验证记录。
 
-## 版本命名
+## 版本命名与 Git 绑定
 
-H5 版本使用日期递增格式：
-
-```text
-YYYY.MM.DD-NNN
-```
-
-示例：
+H5 发布版本采用 `package.json` 语义化版本生成，版本源头只允许来自 `hybird-meumall/package.json` 的 `version` 字段：
 
 ```text
-2026.05.15-001
+package.json version: 1.0.1
+H5 release version: v1.0.1
+Git tag: h5/v1.0.1
 ```
 
-版本一旦进入候选发布，不再复用。失败版本通过 manifest 黑名单和 rollbackVersion 排除，不覆盖同名产物。
+正式发布必须满足：
+
+1. `hybird-meumall/package.json` 的 `version` 符合 npm 语义化版本，例如 `1.0.1`。
+2. 当前 H5 工作区 HEAD 必须存在对应 tag：`h5/v1.0.1`。
+3. Jenkins 发布时记录 `gitCommit`、`gitRef`、`gitTag`、`packageVersion`、`dockerImage` 和 `container`。
+4. 版本一旦注册为 candidate，不复用、不覆盖；失败版本通过 manifest 黑名单或 release 状态排除。
+
+推荐提交与打 tag 流程：
+
+```bash
+cd hybird-meumall
+pnpm version patch --no-git-tag-version
+git add package.json pnpm-lock.yaml
+git commit -m "release(h5): v1.0.1"
+git tag h5/v1.0.1
+git push origin HEAD
+git push origin h5/v1.0.1
+```
 
 ## SSR 产物结构
 
 一次 SSR release 至少包含：
 
 ```text
-h5-release-2026.05.15-001/
+h5-release-v1.0.1/
   .next/
     standalone/
       server.js
@@ -41,7 +54,7 @@ h5-release-2026.05.15-001/
       node_modules/
     static/
   public/
-  archives/releases/2026.05.15-001/
+  archives/releases/v1.0.1/
     build.json
     release-note.md
     manifest.draft.json
@@ -65,6 +78,117 @@ node .next/standalone/server.js
 
 `H5_BASE_PATH` 是 SSR 服务挂载路径，必须在构建和运行环境保持一致。
 
+## 多容器版本并存
+
+线上测试环境采用多容器承载 H5 SSR 版本：
+
+```text
+https://hybird.aigcpop.com/h5-v/v1.0.1/
+```
+
+每个版本对应一个独立镜像和容器：
+
+```text
+meu-mall/h5:v1.0.1
+meu-mall-h5-v1.0.1
+```
+
+构建该版本时必须注入与线上访问路径一致的 `H5_BASE_PATH`：
+
+```bash
+H5_BASE_PATH=/h5-v/v1.0.1
+H5_VERSION=v1.0.1
+H5_RELEASE_LABEL=v1.0.1
+```
+
+原因是 Next.js `basePath` 是构建期配置。版本容器不能只靠运行时变量切换挂载路径。
+
+发布脚本会自动从 `package.json` 和 Git tag 派生版本；不再手动输入 `H5_VERSION` 或 `ROLLBACK_VERSION`：
+
+```bash
+PROMOTE_RELEASE=false \
+pnpm run deploy:h5-version
+```
+
+脚本会执行：
+
+1. 同步 H5 构建上下文到测试服务器。
+2. 构建 `meu-mall/h5:<version>` 镜像。
+3. 启动 `meu-mall-h5-<version>` 容器。
+4. 在 nginx 中写入 `/h5-v/<version>/` 代理入口。
+5. 访问版本 URL smoke。
+6. 从 active manifest 读取当前 stable version，作为新 candidate 的 `rollbackVersion`。
+7. 生成并注册 candidate release，写入 Git/Jenkins 构建元数据。
+
+manifest 指向版本路径：
+
+```json
+{
+  "stableVersion": "v1.0.1",
+  "assets": {
+    "serviceBaseUrl": "https://hybird.aigcpop.com",
+    "basePath": "/h5-v/v1.0.1",
+    "staticAssetPath": "/_next/static",
+    "healthCheckPath": "/api/health"
+  }
+}
+```
+
+App 拼接首页时得到：
+
+```text
+https://hybird.aigcpop.com/h5-v/v1.0.1/
+```
+
+运行保留策略：
+
+| 类型 | 是否运行 | 说明 |
+| --- | --- | --- |
+| active 当前版本 | 是 | App 当前加载目标。 |
+| rollbackVersion | 是 | 保证回滚只切 manifest。 |
+| grayVersion | 灰度期间是 | 灰度结束后按结果保留或停止。 |
+| 更老版本 | 否 | 保留镜像、release 记录和归档，必要时再启动。 |
+
+测试服务器建议常驻 2 到 3 个 H5 容器。长期运行 5 个以上版本时，建议至少 4C8G，并给容器设置资源上限。
+
+## CDN 接入阶段
+
+多容器负责 SSR HTML 和版本服务入口；CDN 负责静态资源加速。后续接入 CDN 时，HTML 仍由版本容器提供：
+
+```text
+https://hybird.aigcpop.com/h5-v/v1.0.1/
+```
+
+静态资源切到 CDN：
+
+```text
+https://cdn.aigcpop.com/meumall/h5/v1.0.1/_next/static/*
+https://cdn.aigcpop.com/meumall/h5/v1.0.1/assets/*
+```
+
+构建时注入：
+
+```bash
+H5_ASSET_PREFIX=https://cdn.aigcpop.com/meumall/h5/v1.0.1
+NEXT_PUBLIC_H5_ASSET_BASE_URL=https://cdn.aigcpop.com/meumall/h5/v1.0.1
+```
+
+manifest 可保留同一 `serviceBaseUrl/basePath`，并通过 `publicAssetBaseUrl` 标记静态资源 CDN 位置：
+
+```json
+{
+  "assets": {
+    "serviceBaseUrl": "https://hybird.aigcpop.com",
+    "basePath": "/h5-v/v1.0.1",
+    "staticAssetPath": "/_next/static",
+    "publicAssetBaseUrl": "https://cdn.aigcpop.com/meumall/h5/v1.0.1/assets",
+    "healthCheckPath": "/api/health"
+  }
+}
+```
+
+CDN 阶段上线前必须保证旧版本 CDN 目录不删除，否则 manifest 回滚到旧版本时会出现 HTML 可访问但 JS/CSS 404。
+
 ## 本地多版本演练
 
 为了在原生 App WebView 中肉眼确认 active manifest 切换效果，可以将同一份 standalone 产物复制成多份，并用不同运行时变量启动：
@@ -77,34 +201,34 @@ cp -R .next/standalone .next/variant-packages/blue
 cp -R .next/standalone .next/variant-packages/green
 cp -R .next/standalone .next/variant-packages/rose
 
-PORT=3109 H5_RELEASE_VARIANT=blue H5_RELEASE_LABEL="BLUE 2026.05.16" node .next/variant-packages/blue/server.js
-PORT=3110 H5_RELEASE_VARIANT=green H5_RELEASE_LABEL="GREEN 2026.05.16" node .next/variant-packages/green/server.js
-PORT=3111 H5_RELEASE_VARIANT=rose H5_RELEASE_LABEL="ROSE 2026.05.16" node .next/variant-packages/rose/server.js
+PORT=3109 H5_RELEASE_VARIANT=blue H5_RELEASE_LABEL="BLUE v1.0.1" node .next/variant-packages/blue/server.js
+PORT=3110 H5_RELEASE_VARIANT=green H5_RELEASE_LABEL="GREEN v1.0.1" node .next/variant-packages/green/server.js
+PORT=3111 H5_RELEASE_VARIANT=rose H5_RELEASE_LABEL="ROSE v1.0.1" node .next/variant-packages/rose/server.js
 ```
 
 然后在 `server-meumall` 中创建三份 manifest 配置：
 
 | 版本 | `assets.serviceBaseUrl` |
 | --- | --- |
-| `2026.05.16-blue` | `http://127.0.0.1:3109` |
-| `2026.05.16-green` | `http://127.0.0.1:3110` |
-| `2026.05.16-rose` | `http://127.0.0.1:3111` |
+| `v1.0.1-blue` | `http://127.0.0.1:3109` |
+| `v1.0.1-green` | `http://127.0.0.1:3110` |
+| `v1.0.1-rose` | `http://127.0.0.1:3111` |
 
 在 `admin-meumall` 发布不同 active manifest 后，iOS App 点击“刷新配置”即可重新拉取 active manifest 并加载对应 H5 版本。
 
 ## Manifest 模型
 
-manifest 不再描述静态版本目录。SSR 模式下，manifest 的 `assets` 表示服务入口：
+SSR 模式下，manifest 的 `assets` 表示服务入口。多容器版本并存时，`basePath` 指向当前版本容器的 nginx 路径，而不是静态 HTML 目录：
 
 ```json
 {
   "schemaVersion": "1.0.0",
   "appId": "hybrid-h5",
-  "configVersion": "config-2026.05.15-001",
+  "configVersion": "config-v1.0.1",
   "environment": "prod",
-  "stableVersion": "2026.05.15-001",
-  "grayVersion": "2026.05.15-002",
-  "rollbackVersion": "2026.05.14-001",
+  "stableVersion": "v1.0.1",
+  "grayVersion": "v1.0.2",
+  "rollbackVersion": "v1.0.0",
   "blacklistVersions": [],
   "grayRules": {
     "percentage": 0,
@@ -113,10 +237,10 @@ manifest 不再描述静态版本目录。SSR 模式下，manifest 的 `assets` 
     "excludeUserIds": []
   },
   "assets": {
-    "serviceBaseUrl": "https://h5.example.com",
-    "basePath": "/hybird",
+    "serviceBaseUrl": "https://hybird.aigcpop.com",
+    "basePath": "/h5-v/v1.0.1",
     "staticAssetPath": "/_next/static",
-    "publicAssetBaseUrl": "https://cdn.example.com/meumall/h5/2026.05.15-001",
+    "publicAssetBaseUrl": "https://cdn.example.com/meumall/h5/v1.0.1",
     "healthCheckPath": "/api/health"
   },
   "routes": {
@@ -149,10 +273,10 @@ assets.serviceBaseUrl + assets.basePath + routes[route].path
 示例：
 
 ```text
-https://h5.example.com/hybird/category
+https://hybird.aigcpop.com/h5-v/v1.0.1/category
 ```
 
-H5 版本号只用于发布选择、灰度和回滚，不参与拼接 HTML 静态目录。
+H5 版本号用于发布选择、灰度和回滚；在多容器模型下也会体现在 `basePath` 中，用于让 nginx 转发到对应版本容器。
 
 ## 静态资源模型
 
@@ -183,7 +307,7 @@ const bannerUrl = assetUrl("/assets/home/banner-renewal.webp");
 生产推荐以 CDN 为主：
 
 ```text
-NEXT_PUBLIC_H5_ASSET_BASE_URL=https://cdn.example.com/meumall/h5/2026.05.15-001
+NEXT_PUBLIC_H5_ASSET_BASE_URL=https://cdn.example.com/meumall/h5/v1.0.1
 ```
 
 原生离线包可以把 `public/assets` 和 `.next/static` 作为预下载资源，但它是缓存/兜底层，不作为默认业务页面发布链路。WebView 优先命中本地资源，缺失或校验失败时回源 CDN/SSR。
@@ -225,18 +349,24 @@ H5 侧通过环境变量配置 active manifest URL：
 
 ```json
 {
-  "version": "2026.05.16-001",
+  "version": "v1.0.1",
   "environment": "prod",
-  "serviceBaseUrl": "https://h5.example.com",
-  "basePath": "/hybird",
-  "rollbackVersion": "2026.05.15-001",
+  "serviceBaseUrl": "https://hybird.aigcpop.com",
+  "basePath": "/h5-v/v1.0.1",
+  "rollbackVersion": "v1.0.0",
   "rolloutPercentage": 0,
-  "routes": ["/", "/category", "/cart", "/profile"],
+  "routes": ["/", "/promotion", "/mine", "/category"],
   "source": "hybird-ci",
   "buildMeta": {
     "renderMode": "ssr",
     "runtime": "next-standalone",
-    "gitCommit": "abc123"
+    "gitCommit": "1234567890abcdef",
+    "gitRef": "h5/v1.0.1",
+    "gitTag": "h5/v1.0.1",
+    "packageVersion": "1.0.1",
+    "jenkinsBuildNumber": "18",
+    "dockerImage": "meu-mall/h5:v1.0.1",
+    "container": "meu-mall-h5-v1.0.1"
   }
 }
 ```
@@ -255,6 +385,8 @@ H5 侧通过环境变量配置 active manifest URL：
 - `scripts/ai/smoke-ssr-release.ts`：对 SSR 服务做 HTTP smoke。
 - `scripts/ai/update-manifest.ts`：更新 SSR manifest 草案。
 - `scripts/ai/rollback.ts`：只修改 manifest 草案完成回滚。
+- 根目录 `scripts/deploy/h5-version-deploy.sh`：构建并启动独立 H5 版本容器，写入 nginx 版本入口，注册 candidate release。
+- 本地 Jenkins `meu-mall-h5-version-deploy`：通过 `GIT_REF` 触发 H5 多版本容器发布，版本由 `package.json` 和 `h5/vX.Y.Z` tag 确定。
 - `.github/workflows/h5-release.yml`：手动触发 SSR release workflow。
 
 ## 灰度发布
@@ -290,19 +422,19 @@ H5 侧通过环境变量配置 active manifest URL：
 
 1. 安装依赖：`pnpm install --frozen-lockfile`。
 2. 质量门禁：`pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm run ai:check-workflow --strict`。
-3. 构建：`H5_BASE_PATH=/hybird pnpm build`。
+3. 构建：部署脚本按 `H5_BASE_PATH=/h5-v/vX.Y.Z` 构建版本容器。版本容器必须使用版本路径构建。
 4. 生成 manifest 草案：
 
 ```bash
 pnpm run ai:release-prepare \
-  --version 2026.05.15-001 \
+  --version v1.0.1 \
   --channel stable \
-  --rollback-version 2026.05.14-001 \
+  --rollback-version v1.0.0 \
   --rollout-percentage 0 \
-  --routes "/,/category,/cart,/profile" \
-  --service-base-url "https://h5.example.com" \
-  --base-path "/hybird" \
-  --public-asset-base-url "https://cdn.example.com/meumall/h5/2026.05.15-001"
+  --routes "/,/promotion,/mine,/category" \
+  --service-base-url "https://hybird.aigcpop.com" \
+  --base-path "/h5-v/v1.0.1" \
+  --public-asset-base-url "https://cdn.example.com/meumall/h5/v1.0.1"
 ```
 
 5. 校验 SSR 产物：
@@ -332,18 +464,27 @@ pnpm run ai:prepare-standalone-assets
 
 ```bash
 pnpm run ai:prepare-ssr-release \
-  --version 2026.05.15-001 \
+  --version v1.0.1 \
   --environment prod \
-  --service-base-url "https://h5.example.com" \
-  --base-path "/hybird"
+  --service-base-url "https://hybird.aigcpop.com" \
+  --base-path "/h5-v/v1.0.1"
 ```
 
-8. 上传 release archive：`.next/standalone`、`.next/static`、`public`、`archives/releases/<version>`。
-9. 部署到 SSR 运行平台。
+8. 构建并启动版本容器：
+
+```bash
+REGISTER_RELEASE=true \
+PROMOTE_RELEASE=false \
+pnpm run deploy:h5-version
+```
+
+说明：该命令不再接收手填 `H5_VERSION` 和 `ROLLBACK_VERSION`。版本来自 `hybird-meumall/package.json`，回滚目标来自 active manifest。
+
+9. 保留 release archive：`.next/standalone`、`.next/static`、`public`、`archives/releases/vX.Y.Z`。
 10. 部署后 smoke：
 
 ```bash
-pnpm run ai:smoke-ssr-release --plan archives/releases/2026.05.15-001/ssr-release-plan.json
+pnpm run ai:smoke-ssr-release --plan archives/releases/v1.0.1/ssr-release-plan.json
 ```
 
 11. 发布 candidate manifest，完成 WebView 验证。
@@ -351,14 +492,14 @@ pnpm run ai:smoke-ssr-release --plan archives/releases/2026.05.15-001/ssr-releas
 
 ```bash
 pnpm run ai:register-release \
-  --version 2026.05.15-001 \
+  --version v1.0.1 \
   --environment prod \
-  --service-base-url "https://h5.example.com" \
-  --base-path "/hybird" \
-  --public-asset-base-url "https://cdn.example.com/meumall/h5/2026.05.15-001" \
-  --rollback-version 2026.05.14-001 \
+  --service-base-url "https://hybird.aigcpop.com" \
+  --base-path "/h5-v/v1.0.1" \
+  --public-asset-base-url "https://cdn.example.com/meumall/h5/v1.0.1" \
+  --rollback-version v1.0.0 \
   --rollout-percentage 0 \
-  --routes "/,/category,/cart,/profile" \
+  --routes "/,/promotion,/mine,/category" \
   --server-url "https://release.example.com" \
   --execute
 ```
@@ -381,10 +522,10 @@ pnpm run ai:register-release \
 
 ```bash
 pnpm run ai:rollback \
-  --manifest archives/releases/2026.05.15-002/manifest.draft.json \
-  --target-version 2026.05.14-001 \
+  --manifest archives/releases/v1.0.2/manifest.draft.json \
+  --target-version v1.0.1 \
   --reason "white screen rate exceeded threshold" \
-  --note archives/releases/2026.05.15-002/release-note.md
+  --note archives/releases/v1.0.2/release-note.md
 ```
 
 回滚脚本行为：

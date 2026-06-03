@@ -60,7 +60,7 @@ describe("release manifest scripts", () => {
       "--rollout-percentage",
       "15",
       "--routes",
-      "/,/cart,/profile",
+      "/,/promotion,/mine",
       "--service-base-url",
       "https://h5.example.com",
       "--base-path",
@@ -97,9 +97,9 @@ describe("release manifest scripts", () => {
           delivery: "remote",
           path: "/"
         },
-        "/profile": {
+        "/mine": {
           delivery: "remote",
-          path: "/profile"
+          path: "/mine"
         }
       },
       remoteConfig: {
@@ -227,7 +227,7 @@ describe("release manifest scripts", () => {
 
     runScript("scripts/ai/register-release.ts", [
       "--version",
-      "2026.05.16-001",
+      "v1.0.1",
       "--environment",
       "prod",
       "--service-base-url",
@@ -235,13 +235,29 @@ describe("release manifest scripts", () => {
       "--base-path",
       "/hybird",
       "--public-asset-base-url",
-      "https://cdn.example.com/meumall/h5/2026.05.16-001",
+      "https://cdn.example.com/meumall/h5/v1.0.1",
       "--rollback-version",
-      "2026.05.15-001",
+      "v1.0.0",
       "--routes",
-      "/,/category,/cart",
+      "/,/promotion,/mine",
       "--rollout-percentage",
       "20",
+      "--git-commit",
+      "1234567890abcdef",
+      "--git-ref",
+      "h5/v1.0.1",
+      "--git-tag",
+      "h5/v1.0.1",
+      "--package-version",
+      "1.0.1",
+      "--commit-subject",
+      "feat: release h5 v1.0.1",
+      "--jenkins-build-number",
+      "18",
+      "--docker-image",
+      "meu-mall/h5:v1.0.1",
+      "--container",
+      "meu-mall-h5-v1.0.1",
       "--output",
       output
     ]);
@@ -249,18 +265,26 @@ describe("release manifest scripts", () => {
     const payload = JSON.parse(fs.readFileSync(output, "utf8"));
 
     expect(payload).toMatchObject({
-      version: "2026.05.16-001",
+      version: "v1.0.1",
       environment: "prod",
       status: "candidate",
       serviceBaseUrl: "https://h5.example.com",
       basePath: "/hybird",
-      publicAssetBaseUrl: "https://cdn.example.com/meumall/h5/2026.05.16-001",
-      rollbackVersion: "2026.05.15-001",
+      publicAssetBaseUrl: "https://cdn.example.com/meumall/h5/v1.0.1",
+      rollbackVersion: "v1.0.0",
       rolloutPercentage: 20,
-      routes: ["/", "/category", "/cart"],
+      routes: ["/", "/promotion", "/mine"],
       buildMeta: {
         renderMode: "ssr",
-        runtime: "next-standalone"
+        runtime: "next-standalone",
+        gitCommit: "1234567890abcdef",
+        gitRef: "h5/v1.0.1",
+        gitTag: "h5/v1.0.1",
+        packageVersion: "1.0.1",
+        commitSubject: "feat: release h5 v1.0.1",
+        jenkinsBuildNumber: "18",
+        dockerImage: "meu-mall/h5:v1.0.1",
+        container: "meu-mall-h5-v1.0.1"
       }
     });
   });
@@ -305,7 +329,7 @@ describe("release manifest scripts", () => {
         "--rollback-version",
         "2026.05.15-001",
         "--routes",
-        "/,/profile",
+        "/,/mine",
         "--server-url",
         `http://127.0.0.1:${address.port}`,
         "--output",
@@ -322,7 +346,7 @@ describe("release manifest scripts", () => {
           version: "2026.05.16-002",
           environment: "prod",
           serviceBaseUrl: "https://h5-green.example.com",
-          routes: ["/", "/profile"]
+          routes: ["/", "/mine"]
         }
       });
     } finally {
