@@ -1,5 +1,21 @@
 # 变更摘要
 
+## 2026-06-03 - 首页增加 Bridge 调试面板
+
+### 变更
+
+- 新增 `src/lib/bridge/protocol-bridge.ts`，实现统一信封 Bridge 调试 runtime。
+- 首页新增 `Hybrid Bridge 调试` 面板，可测试 `getDeviceInfo`、`getTokens`、导航、token 失效、分享、logout 监听和模拟 logout。
+- 更新 Native Bridge 文档，明确新旧 Bridge 入口并存，当前为调试链路，不代表原生真实业务能力完成。
+
+### 验证
+
+- 已先运行 `pnpm test src/lib/bridge/protocol-bridge.test.ts`，确认模块缺失导致测试失败。
+- `pnpm test src/lib/bridge/protocol-bridge.test.ts`：通过。
+- `pnpm typecheck`：通过。
+- `pnpm build`：通过。
+- 本地 H5 dev server `http://localhost:3109/hybird` 返回 200。
+
 ## 2026-06-03 - 同步 App 对接路由和 H5 版本标识
 
 ### 变更

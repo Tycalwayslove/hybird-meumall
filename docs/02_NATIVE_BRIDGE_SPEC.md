@@ -23,20 +23,24 @@
 | 响应格式 | 原生如何返回成功或失败。 |
 | 超时策略 | H5 等待原生响应的最长时间。 |
 
-## 首版 H5 Adapter
+## 当前 H5 Adapter
 
 当前 H5 侧 Bridge adapter 位于 `src/lib/bridge`。
 
 | 字段 | 当前约定 |
 | --- | --- |
-| H5 调用入口 | `nativeBridge.call(method, payload, options?)` |
-| 默认原生 namespace | `window.MeumallNativeBridge` |
-| 原生方法入口 | `MeumallNativeBridge.call(method, payload)` |
-| Web Mock | `createWebBridgeAdapter()` |
+| 旧调用入口 | `nativeBridge.call(method, payload, options?)` |
+| 新调试入口 | `bridge.navigate(payload)`、`bridge.emit(event, payload)`、`bridge.rpc(action)`、`bridge.on(event, handler)` |
+| H5 -> iOS | `window.webkit.messageHandlers.bridgeHandler.postMessage(message)` |
+| H5 -> Android | `window.bridgeHandler.postMessage(JSON.stringify(message))` |
+| Native -> H5 | `window.__bridgeHandler.resolve/reject/emit(...)` |
+| Web Mock | `createWebBridgeAdapter()` 和首页 Bridge 调试面板 |
 | 默认超时 | 3000ms |
-| 响应结构 | `BridgeResult<T>` |
+| 调试协议 | `{ module, action, payload?, callbackId? }` |
 
-真实 iOS/Android namespace 和通信模式仍需原生团队确认。当前实现通过 adapter 隔离差异，后续如改为 callback-id 或 message-channel，可替换 adapter 而不改变业务调用入口。
+当前已按 `.ai-workspace/contracts/native-bridge/meumall-bridge-protocol.md` 增加统一信封调试 runtime。旧 `nativeBridge.call` 暂不删除；后续正式业务优先走新语义化入口。
+
+首页已经提供 Bridge 调试面板，用于测试 P0/P1 草案能力是否能被原生容器收到。该面板只用于联调，不代表真实 token、导航、分享等业务能力已经由原生完成。
 
 ## 方法定义模板
 
@@ -110,6 +114,11 @@ type BridgeResult<T> =
 | user.getToken | 已定义 | 原生向 H5 传递认证 token。 |
 | webview.close | 已定义 | 关闭当前 WebView。 |
 | webview.setTitle | 已定义 | 设置 WebView 标题。 |
+| rpc/getTokens | 调试中 | 统一信封 RPC，原生当前只返回 debug token。 |
+| rpc/getDeviceInfo | 调试中 | 统一信封 RPC，原生当前只返回 debug 设备信息。 |
+| router/navigate | 调试中 | H5 发出导航信封，原生当前只接收记录。 |
+| event/token_expired | 调试中 | H5 发出 token 失效事件，原生当前只接收记录。 |
+| event/share | 调试中 | H5 发出分享事件，原生当前只接收记录。 |
 
 ## 首批方法
 

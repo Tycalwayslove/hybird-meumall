@@ -57,6 +57,8 @@
 - 添加 server-meumall active manifest HTTP fetcher，支持环境变量默认 URL 和测试注入 `fetchImpl`。
 - 添加 Mac Studio 本地 Jenkins H5 参数化构建链路，构建完成后通过 SSH/rsync 上传 SSR standalone 产物到云服务器 release 目录。
 - 添加 `public/assets` 静态资源目录规范和 `assetUrl()` 统一资源路径 helper。
+- 添加首页 Bridge 调试面板，可在 H5 首页测试 `router/event/rpc` 统一信封能力。
+- 添加 `src/lib/bridge/protocol-bridge.ts`，支持 `bridgeHandler`、`__bridgeHandler.resolve/reject/emit`、callbackId 和超时。
 
 ### 变更
 
@@ -98,6 +100,7 @@
 - 服务器 nginx `/hybird` 入口改为直接代理 H5，修复 `/hybird` 与 `/hybird/` 之间的重定向循环。
 - manifest `assets` 增加可选 `publicAssetBaseUrl`，`release-prepare`、`update-manifest` 和 `register-release` 支持 `--public-asset-base-url`。
 - 发布规范补充 H5 内置资源、业务动态图片、CDN 和原生离线包的职责边界。
+- Native Bridge 从旧 `MeumallNativeBridge.call(method, payload)` 扩展为统一信封调试 runtime；旧入口暂不删除，新联调优先使用 `navigate`、`emit`、`rpc` 和 `on`。
 
 ### 废弃
 
@@ -142,6 +145,7 @@
 - 已通过 Jenkins build #7 构建并上传 `2026.05.16-local-smoke-007`，远端 `standalone/server.js` 和 `deploy.json` 校验通过。
 - 已通过 Jenkins build #11 完整验证：测试、类型检查、SSR 构建、release 注册、远端激活和公网 smoke 均通过。
 - 已验证 `http://118.196.24.12/hybird`、`/hybird/`、`/` 不再出现无限重定向。
+- 已通过 `src/lib/bridge/protocol-bridge.test.ts`、`pnpm typecheck` 和 `pnpm build` 验证首页 Bridge 调试面板。
 ## 2026-05-15 - 归档任务
 
 ### 变更

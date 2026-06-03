@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ReplicaShell } from "@/components/commerce/ReplicaShell";
 import { fetchActiveHomeConfig } from "./api";
+import { BridgeDebugPanel } from "./BridgeDebugPanel";
 import { defaultHomeConfig } from "./default-config";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { getHomePreloadImages, HomeModules } from "./HomeModules";
@@ -113,6 +114,7 @@ export function HomeScreen({ environment = "prod", releaseLabel }: { environment
       <div className="px-3 pt-3">
         <HomeHeader />
         {releaseLabel ? <HomeVersionNotice releaseLabel={releaseLabel} /> : null}
+        <BridgeDebugPanel />
         <HomeModules modules={state.config.modules} />
       </div>
     </ReplicaShell>
