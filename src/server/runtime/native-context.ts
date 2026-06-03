@@ -1,0 +1,85 @@
+import { parseCookieHeader, readCookieAuthFromHeader, readPageConfigFromHeader } from "@/server/auth/cookie-auth";
+
+export type NativeRuntimeContext = {
+  auth: {
+    tokenCookieName: string;
+    tokenPresent: boolean;
+    tokenPreview: string | null;
+    tokenLength: number;
+  };
+  pageConfig: Record<string, unknown> | null;
+  cookies: Array<{
+    name: string;
+    sensitive: boolean;
+    present: boolean;
+    preview: string | null;
+  }>;
+  sourceParams: Record<string, string>;
+  environment: {
+    appEnv: string;
+    h5Version: string;
+  };
+};
+
+export type NativeRuntimeContextInput = {
+  cookieHeader?: string | null;
+  env?: Readonly<Record<string, string | undefined>>;
+  sourceSearch?: string | null;
+};
+
+const sensitiveCookiePattern = /(token|secret|password|credential|authorization|auth)/i;
+
+export function buildNativeRuntimeContext({ cookieHeader, env = process.env, sourceSearch }: NativeRuntimeContextInput): NativeRuntimeContext {
+  const auth = readCookieAuthFromHeader(cookieHeader);
+  const cookies = parseCookieHeader(cookieHeader);
+
+  return {
+    auth: {
+      tokenCookieName: auth.tokenCookieName,
+      tokenPresent: Boolean(auth.token),
+      tokenPreview: auth.token ?? null,
+      tokenLength: auth.token?.length ?? 0
+    },
+    pageConfig: readPageConfigFromHeader(cookieHeader),
+    cookies: Array.from(cookies.entries()).map(([name, value]) => {
+      const sensitive = isSensitiveCookie(name);
+      return {
+        name,
+        sensitive,
+        present: true,
+        preview: value
+      };
+    }),
+    sourceParams: parseSearchParams(sourceSearch),
+    environment: {
+      appEnv: env.APP_ENV ?? "unknown",
+      h5Version: env.H5_VERSION ?? env.H5_RELEASE_LABEL ?? "unknown"
+    }
+  };
+}
+
+export function buildNativeRuntimeContextFromRequest(request: Request, env: Readonly<Record<string, string | undefined>> = process.env) {
+  const url = new URL(request.url);
+  return buildNativeRuntimeContext({
+    cookieHeader: request.headers.get("cookie"),
+    env,
+    sourceSearch: url.searchParams.get("sourceSearch") ?? ""
+  });
+}
+
+function isSensitiveCookie(name: string) {
+  return sensitiveCookiePattern.test(name);
+}
+
+function parseSearchParams(sourceSearch: string | null | undefined): Record<string, string> {
+  if (!sourceSearch) {
+    return {};
+  }
+
+  const normalized = sourceSearch.startsWith("?") ? sourceSearch.slice(1) : sourceSearch;
+  const result: Record<string, string> = {};
+  new URLSearchParams(normalized).forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+}

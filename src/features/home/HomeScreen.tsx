@@ -9,6 +9,7 @@ import { defaultHomeConfig } from "./default-config";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { getHomePreloadImages, HomeModules } from "./HomeModules";
 import { readHomeConfigCache, writeHomeConfigCache } from "./home-cache";
+import { NativeRuntimePanel } from "./NativeRuntimePanel";
 import type { HomeConfig, HomeConfigState, HomeEnvironment } from "./types";
 
 const DEFAULT_SKELETON_MIN_MS = 200;
@@ -114,6 +115,7 @@ export function HomeScreen({ environment = "prod", releaseLabel }: { environment
       <div className="px-3 pt-3">
         <HomeHeader />
         {releaseLabel ? <HomeVersionNotice releaseLabel={releaseLabel} /> : null}
+        <NativeRuntimePanel />
         <BridgeDebugPanel />
         <HomeModules modules={state.config.modules} />
       </div>

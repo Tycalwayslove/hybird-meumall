@@ -59,6 +59,8 @@
 - 添加 `public/assets` 静态资源目录规范和 `assetUrl()` 统一资源路径 helper。
 - 添加首页 Bridge 调试面板，可在 H5 首页测试 `router/event/rpc` 统一信封能力。
 - 添加 `src/lib/bridge/protocol-bridge.ts`，支持 `bridgeHandler`、`__bridgeHandler.resolve/reject/emit`、callbackId 和超时。
+- 添加 H5 BFF HTTP 鉴权基础：服务端 Cookie auth、Java/Python 后端 registry、backend client、浏览器端 BFF client 和 BFF 响应转换。
+- 添加首页原生传参展示面板，展示完整 Cookie 值、`meu_page_config`、URL 参数和 H5 环境信息，用于内部联调。
 
 ### 变更
 
@@ -101,6 +103,8 @@
 - manifest `assets` 增加可选 `publicAssetBaseUrl`，`release-prepare`、`update-manifest` 和 `register-release` 支持 `--public-asset-base-url`。
 - 发布规范补充 H5 内置资源、业务动态图片、CDN 和原生离线包的职责边界。
 - Native Bridge 从旧 `MeumallNativeBridge.call(method, payload)` 扩展为统一信封调试 runtime；旧入口暂不删除，新联调优先使用 `navigate`、`emit`、`rpc` 和 `on`。
+- API 鉴权推荐方案从浏览器端直接读取 token 调后端，调整为 App 写 Cookie、Next BFF 读取 Cookie、服务端转 Authorization 调 Java/Python 后端。
+- 原生传参展示调整为内部调试口径：展示完整 Cookie 值，后续正式开放前必须删除或关闭。
 
 ### 废弃
 
@@ -132,6 +136,8 @@
 - 已通过 server-meumall active manifest fetcher 的红绿测试，覆盖成功、非 2xx 和 JSON 解析失败路径。
 - 已通过 `pnpm test -- src/config/manifest.test.ts`、`pnpm test`、`pnpm typecheck` 和 `pnpm lint`。
 - 已通过 Bridge adapter 单测、全量测试、类型检查、lint 和 AI 工作流检查。
+- 已通过 Cookie auth、backend registry、backend client、BFF response 和 H5 client 目标测试验证 BFF 鉴权基础。
+- 已通过 native runtime context 目标测试验证原生传参调试信息。
 - 已通过远程配置 schema 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 theme runtime 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 API client 单测、全量测试、类型检查、lint 和 AI 工作流检查。

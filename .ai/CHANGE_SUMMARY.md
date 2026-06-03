@@ -1,5 +1,23 @@
 # 变更摘要
 
+## 2026-06-03 - 建立 H5 BFF HTTP 鉴权基础
+
+### 变更
+
+- 新增 `src/server/auth/cookie-auth.ts`，服务端读取原生 App 写入的 `meu_access_token` Cookie。
+- 新增 `src/server/http/backend-registry.ts` 和 `backend-client.ts`，按环境选择 Java / Python 后端，并将 Cookie token 转为 `Authorization: Bearer <token>`。
+- 新增 `src/lib/http/h5-client.ts`，浏览器端只请求自身 BFF，自动处理版本 basePath 和 `credentials: "include"`。
+- 新增 `src/server/http/bff-response.ts` 和示例 route `src/app/api/bff/user/profile/route.ts`。
+- 新增 `src/server/runtime/native-context.ts` 和 `/api/bff/runtime/context`，用于返回原生传参调试信息。
+- 首页新增 `NativeRuntimePanel`，展示完整 Cookie 值、页面配置、URL 参数和 H5 环境信息；该面板仅限内部联调。
+- 更新 API 文档，明确 SSR / BFF / CSR 调用边界。
+
+### 验证
+
+- 已先运行目标测试，确认新模块缺失导致失败。
+- `pnpm test src/server/http/bff-response.test.ts src/server/auth/cookie-auth.test.ts src/server/http/backend-registry.test.ts src/server/http/backend-client.test.ts src/lib/http/h5-client.test.ts`：通过。
+- `pnpm test src/server/runtime/native-context.test.ts`：通过。
+
 ## 2026-06-03 - 首页增加 Bridge 调试面板
 
 ### 变更
