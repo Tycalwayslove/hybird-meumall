@@ -1,12 +1,26 @@
 # 变更摘要
 
+## 2026-06-03 - 同步 App 对接路由和 H5 版本标识
+
+### 变更
+
+- 删除 H5 旧兼容页面文件。
+- 移除 H5 mock 入口中的智能体 H5 占位入口。
+- 将右上角版本标识改为显式 DOM 节点，来源为 `H5_RELEASE_LABEL` 或 `H5_VERSION`。
+
+### 验证
+
+- `pnpm test -- src/lib/commerce/mock-data.test.ts`：通过。
+- `pnpm typecheck`：通过。首次失败是 `.next` 缓存仍引用已删除页面，清理 `.next` 后通过。
+
 ## 2026-05-16 - 本地 Jenkins H5 构建链路修复
 
 ### 变更
 
 - 修复本地 Jenkins `mac-studio` agent 离线问题，将 agent 接入 launchd 守护。
 - 将 Jenkins Pipeline 调整为启动本机 detached 构建脚本，避免长时间 Docker 构建导致 remoting channel 不稳定。
-- 为 `/Users/mac/meumall-ci/ops/hybird-local-deploy.sh` 增加本地 Git mirror 缓存：网络可用时刷新 GitHub，网络不可用时使用本地缓存继续构建。
+- 为 `/Users/mac/person_code/meu-mall/meumall-ci/ops/hybird-local-deploy.sh` 增加本地 Git mirror 缓存：网络可用时刷新 GitHub，网络不可用时使用本地缓存继续构建。
+- 将本地 Jenkins/CI 运行路径统一到 `/Users/mac/person_code/meu-mall/meumall-ci`，移除对旧软链接路径的运行时依赖。
 - 为 launchd 启动的 Jenkins agent 固化代理环境，解决后台 GitHub 直连超时。
 - release 注册改为通过 SSH tunnel 访问服务器本机 FastAPI，避免 CI 走公网 nginx 管理鉴权入口。
 - H5 激活后的 smoke 检查增加重试等待，避免容器刚重启时短暂 502 导致 Jenkins 误判失败。

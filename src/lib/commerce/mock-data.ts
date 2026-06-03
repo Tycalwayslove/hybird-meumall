@@ -37,8 +37,7 @@ export type MockOrder = {
 export const primaryH5Entrances: CommerceEntry[] = [
   { label: "首页内容", href: "/", tone: "bg-primary", helper: "由原生首页 Tab 加载" },
   { label: "推广内容", href: "/promotion", tone: "bg-emerald-500", helper: "达人、收益和工具" },
-  { label: "我的内容", href: "/mine", tone: "bg-rose-500", helper: "用户资产和记录" },
-  { label: "智能体占位", href: "/agent-placeholder", tone: "bg-violet-500", helper: "实际由 App 原生承载" }
+  { label: "我的内容", href: "/mine", tone: "bg-rose-500", helper: "用户资产和记录" }
 ];
 
 export const homeEntries: CommerceEntry[] = [

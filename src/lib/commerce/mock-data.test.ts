@@ -12,8 +12,8 @@ import {
 
 describe("commerce mock data", () => {
   test("provides H5 entrance routes without native tab rendering semantics", () => {
-    expect(primaryH5Entrances.map((item) => item.href)).toEqual(["/", "/promotion", "/mine", "/agent-placeholder"]);
-    expect(primaryH5Entrances.map((item) => item.label)).toEqual(["首页内容", "推广内容", "我的内容", "智能体占位"]);
+    expect(primaryH5Entrances.map((item) => item.href)).toEqual(["/", "/promotion", "/mine"]);
+    expect(primaryH5Entrances.map((item) => item.label)).toEqual(["首页内容", "推广内容", "我的内容"]);
   });
 
   test("provides product cards that can resolve to detail pages", () => {

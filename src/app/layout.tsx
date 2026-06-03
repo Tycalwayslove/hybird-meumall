@@ -23,12 +23,15 @@ export default function RootLayout({
   const releaseLabel =
     process.env.H5_RELEASE_LABEL ||
     process.env.H5_VERSION ||
-    `H5 ${releaseVariant}`;
+    "H5 unknown";
 
   return (
     <html lang="zh-CN">
       <body data-release-variant={releaseVariant} data-release-label={releaseLabel}>
         {children}
+        <div className="h5-version-badge" aria-label={`当前 H5 版本：${releaseLabel}`}>
+          {releaseLabel}
+        </div>
       </body>
     </html>
   );
