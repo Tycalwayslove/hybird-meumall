@@ -1,11 +1,11 @@
 export const defaultThemeVariables = {
-  "--color-bg": "255 255 255",
-  "--color-fg": "17 24 39",
-  "--color-primary": "37 99 235",
-  "--color-primary-fg": "255 255 255",
-  "--color-muted": "243 244 246",
-  "--color-muted-fg": "107 114 128",
-  "--color-border": "229 231 235",
+  "--color-bg": "247 249 251",
+  "--color-fg": "15 15 15",
+  "--color-primary": "148 221 66",
+  "--color-primary-fg": "15 15 15",
+  "--color-muted": "238 240 245",
+  "--color-muted-fg": "111 111 111",
+  "--color-border": "241 241 244",
   "--radius-sm": "4px",
   "--radius-md": "8px"
 } as const;

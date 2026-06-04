@@ -9,8 +9,8 @@ describe("theme tokens", () => {
   });
 
   it("keeps default variables available before runtime theme injection", () => {
-    expect(defaultThemeVariables["--color-bg"]).toBe("255 255 255");
-    expect(defaultThemeVariables["--color-fg"]).toBe("17 24 39");
+    expect(defaultThemeVariables["--color-bg"]).toBe("247 249 251");
+    expect(defaultThemeVariables["--color-fg"]).toBe("15 15 15");
     expect(themeRadiusTokens.md).toBe("var(--radius-md)");
   });
 });

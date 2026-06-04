@@ -54,9 +54,33 @@ const colors = {
 
 - 默认 CSS Variables 定义在 `src/styles/globals.css`。
 - Tailwind token 映射定义在 `src/lib/theme/tokens.ts`，并由 `tailwind.config.ts` 消费。
+- Figma 色彩组件已沉淀为 `src/design-system/tokens/colors.ts`，并由 `tailwind.config.ts` 扩展为 `brand`、`text`、`fill`、`line`、`success`、`warning`、`danger`、`price` 等语义 token。
+- 全局基础组件位于 `src/design-system/components/`，页面应优先使用这些组件组合结构。
 - light/dark token 定义在 `src/lib/theme/tokens.ts`。
 - 主题 runtime 定义在 `src/lib/theme/runtime.ts`。
 - 当前实现 light/dark runtime，不包含品牌主题、远程主题拉取、原生注入或 manifest 注入逻辑。
+
+## MeuMall Design Token
+
+首版 design token 来源于 Figma 色彩组件节点 `34:884`。
+
+| Figma Token | 代码语义 | Tailwind 示例 |
+| --- | --- | --- |
+| 品牌色/点击 | `brand.action` | `bg-brand-action` |
+| 品牌色/底色 | `brand.subtle` | `bg-brand-subtle` |
+| 文字/text-1 | `text.primary` | `text-text-primary` |
+| 文字/text-5 | `text.muted` | `text-text-muted` |
+| Line | `line.DEFAULT` | `border-line` |
+| 填充/fill-4 | `fill.page` | `bg-fill-page` |
+| 填充/fill-白 | `fill.white` | `bg-fill-white` |
+| 功能色/价格 | `price.DEFAULT` | `text-price` |
+
+业务页面规则：
+
+- 不在 `className` 中直接写 `bg-[#...]`、`text-[#...]`、`border-[#...]`、`from-[#...]` 或 `to-[#...]`。
+- 常规颜色从 design token 读取。
+- 业务状态色如果不属于全局 token，例如达人等级主题，可以集中在 feature 的 `theme/` 目录中，再通过组件 props 或 inline style 消费。
+- 新增全局色值必须先补 `src/design-system/tokens/colors.ts` 和对应测试，再进入页面。
 
 ## Light/Dark Runtime
 

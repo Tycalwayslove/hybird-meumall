@@ -21,6 +21,7 @@
 src/
   app/
   components/
+  design-system/
   features/
   lib/
     bridge/
@@ -32,6 +33,8 @@ src/
 ```
 
 首版 `src/lib/bridge`、`src/lib/manifest`、`src/lib/theme` 和 `src/lib/api` 可以先提供模块边界和类型入口。具体 Bridge、manifest、theme runtime 和 API client 行为必须通过后续任务实现。
+
+`src/design-system` 是全局 UI 基础层，负责 token、基础组件和布局 primitives；`src/features/*` 只放业务组件、业务 theme 和页面编排。
 
 ## TypeScript 规则
 
@@ -47,11 +50,17 @@ src/
 - 深层组件不要直接调用 Native Bridge。
 - 处理 loading、empty、error 和 native capability unsupported 状态。
 - 模拟页面中的 icon 位置暂时使用色块占位，后续统一替换为正式 icon 体系。
+- 页面入口优先保持薄：只做数据获取、策略选择和页面组件拼装。
+- 复杂页面至少拆分为 page、section component、业务 theme / mock data 三层。
+- 全局复用 UI 优先放入 `src/design-system/components`；只服务单一业务域的组件放在 `src/features/<feature>/components`。
 
 ## Tailwind 规则
 
 - 优先使用由主题 token 驱动的 Tailwind 工具类。
 - 已有 CSS Variable token 时，不硬编码颜色。
+- 业务 JSX 不允许出现 `bg-[#...]`、`text-[#...]`、`border-[#...]`、`from-[#...]`、`to-[#...]` 这类直接颜色 class。
+- 全局颜色使用 `bg-brand-action`、`bg-fill-page`、`bg-fill-white`、`text-text-primary`、`text-text-muted`、`border-line`、`text-price` 等语义 class。
+- 业务专属视觉参数集中放在 feature 的 `theme/` 目录，不散落到 JSX。
 - 响应式布局明确，并覆盖常见 WebView 宽度。
 - 移动 WebView 不依赖 hover-only 交互。
 

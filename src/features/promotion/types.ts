@@ -1,3 +1,5 @@
+import type { LocalAssetKey } from "@/lib/assets";
+
 export type TalentLevel = "v1" | "v2" | "v3" | "v4" | "v5";
 
 export type TalentThemeName = "peach" | "blue" | "gold" | "purple" | "blackPurple";
@@ -26,7 +28,9 @@ export type TalentTheme = {
   name: TalentThemeName;
   accentColor: string;
   textOnHero: "dark" | "light";
-  badgeAssetKey: string;
+  badgeAssetKey: LocalAssetKey;
+  heroBackgroundAssetKey: LocalAssetKey;
+  summaryCardAssetKey: LocalAssetKey;
   heroGradient: string;
   cardGradient: string;
   summaryTextColor: string;

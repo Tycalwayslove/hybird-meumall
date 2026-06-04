@@ -20,6 +20,37 @@
 ### 备选方案
 ```
 
+## ADR-0019 - H5 页面采用 Figma Token 驱动的 Design System
+
+日期：2026-06-04
+
+状态：Accepted
+
+### 背景
+
+推广首页首版虽然接近 Figma 结构，但页面 JSX 中存在大量直接颜色 class、视觉常量和页面内拼装逻辑。随着后续活动、榜单、权益、商品、订单等页面增加，如果继续按单页写法推进，会导致颜色难维护、组件难复用、页面职责不清晰。
+
+### 决策
+
+建立 `src/design-system` 作为 H5 全局 UI 基础层：
+
+- Figma 色彩组件节点 `34:884` 进入 `src/design-system/tokens/colors.ts`。
+- Tailwind 统一暴露 `brand`、`text`、`fill`、`line`、`success`、`warning`、`danger`、`price` 等语义 token。
+- 常用 UI primitives 统一放在 `src/design-system/components`。
+- 业务页面不再直接写颜色 class，业务专属视觉参数集中在 feature 的 `theme/` 目录。
+- 推广首页先按该模式重构，作为后续页面迁移样板。
+
+### 影响
+
+- 设计改色可以优先改 token，而不是全局搜索页面 class。
+- 页面入口会更薄，业务组件和视觉主题可以独立维护。
+- 活动、榜单、权益等已实现页面后续需要按同一模式逐步迁移。
+
+### 备选方案
+
+- 继续在页面中写 Tailwind 原子 class 和十六进制颜色：拒绝，因为维护成本会随着页面数量增长快速失控。
+- 直接引入第三方组件库：暂不采用，因为当前 H5 需要高度贴合 Figma 与 WebView，第三方库会带来样式覆盖和包体成本。
+
 ## ADR-0018 - 本地 Jenkins 采用 Mac agent 与本地 Git mirror 缓存
 
 日期：2026-05-16

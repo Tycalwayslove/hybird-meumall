@@ -1,5 +1,5 @@
 import { createApiError } from "@/lib/api/errors";
-import type { ApiError, ApiFetch, ApiResult } from "@/lib/api/types";
+import type { ApiError, ApiFetch } from "@/lib/api/types";
 import type { BackendName, BackendRegistry } from "./backend-registry";
 import { resolveBackend } from "./backend-registry";
 

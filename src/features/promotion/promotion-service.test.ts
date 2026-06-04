@@ -12,13 +12,15 @@ describe("promotion service", () => {
     expect(normalizeTalentLevel("bad-level")).toBe("v1");
   });
 
-  it("returns level specific home theme and badge", () => {
+  it("returns level specific home theme and local visual assets", () => {
     const home = getPromotionHome("v5");
 
     expect(home.profile.level).toBe("v5");
     expect(home.profile.levelName).toBe("至尊达人");
     expect(home.theme.name).toBe("blackPurple");
-    expect(home.theme.badgeAssetKey).toBe("talent-badge-v5");
+    expect(home.theme.badgeAssetKey).toBe("promotion.talentBadge.v5");
+    expect(home.theme.heroBackgroundAssetKey).toBe("promotion.talentHeroBg.v5");
+    expect(home.theme.summaryCardAssetKey).toBe("promotion.talentSummaryCard.v5");
   });
 
   it("uses different units for sales and amount rankings", () => {

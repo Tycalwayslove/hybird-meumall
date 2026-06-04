@@ -1,18 +1,16 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+
+import { AppScreen, cn } from "@/design-system";
 
 type PromotionShellProps = {
   children: ReactNode;
-  background?: string;
   className?: string;
+  style?: CSSProperties;
 };
 
-export function PromotionShell({ children, background = "#F7F9FB", className = "" }: PromotionShellProps) {
-  return (
-    <main className={`min-h-screen text-[#0F0F0F] ${className}`} style={{ background }}>
-      <div className="mx-auto min-h-screen w-full max-w-[430px] overflow-hidden">{children}</div>
-    </main>
-  );
+export function PromotionShell({ children, className, style }: PromotionShellProps) {
+  return <AppScreen className={className} style={style}>{children}</AppScreen>;
 }
 
 type PromotionNavProps = {
@@ -24,9 +22,10 @@ type PromotionNavProps = {
 export function PromotionNav({ title, trailing, light = false }: PromotionNavProps) {
   return (
     <header
-      className={`sticky top-0 z-30 flex h-[calc(env(safe-area-inset-top)+44px)] items-end justify-center px-4 pb-[9px] ${
-        light ? "text-white" : "text-[#0F0F0F]"
-      }`}
+      className={cn(
+        "sticky top-0 z-30 flex h-[calc(env(safe-area-inset-top)+44px)] items-end justify-center px-4 pb-[9px]",
+        light ? "text-text-inverse" : "text-text-primary"
+      )}
     >
       <Link
         aria-label="返回推广首页"

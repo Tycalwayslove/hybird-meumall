@@ -10,7 +10,7 @@
 - [ ] 确认 SSR 部署平台、`H5_SERVICE_BASE_URL`、扩缩容和日志采集方式。
 - [ ] WebView 离线兜底页与最低 App 版本校验。
 - [ ] stores、modules、features 业务开发目录规范。
-- [ ] UI 组件库基础沉淀规则。
+- [ ] 确认 design-system token 是否需要同步给原生 App 和管理后台。
 - [ ] 为后续实现任务补充 `.ai/test-reports/` 验证记录。
 - [ ] 确认 API 真实 base URL、token 刷新、重新登录和原生代理策略。
 - [ ] 确认 Telemetry 真实 Sentry/埋点平台、白屏采样点、采样率和隐私脱敏策略。
@@ -57,3 +57,6 @@
 - [x] 跑通 Mac Studio 本地 Jenkins 参数化构建 H5，并上传 standalone SSR 产物到云服务器 release 目录。
 - [x] 将本地多项目工作区和 Jenkins/CI 运行路径统一到 `/Users/mac/person_code/meu-mall`，移除旧路径软链接依赖。
 - [x] 按根级 `TASK-2026-0604-002-promotion-pages-bff-foundation.md` 实现推广模块首批 BFF mock 和高保真页面。
+- [x] 建立 H5 design-system 基础 token、UI primitives，并重构推广首页为工程化样板。
+- [x] 将活动中心、榜单中心、榜单详情和权益中心按 design-system 模式迁移。
+- [x] 接入 V1-V5 达人徽章本地图片资源和可扩展资源 registry。

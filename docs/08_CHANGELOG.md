@@ -64,6 +64,11 @@
 - 添加 `statusHeight` 运行时 CSS 变量写入，H5 可通过 `--native-status-height` 处理手机顶部状态栏高度。
 - 添加推广模块页面开发总则，明确首批推广首页、活动中心、榜单中心、榜单详情和权益中心的路由、SSR 策略、BFF mock、Figma 节点和资产占位规则。
 - 添加推广模块首批页面和 BFF mock：推广首页、活动中心、榜单中心、达人销量榜、达人销售额榜和达人权益中心。
+- 添加 `src/design-system` 设计体系基础：Figma 色彩 token、Tailwind 语义色、圆角、阴影、字号、间距和基础 UI primitives。
+- 添加设计体系说明文档和 token 单元测试。
+- 添加推广二级页业务主题配置 `promotion-page-theme.ts`，集中维护活动、榜单和权益中心的业务视觉参数。
+- 添加本地资源 registry `local-assets.ts`，首批注册 V1-V5 达人徽章图片。
+- 注册 V1-V5 推广首页达人背景图和汇总卡背景图本地资源。
 
 ### 变更
 
@@ -110,6 +115,12 @@
 - 原生传参展示调整为内部调试口径：展示完整 Cookie 值，后续正式开放前必须删除或关闭。
 - 原生 Cookie 契约从单一 token 调整为 `pythonToken`、`mallToken` 和 `statusHeight`；Python 后端使用 `pythonToken`，Java / mall 后端使用 `mallToken`。
 - 推广模块首页工具入口收敛到本批已闭环路由，避免联调时点击进入未实现页面。
+- Tailwind 扫描范围补充 `src/features` 和 `src/design-system`，避免业务模块新增 class 无法生成样式。
+- 推广首页重构为页面编排 + 业务组件 + 达人主题配置三层结构，作为后续页面工程化样板。
+- 默认 light 主题变量切换到 Figma 色板口径，保留旧 `themeColorTokens` 作为兼容入口。
+- 活动中心、榜单中心、榜单详情和权益中心迁移到 design-system token 模式，`PromotionShell` 和状态组件改为复用全局 primitives。
+- 达人徽章由 CSS 临时绘制改为本地 PNG 图片资源，推广页面通过 `badgeAssetKey` 和 `localAssetUrl()` 引用。
+- 推广首页达人区域和汇总卡由等级渐变背景切换为本地 PNG 背景图，原渐变保留为加载兜底。
 
 ### 废弃
 
@@ -148,6 +159,10 @@
 - 已通过 Cookie auth、backend registry、backend client、BFF response 和 H5 client 目标测试验证 BFF 鉴权基础。
 - 已通过 native runtime context 目标测试验证原生传参调试信息。
 - 已通过推广模块 service 单测、类型检查、本地路由 smoke 和生产构建验证首批推广页面。
+- 已通过 design token 单测、推广模块 service 单测和直接颜色 class 检查验证设计体系基础。
+- 已通过全量测试、类型检查、lint、生产构建和 `/promotion` 本地 smoke 验证本轮 design-system 改造。
+- 已通过推广模块 service 单测、design token 单测、类型检查和直接颜色 class 检查验证推广二级页迁移。
+- 已通过资源 URL 单测、推广模块 service 单测、类型检查、lint 和图片文件检查验证达人徽章本地资源接入。
 - 已通过远程配置 schema 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 theme runtime 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 API client 单测、全量测试、类型检查、lint 和 AI 工作流检查。

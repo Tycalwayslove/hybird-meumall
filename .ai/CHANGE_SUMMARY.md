@@ -1,5 +1,95 @@
 # 变更摘要
 
+## 2026-06-04 - 推广首页达人背景和汇总卡背景图片接入
+
+### 变更
+
+- 将 V1-V5 推广首页达人背景图和汇总卡背景图放入 `public/assets/promotion/talent-badges/`。
+- `local-assets.ts` 新增 `promotion.talentHeroBg.*` 和 `promotion.talentSummaryCard.*` 资源 key。
+- `TalentHero` 从等级渐变背景切换为本地背景图片，并保留原渐变作为加载兜底。
+- `TalentSummaryCard` 从渐变/色块背景切换为本地汇总卡背景图片，并保留原渐变作为加载兜底。
+
+### 验证
+
+- `file public/assets/promotion/talent-badges/talent-hero-bg-v*.png public/assets/promotion/talent-badges/talent-summary-card-v*.png`：确认 hero 背景为 1125x798 RGBA PNG，汇总卡背景为 1053x342 RGBA PNG。
+- `pnpm test src/lib/assets/asset-url.test.ts src/features/promotion/promotion-service.test.ts`：通过。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过。
+- `pnpm build`：通过。
+- `curl` smoke：10 张新增背景图片均返回 200。
+- `/promotion?level=v4` HTML 检查：已引用 `talent-hero-bg-v4.png` 和 `talent-summary-card-v4.png`。
+
+### 后续
+
+- 后续如果等级视觉继续补充图片资源，优先沿用 `promotion.talent*` key 命名体系。
+
+## 2026-06-04 - 达人徽章本地图片资源接入
+
+### 变更
+
+- 将 V1-V5 达人徽章 PNG 放入 `public/assets/promotion/talent-badges/`。
+- 新增 `src/lib/assets/local-assets.ts`，通过本地资源 key 统一解析 H5 basePath 或 CDN 前缀。
+- `TalentBadge` 改为读取本地图片资源，推广首页和权益中心继续通过 `theme.badgeAssetKey` 使用徽章配置。
+- 更新静态资源目录规范和 design-system 说明，保留后续本地配置图片扩展方式。
+
+### 验证
+
+- `file public/assets/promotion/talent-badges/*.png`：确认 5 张图片均为 348x348 RGBA PNG。
+- `pnpm test src/lib/assets/asset-url.test.ts src/features/promotion/promotion-service.test.ts`：通过，2 files / 9 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过。
+
+### 后续
+
+- 后续新增本地稳定图片时，先放入 `public/assets/<domain>/`，再注册到 `local-assets.ts`，页面只消费资源 key。
+
+## 2026-06-04 - 推广二级页 Design System 迁移
+
+### 变更
+
+- 新增 `src/features/promotion/theme/promotion-page-theme.ts`，集中维护活动状态、榜单卡片、榜单详情和权益中心的业务视觉参数。
+- `PromotionShell` 接入全局 `AppScreen`，`PromotionStates` 接入 `StateView`、`Skeleton` 和 `Button`。
+- 活动中心、榜单中心、榜单详情和权益中心迁移为 design-system token class，不再在页面 JSX 中写直接十六进制颜色 class。
+- 更新设计体系说明、项目状态、TODO、变更记录和本轮测试报告。
+
+### 验证
+
+- `pnpm test src/features/promotion/promotion-service.test.ts src/design-system/tokens/design-tokens.test.ts`：通过，2 files / 7 tests。
+- `pnpm test`：通过，21 files / 96 tests。
+- `pnpm lint`：通过。
+- `pnpm typecheck`：通过。
+- `rg` 检查推广页面和 design-system：未发现直接十六进制颜色 class。
+- `pnpm build`：通过。
+- `curl` smoke：`/promotion/activities`、`/promotion/rank-center`、`/promotion/ranking/sales`、`/promotion/ranking/amount`、`/promotion/benefits` 均返回 200。
+
+### 后续
+
+- 后续推广模块重点转向真实后端接口、达人等级规则、活动状态和榜单刷新策略确认。
+
+## 2026-06-04 - H5 Design System 基础与推广首页重构
+
+### 变更
+
+- 新增 `src/design-system`，沉淀 Figma 色彩 token、Tailwind 语义色、圆角、阴影、字号、间距和基础 UI primitives。
+- Tailwind 扫描范围补充 `src/features` 和 `src/design-system`。
+- 默认 light 主题变量切换为 Figma 色板口径，旧 `bg/fg/primary` token 继续作为兼容入口。
+- 推广首页拆分为页面编排、达人头图、带货汇总、快捷入口、指标宫格、推广工具和达人主题配置。
+- 新增中文设计体系说明、主题规范、编码规则和 ADR。
+
+### 验证
+
+- `pnpm test src/lib/theme/__tests__/tokens.test.ts src/features/promotion/promotion-service.test.ts`：通过，2 files / 6 tests。
+- `pnpm test`：通过，21 files / 96 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过。
+- `pnpm build`：通过。
+- `rg` 检查推广首页和 design-system 新增组件：未发现直接十六进制颜色 class。
+- `curl -I http://localhost:3112/promotion`：200 OK。
+
+### 后续
+
+- 活动中心、榜单中心、榜单详情和权益中心仍需按同一模式逐步迁移。
+
 ## 2026-06-04 - 推广模块首批页面与 BFF Mock 实现
 
 ### 变更
