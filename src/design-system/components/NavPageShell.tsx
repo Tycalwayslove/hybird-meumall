@@ -33,7 +33,7 @@ export function StandardNavPage({ title, backHref, children, className, contentC
         <StatusBarSpacer />
         <TopNavigation title={title} backHref={backHref} background="solid" foreground="dark" />
       </header>
-      <main className={cn("min-h-0 flex-1 overflow-y-auto", contentClassName)}>{children}</main>
+      <div className={cn("min-h-0 flex-1 overflow-y-auto", contentClassName)}>{children}</div>
     </AppScreen>
   );
 }
@@ -102,7 +102,7 @@ function FixedTransparentNavShell({
           rightText={rightText}
         />
       </header>
-      <main className={cn("h-screen overflow-y-auto", contentClassName)}>{children}</main>
+      <div className={cn("h-screen overflow-y-auto", contentClassName)}>{children}</div>
     </AppScreen>
   );
 }

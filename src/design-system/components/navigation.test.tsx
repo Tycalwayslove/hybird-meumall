@@ -117,4 +117,20 @@ describe("navigation page shells", () => {
     expect(html).toContain("text-text-inverse");
     expect(html).toContain("权益内容");
   });
+
+  test("keeps a single page-level main landmark from AppScreen", () => {
+    const standardHtml = renderToStaticMarkup(
+      <StandardNavPage title="榜单中心" backHref="/promotion">
+        <div>榜单内容</div>
+      </StandardNavPage>
+    );
+    const transparentHtml = renderToStaticMarkup(
+      <TransparentNavPage backHref="/promotion/rank-center">
+        <div>排行榜头图</div>
+      </TransparentNavPage>
+    );
+
+    expect(standardHtml.match(/<main/g)).toHaveLength(1);
+    expect(transparentHtml.match(/<main/g)).toHaveLength(1);
+  });
 });
