@@ -91,7 +91,7 @@ export function PromotionRankingScreen({ data }: { data: RankingData }) {
         )}
       </section>
 
-      <section className="fixed inset-x-0 bottom-0 z-20 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+      <section className="fixed bottom-0 left-1/2 z-20 w-full max-w-[430px] -translate-x-1/2 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)]">
         <div className="mx-auto flex max-w-[398px] items-center gap-3 rounded-[14px] bg-text-primary px-4 py-3 text-text-inverse">
           <span className="w-8 text-[15px] font-black">{data.currentUser.onList ? data.currentUser.rank : "--"}</span>
           <PromotionAvatar className="size-10" />
