@@ -7,3 +7,5 @@ export { Section } from "./Section";
 export { Skeleton } from "./Skeleton";
 export { StateView } from "./StateView";
 export { Surface } from "./Surface";
+export { TopNavigation } from "./TopNavigation";
+export type { TopNavigationProps } from "./TopNavigation";
