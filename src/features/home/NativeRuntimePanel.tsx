@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createH5Client } from "@/lib/http";
+import { formatStatusBarCssVars } from "@/lib/runtime/status-bar";
 import type { NativeRuntimeContext } from "@/server/runtime/native-context";
 
 type RuntimeState =
@@ -151,11 +152,10 @@ function applyNativeStatusHeight(statusHeight: number | null) {
     return;
   }
 
-  const height = statusHeight ?? 0;
-  document.documentElement.style.setProperty("--meu-status-bar-height", `${height}px`);
-  document.documentElement.style.setProperty("--meu-nav-height", "44px");
-  document.documentElement.style.setProperty(
-    "--meu-top-bar-height",
-    "calc(var(--meu-status-bar-height) + var(--meu-nav-height))"
-  );
+  const target = document.body ?? document.documentElement;
+  const cssVars = formatStatusBarCssVars(statusHeight);
+
+  Object.entries(cssVars).forEach(([name, value]) => {
+    target.style.setProperty(name, value);
+  });
 }

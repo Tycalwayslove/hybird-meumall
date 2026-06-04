@@ -19,6 +19,7 @@ describe("native status bar runtime", () => {
 
   test("formats CSS variables for page shells", () => {
     expect(formatStatusBarCssVars(44)).toEqual({
+      "--native-status-height": "44px",
       "--meu-status-bar-height": "44px",
       "--meu-nav-height": "44px",
       "--meu-top-bar-height": "calc(var(--meu-status-bar-height) + var(--meu-nav-height))"

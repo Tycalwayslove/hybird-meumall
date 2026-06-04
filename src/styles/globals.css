@@ -50,6 +50,9 @@
   --radius-sm: 4px;
   --radius-md: 8px;
   --native-status-height: 0px;
+  --meu-status-bar-height: var(--native-status-height);
+  --meu-nav-height: 44px;
+  --meu-top-bar-height: calc(var(--meu-status-bar-height) + var(--meu-nav-height));
 }
 
 [data-theme="dark"] {
@@ -108,7 +111,7 @@ body {
 
 .h5-version-badge {
   position: fixed;
-  top: max(10px, calc(env(safe-area-inset-top) + var(--native-status-height)));
+  top: max(10px, calc(env(safe-area-inset-top) + var(--meu-status-bar-height, var(--native-status-height, 0px))));
   right: 10px;
   z-index: 2147483647;
   border-radius: 999px;

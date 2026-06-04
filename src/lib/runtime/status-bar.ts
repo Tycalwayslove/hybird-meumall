@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 export const defaultNavHeight = 44;
 
 export type NavigationCssVars = CSSProperties & {
+  "--native-status-height": string;
   "--meu-status-bar-height": string;
   "--meu-nav-height": string;
   "--meu-top-bar-height": string;
@@ -25,6 +26,7 @@ export function formatStatusBarCssVars(
   const safeNavHeight = parseNativeStatusHeight(navHeight);
 
   return {
+    "--native-status-height": `${safeStatusHeight}px`,
     "--meu-status-bar-height": `${safeStatusHeight}px`,
     "--meu-nav-height": `${safeNavHeight}px`,
     "--meu-top-bar-height": "calc(var(--meu-status-bar-height) + var(--meu-nav-height))"
