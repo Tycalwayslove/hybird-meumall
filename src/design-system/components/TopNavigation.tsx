@@ -32,7 +32,8 @@ const foregroundClass: Record<NavigationForeground, string> = {
   light: "text-text-inverse"
 };
 
-const rightSlotClass = "absolute right-4 top-1/2 -translate-y-1/2 text-[14px] font-normal leading-5";
+const sideSlotClass = "flex w-24 shrink-0 items-center";
+const rightSlotClass = "flex max-w-[96px] truncate text-[14px] font-normal leading-5";
 
 export function TopNavigation({
   title,
@@ -50,21 +51,31 @@ export function TopNavigation({
   return (
     <div
       className={cn(
-        "relative flex h-[var(--meu-nav-height)] items-center justify-center px-4",
+        "flex h-[var(--meu-nav-height)] items-center px-4",
         backgroundClass[background],
         foregroundClass[foreground],
         className
       )}
     >
-      {showBack ? <NavigationBackButton backHref={backHref} backLabel={backLabel} onBack={onBack} /> : null}
-      {title ? <h1 className="max-w-[220px] truncate text-center text-[18px] font-semibold leading-[26px]">{title}</h1> : null}
-      {rightNode ? <div className={rightSlotClass}>{rightNode}</div> : <NavigationRightText rightHref={rightHref} rightText={rightText} />}
+      <div className={cn(sideSlotClass, "justify-start")}>
+        {showBack ? <NavigationBackButton backHref={backHref} backLabel={backLabel} onBack={onBack} /> : null}
+      </div>
+      <div className="min-w-0 flex-1">
+        {title ? <h1 className="min-w-0 truncate text-center text-[18px] font-semibold leading-[26px]">{title}</h1> : null}
+      </div>
+      <div className={cn(sideSlotClass, "justify-end")}>
+        {rightNode !== null && rightNode !== undefined ? (
+          <div className={rightSlotClass}>{rightNode}</div>
+        ) : (
+          <NavigationRightText rightHref={rightHref} rightText={rightText} />
+        )}
+      </div>
     </div>
   );
 }
 
 function NavigationBackButton({ backHref, backLabel, onBack }: { backHref?: string; backLabel: string; onBack?: () => void }) {
-  const className = "absolute left-0 top-0 flex size-11 items-center justify-center";
+  const className = "flex size-11 items-center justify-center";
   const icon = <span aria-hidden="true" className="size-4 rotate-45 border-b-2 border-l-2 border-current" />;
 
   if (onBack) {

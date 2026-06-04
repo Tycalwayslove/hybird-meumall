@@ -50,6 +50,21 @@ describe("TopNavigation", () => {
     expect(html).not.toContain("权益规则");
   });
 
+  test("renders zero as a custom right node before right text", () => {
+    const html = renderToStaticMarkup(<TopNavigation rightNode={0} rightText="权益规则" title="权益中心" />);
+
+    expect(html).toContain(">0</div>");
+    expect(html).not.toContain("权益规则");
+  });
+
+  test("keeps the title and right text in constrained truncate slots", () => {
+    const html = renderToStaticMarkup(<TopNavigation rightText="很长很长的权益规则入口" title="很长很长的权益中心标题" />);
+
+    expect(html).toContain("min-w-0 truncate text-center");
+    expect(html).toContain("max-w-[96px]");
+    expect(html).toContain("truncate");
+  });
+
   test("renders an onBack button before backHref", () => {
     const html = renderToStaticMarkup(<TopNavigation backHref="/promotion" onBack={() => undefined} title="权益中心" />);
 
