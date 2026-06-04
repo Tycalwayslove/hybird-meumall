@@ -60,3 +60,4 @@
 - [x] 建立 H5 design-system 基础 token、UI primitives，并重构推广首页为工程化样板。
 - [x] 将活动中心、榜单中心、榜单详情和权益中心按 design-system 模式迁移。
 - [x] 接入 V1-V5 达人徽章本地图片资源和可扩展资源 registry。
+- [x] 建立 H5 顶部导航公共组件和页面预设，并迁移推广模块二级页面。

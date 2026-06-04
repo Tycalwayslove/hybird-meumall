@@ -23,7 +23,7 @@
 - Modify `src/features/promotion/components/PromotionShell.tsx`: remove duplicated promotion-specific nav implementation or keep only promotion wrapper.
 - Modify `src/features/promotion/components/PromotionRankCenterScreen.tsx`: migrate to `StandardNavPage`.
 - Modify `src/features/promotion/components/PromotionRankingScreen.tsx`: migrate to `TransparentNavPage`.
-- Modify `src/features/promotion/components/PromotionBenefitsScreen.tsx`: migrate to `FixedTransparentNavPage`.
+- Modify `src/features/promotion/components/PromotionBenefitsScreen.tsx`: migrate to `TransparentActionNavPage`.
 - Modify `src/design-system/README.md`: document navigation usage.
 - Modify `.ai/PROJECT_STATE.md`, `.ai/CHANGE_SUMMARY.md`, `.ai/TODO.md`, and `docs/08_CHANGELOG.md`: record the shared navigation component.
 
@@ -417,7 +417,7 @@ git commit -m "feat(nav): 添加顶部导航基础组件"
 Append to `src/design-system/components/navigation.test.tsx`:
 
 ```tsx
-import { FixedTransparentNavPage, StandardNavPage, TransparentNavPage } from "./NavPageShell";
+import { StandardNavPage, TransparentActionNavPage, TransparentNavPage } from "./NavPageShell";
 
 describe("navigation page shells", () => {
   test("renders standard nav page with document-flow top bar", () => {
@@ -440,16 +440,16 @@ describe("navigation page shells", () => {
       </TransparentNavPage>
     );
 
-    expect(html).toContain("fixed inset-x-0 top-0");
+    expect(html).toContain("fixed left-1/2 top-0 z-40 w-full max-w-[430px] -translate-x-1/2");
     expect(html).toContain("bg-transparent");
     expect(html).toContain("排行榜头图");
   });
 
   test("renders fixed transparent nav page with title and right text", () => {
     const html = renderToStaticMarkup(
-      <FixedTransparentNavPage title="权益中心" rightText="权益规则" backHref="/promotion">
+      <TransparentActionNavPage title="权益中心" rightText="权益规则" backHref="/promotion">
         <div>权益内容</div>
-      </FixedTransparentNavPage>
+      </TransparentActionNavPage>
     );
 
     expect(html).toContain("权益中心");
@@ -510,7 +510,7 @@ export function StandardNavPage({ children, className, contentClassName, screenC
 export function TransparentNavPage({ children, className, contentClassName, screenClassName, foreground = "dark", ...navProps }: TransparentNavPageProps) {
   return (
     <AppScreen className={screenClassName} contentClassName={cn("relative min-h-screen overflow-hidden", contentClassName)}>
-      <header className={cn("fixed inset-x-0 top-0 z-40 mx-auto max-w-[430px]", foreground === "light" ? "text-text-inverse" : "text-text-primary")}>
+      <header className={cn("fixed left-1/2 top-0 z-40 w-full max-w-[430px] -translate-x-1/2", foreground === "light" ? "text-text-inverse" : "text-text-primary")}>
         <StatusBarSpacer />
         <TopNavigation {...navProps} background="transparent" foreground={foreground} />
       </header>
@@ -519,7 +519,7 @@ export function TransparentNavPage({ children, className, contentClassName, scre
   );
 }
 
-export function FixedTransparentNavPage(props: Omit<TransparentNavPageProps, "foreground">) {
+export function TransparentActionNavPage(props: Omit<TransparentNavPageProps, "foreground">) {
   return <TransparentNavPage {...props} foreground="light" />;
 }
 ```
@@ -533,7 +533,7 @@ export { AppScreen } from "./AppScreen";
 export { AssetPlaceholder } from "./AssetPlaceholder";
 export { Badge } from "./Badge";
 export { Button, ButtonLink } from "./Button";
-export { FixedTransparentNavPage, StandardNavPage, StatusBarSpacer, TransparentNavPage } from "./NavPageShell";
+export { StandardNavPage, StatusBarSpacer, TransparentActionNavPage, TransparentNavPage } from "./NavPageShell";
 export { Metric } from "./Metric";
 export { Section } from "./Section";
 export { Skeleton } from "./Skeleton";
@@ -670,22 +670,22 @@ Remove the old inline back `Link` inside the hero section:
 <Link aria-label="返回榜单中心" className="absolute left-4 top-[calc(env(safe-area-inset-top)+18px)] size-4 rotate-45 border-b-2 border-l-2 border-text-inverse" href="/promotion/rank-center" />
 ```
 
-- [ ] **Step 4: Migrate benefits to `FixedTransparentNavPage`**
+- [ ] **Step 4: Migrate benefits to `TransparentActionNavPage`**
 
 In `src/features/promotion/components/PromotionBenefitsScreen.tsx`, import:
 
 ```tsx
-import { FixedTransparentNavPage } from "@/design-system";
+import { TransparentActionNavPage } from "@/design-system";
 ```
 
 Wrap the page with:
 
 ```tsx
-<FixedTransparentNavPage title="权益中心" rightText="权益规则" backHref="/promotion" screenClassName="bg-[#0b0618]">
+<TransparentActionNavPage title="权益中心" rightText="权益规则" backHref="/promotion" screenClassName="bg-[#0b0618]">
   <section className="relative min-h-screen overflow-hidden pb-8 text-text-inverse">
     ...
   </section>
-</FixedTransparentNavPage>
+</TransparentActionNavPage>
 ```
 
 Keep existing feature theme values for the deep background. Do not add new shadows.
@@ -729,7 +729,7 @@ Append to `src/design-system/README.md`:
 
 - `StandardNavPage`：白底常规导航，状态栏和导航在文档流中，内容区滚动。
 - `TransparentNavPage`：透明固定导航，内容从屏幕顶部开始，适合带头图页面。
-- `FixedTransparentNavPage`：透明固定导航，默认白色前景，支持标题和右侧文本。
+- `TransparentActionNavPage`：透明固定导航，默认白色前景，支持标题和右侧文本。
 
 状态栏高度通过 `--meu-status-bar-height` 控制。Root layout 会从 App 写入的 `statusHeight` cookie 设置变量；浏览器 H5 环境默认使用 `0px`。
 ```
@@ -749,7 +749,7 @@ Add to `.ai/CHANGE_SUMMARY.md`:
 ```md
 ## 2026-06-04 - 顶部导航公共组件
 
-- 新增 `TopNavigation`、`StandardNavPage`、`TransparentNavPage` 和 `FixedTransparentNavPage`。
+- 新增 `TopNavigation`、`StandardNavPage`、`TransparentNavPage` 和 `TransparentActionNavPage`。
 - Root layout 从 `statusHeight` cookie 注入 `--meu-status-bar-height`、`--meu-nav-height` 和 `--meu-top-bar-height`。
 - 推广榜单中心、榜单详情和权益中心接入公共导航预设。
 
@@ -856,5 +856,5 @@ git commit -m "docs(nav): 记录顶部导航组件落地"
 
 - Spec coverage: the plan covers the three navigation variants, status bar height, return behavior, design-system placement, promotion migration, tests, and docs.
 - Placeholder scan: the plan contains no `TBD`, no undefined file paths, and no vague “add tests” steps without commands.
-- Type consistency: `TopNavigationProps`, `StandardNavPage`, `TransparentNavPage`, `FixedTransparentNavPage`, and CSS variable names match across tasks.
+- Type consistency: `TopNavigationProps`, `StandardNavPage`, `TransparentNavPage`, `TransparentActionNavPage`, and CSS variable names match across tasks.
 - Scope check: the plan stays inside H5 design-system and promotion page migration. It does not change manifest, server, admin, or native App behavior.

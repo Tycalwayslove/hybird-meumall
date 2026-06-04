@@ -1129,3 +1129,22 @@
 ### 后续
 
 - 在真实 CI 中配置 `H5_RELEASE_SERVER_URL` 并验证受保护环境注册链路。
+
+## 2026-06-04 - 建立 H5 顶部导航公共组件
+
+### 变更
+
+- 新增状态栏高度 CSS 变量体系，根布局基于 `statusHeight` 注入 `--meu-status-bar-height`、`--meu-nav-height` 和 `--meu-top-bar-height`。
+- 新增 `TopNavigation`、`StandardNavPage`、`TransparentNavPage` 和 `TransparentActionNavPage`，统一常规白底导航、透明返回导航和透明右侧操作导航。
+- 推广模块活动中心、榜单中心、榜单详情和权益中心接入公共导航组件，移除旧 `PromotionNav`。
+- 收敛排行榜底部固定浮层到 H5 最大宽度容器，并移除迁移过程中保留的历史投影样式。
+- 更新推广页面开发总则、编码规则和顶部导航设计规格。
+
+### 验证
+
+- `pnpm exec vitest run src/design-system/components/navigation.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+
+### 后续
+
+- 后续新增 H5 页面优先复用页面导航预设；如出现滚动变色、搜索栏或多操作区，再在 design-system 中扩展导航变体。

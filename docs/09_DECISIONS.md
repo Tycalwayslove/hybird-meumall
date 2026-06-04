@@ -575,3 +575,34 @@ Next.js 配置启用 `output: "export"` 和 `trailingSlash: true`。构建发布
 
 - Node.js + Express 配置中心：用户明确希望后端使用 Python + FastAPI，因此不采用。
 - 直接读写 OSS/CDN manifest JSON：暂不采用，因为本地管理和审批能力不足，且不便于后续补审计和权限。
+
+## ADR-0020 - H5 页面顶部导航统一进入 design-system
+
+日期：2026-06-04
+
+状态：Accepted
+
+### 背景
+
+推广模块开始进入正式页面开发后，页面导航出现多种形态：白底常规导航、透明返回导航、透明标题导航和右侧操作导航。若每个业务页面自行实现状态栏占位、返回按钮、固定定位和滚动容器，会导致 WebView 中 `statusHeight` 处理不一致，也会让桌面调试宽度、页面滚动和沉浸式头图互相影响。
+
+### 决策
+
+- H5 顶部导航统一放入 `src/design-system/components`。
+- `TopNavigation` 只负责导航视觉和交互槽位。
+- 页面级布局使用 `StandardNavPage`、`TransparentNavPage` 和 `TransparentActionNavPage` 三个预设。
+- 状态栏高度由根布局注入 CSS 变量：`--meu-status-bar-height`、`--meu-nav-height`、`--meu-top-bar-height`。
+- 业务页面不再手写状态栏占位、返回按钮或固定透明导航。
+- 透明导航页面如果头图内容需要避开按钮区域，由页面头图区显式使用 `pt-[var(--meu-top-bar-height)]`。
+- 固定定位的 H5 顶部或底部浮层必须限制在 `max-w-[430px]` 容器内。
+
+### 影响
+
+- 后续 H5 页面可以通过选择页面预设来确定导航、状态栏和滚动策略。
+- 推广模块二级页面已迁移到公共导航，旧 `PromotionNav` 删除。
+- 若后续出现滚动后变白、搜索栏、多右侧操作等场景，应扩展 design-system 导航变体，再接入业务页面。
+
+### 备选方案
+
+- 继续让每个业务页面手写导航：拒绝，因为状态栏和滚动容器会持续漂移。
+- 只做一个万能导航组件，不提供页面预设：拒绝，因为透明导航是否占据文档流属于页面布局决策，仅靠视觉组件容易误用。

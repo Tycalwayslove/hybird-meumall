@@ -55,6 +55,24 @@ ready for implementation
 - 所有卡片圆角以 Figma 为准，避免沿用旧低保真 `PageShell` 风格。
 - V5 大金额必须做容器适配，不能溢出。
 
+## 顶部导航规范
+
+推广模块二级页面必须优先使用 `src/design-system/components` 中的公共导航预设，不再手写返回按钮、状态栏占位和固定导航。
+
+| 场景 | 组件 | 当前页面 |
+| --- | --- | --- |
+| 白底常规导航，内容区滚动 | `StandardNavPage` | 榜单中心 |
+| 透明固定导航，头图从顶部透出 | `TransparentNavPage` | 达人销量榜、达人销售额榜 |
+| 透明固定导航，含右侧操作 | `TransparentActionNavPage` | 权益中心 |
+
+使用规则：
+
+- `statusHeight` 由根布局注入为 `--meu-status-bar-height`，页面不直接读取 Cookie。
+- 普通导航内容区由 `StandardNavPage` 提供滚动容器。
+- 透明导航页面头图内容如需避开导航按钮，使用 `pt-[var(--meu-top-bar-height)]`。
+- 固定在底部或顶部的 H5 浮层必须限制在 `max-w-[430px]` 容器内，不能在桌面宽屏铺满窗口。
+- 设计图没有的投影不添加；旧页面迁移时优先移除历史 `shadow-card` / `shadow-floating`。
+
 ## 推荐目录结构
 
 ```text

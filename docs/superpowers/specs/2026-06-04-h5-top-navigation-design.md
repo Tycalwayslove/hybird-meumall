@@ -134,7 +134,7 @@ MeuMall H5 后续会持续新增页面。不同页面顶部导航形态不同，
 </TransparentNavPage>
 ```
 
-### `FixedTransparentNavPage`
+### `TransparentActionNavPage`
 
 用于固定透明标题导航。
 
@@ -156,9 +156,9 @@ MeuMall H5 后续会持续新增页面。不同页面顶部导航形态不同，
 示例：
 
 ```tsx
-<FixedTransparentNavPage title="权益中心" rightText="权益规则" backHref="/promotion">
+<TransparentActionNavPage title="权益中心" rightText="权益规则" backHref="/promotion">
   <BenefitsContent />
-</FixedTransparentNavPage>
+</TransparentActionNavPage>
 ```
 
 ## 状态栏高度规则
@@ -245,7 +245,7 @@ src/design-system/index.ts
 
 - `PromotionRankCenterScreen` 使用 `StandardNavPage`。
 - `PromotionRankingScreen` 使用 `TransparentNavPage`。
-- `PromotionBenefitsScreen` 使用 `FixedTransparentNavPage`。
+- `PromotionBenefitsScreen` 使用 `TransparentActionNavPage`。
 
 `PromotionShell` 可以继续保留为推广业务壳，但不再重复实现导航和状态栏逻辑。
 

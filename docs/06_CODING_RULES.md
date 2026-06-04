@@ -53,6 +53,9 @@ src/
 - 页面入口优先保持薄：只做数据获取、策略选择和页面组件拼装。
 - 复杂页面至少拆分为 page、section component、业务 theme / mock data 三层。
 - 全局复用 UI 优先放入 `src/design-system/components`；只服务单一业务域的组件放在 `src/features/<feature>/components`。
+- H5 顶部导航统一使用 `TopNavigation`、`StandardNavPage`、`TransparentNavPage` 和 `TransparentActionNavPage`，业务页面不要手写状态栏占位、返回按钮或固定透明导航。
+- 透明导航页面的内容是否避开导航，由页面头图区显式使用 `pt-[var(--meu-top-bar-height)]` 决定；白底常规导航由 `StandardNavPage` 负责内容滚动区。
+- 固定定位的 H5 顶部或底部浮层必须与 `AppScreen` 一样限制在 `max-w-[430px]`，避免桌面调试时铺满窗口。
 
 ## Tailwind 规则
 

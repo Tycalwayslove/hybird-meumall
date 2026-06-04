@@ -301,3 +301,18 @@
 ### 验证
 
 - 已执行脚本语法检查、Jenkins/Agent 重启验证和旧软链接依赖扫描。
+
+## 2026-06-04 - H5 顶部导航公共组件
+
+### 变更
+
+- 新增 `TopNavigation` 视觉组件和 `StandardNavPage`、`TransparentNavPage`、`TransparentActionNavPage` 页面预设。
+- 根布局和调试面板统一写入状态栏高度相关 CSS 变量，供导航和页面头图复用。
+- 推广模块活动中心、榜单中心、榜单详情和权益中心接入公共导航，移除旧 `PromotionNav`。
+- 收敛固定浮层宽度到 H5 容器，移除迁移后残留的历史投影。
+- 更新推广页面开发总则、编码规则、项目状态和顶部导航设计规格。
+
+### 验证
+
+- `pnpm exec vitest run src/design-system/components/navigation.test.tsx` 通过。
+- `pnpm typecheck` 通过。
