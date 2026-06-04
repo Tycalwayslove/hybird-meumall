@@ -1,22 +1,17 @@
-import Link from "next/link";
+import { AppScreen, TopNavigation } from "@/design-system";
 
 import type { PromotionActivitiesData } from "../types";
 import { activityStatusTone } from "../theme/promotion-page-theme";
 import { PromotionEmptyState } from "./PromotionStates";
-import { PromotionNav, PromotionShell } from "./PromotionShell";
 
 export function PromotionActivitiesScreen({ data }: { data: PromotionActivitiesData }) {
   return (
-    <PromotionShell>
-      <PromotionNav
-        title="活动中心"
-        trailing={
-          <Link className="text-[14px] leading-[22px] text-text-primary" href={data.rewardRecordHref}>
-            奖励记录
-          </Link>
-        }
-      />
-      <div className="px-4 pb-8 pt-3">
+    <AppScreen contentClassName="flex h-screen min-h-screen flex-col">
+      <header className="shrink-0 bg-fill-white">
+        <div aria-hidden="true" className="h-[var(--meu-status-bar-height)] shrink-0" />
+        <TopNavigation backHref="/promotion" rightHref={data.rewardRecordHref} rightText="奖励记录" title="活动中心" />
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 pt-3">
         <p className="mb-3 text-[13px] leading-5 text-text-disabled">{data.couponSummary}</p>
         {data.items.length === 0 ? (
           <PromotionEmptyState title="暂无活动" description="当前没有可参与的奖励活动" />
@@ -44,6 +39,6 @@ export function PromotionActivitiesScreen({ data }: { data: PromotionActivitiesD
           </div>
         )}
       </div>
-    </PromotionShell>
+    </AppScreen>
   );
 }

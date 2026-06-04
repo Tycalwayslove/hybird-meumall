@@ -1,14 +1,14 @@
 import Link from "next/link";
 
+import { StandardNavPage } from "@/design-system";
+
 import type { RankCenterData } from "../types";
 import { rankCenterCardTone } from "../theme/promotion-page-theme";
 import { PromotionEmptyState } from "./PromotionStates";
-import { PromotionNav, PromotionShell } from "./PromotionShell";
 
 export function PromotionRankCenterScreen({ data }: { data: RankCenterData }) {
   return (
-    <PromotionShell>
-      <PromotionNav title="榜单中心" />
+    <StandardNavPage backHref="/promotion" title="榜单中心">
       <div className="space-y-5 px-4 pb-8 pt-3">
         {data.sections.length === 0 ? (
           <PromotionEmptyState title="暂无榜单" description="榜单配置后将在这里展示" />
@@ -20,7 +20,7 @@ export function PromotionRankCenterScreen({ data }: { data: RankCenterData }) {
                 {section.items.map((item) => (
                   <Link
                     key={item.id}
-                    className="relative h-[104px] overflow-hidden rounded-card p-4 shadow-card"
+                    className="relative h-[104px] overflow-hidden rounded-card p-4"
                     href={item.href}
                     style={{ background: rankCenterCardTone[item.theme] }}
                   >
@@ -35,6 +35,6 @@ export function PromotionRankCenterScreen({ data }: { data: RankCenterData }) {
           ))
         )}
       </div>
-    </PromotionShell>
+    </StandardNavPage>
   );
 }
