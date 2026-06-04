@@ -3,6 +3,8 @@ export { AssetPlaceholder } from "./AssetPlaceholder";
 export { Badge } from "./Badge";
 export { Button, ButtonLink } from "./Button";
 export { Metric } from "./Metric";
+export { StandardNavPage, TransparentActionNavPage, TransparentNavPage } from "./NavPageShell";
+export type { StandardNavPageProps, TransparentActionNavPageProps, TransparentNavPageProps } from "./NavPageShell";
 export { Section } from "./Section";
 export { Skeleton } from "./Skeleton";
 export { StateView } from "./StateView";

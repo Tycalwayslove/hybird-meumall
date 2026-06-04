@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
+import { StandardNavPage, TransparentActionNavPage, TransparentNavPage } from "./NavPageShell";
 import { TopNavigation } from "./TopNavigation";
 
 describe("TopNavigation", () => {
@@ -71,5 +72,49 @@ describe("TopNavigation", () => {
     expect(html).toContain("<button");
     expect(html).toContain('aria-label="返回"');
     expect(html).not.toContain('href="/promotion"');
+  });
+});
+
+describe("navigation page shells", () => {
+  test("renders standard nav page with white nav, status spacer, and scroll content", () => {
+    const html = renderToStaticMarkup(
+      <StandardNavPage title="榜单中心" backHref="/promotion">
+        <div>榜单内容</div>
+      </StandardNavPage>
+    );
+
+    expect(html).toContain("榜单中心");
+    expect(html).toContain("bg-fill-white");
+    expect(html).toContain("h-[var(--meu-status-bar-height)]");
+    expect(html).toContain("min-h-0 flex-1 overflow-y-auto");
+    expect(html).toContain("榜单内容");
+  });
+
+  test("renders transparent nav page with fixed header and unpadded full-screen content", () => {
+    const html = renderToStaticMarkup(
+      <TransparentNavPage backHref="/promotion/rank-center">
+        <div>排行榜头图</div>
+      </TransparentNavPage>
+    );
+
+    expect(html).toContain("fixed left-1/2 top-0 z-40 w-full max-w-[430px] -translate-x-1/2");
+    expect(html).toContain("h-[var(--meu-top-bar-height)]");
+    expect(html).toContain("bg-transparent");
+    expect(html).toContain("h-screen overflow-y-auto");
+    expect(html).not.toContain("pt-[var(--meu-top-bar-height)]");
+    expect(html).toContain("排行榜头图");
+  });
+
+  test("renders transparent action nav page with right text", () => {
+    const html = renderToStaticMarkup(
+      <TransparentActionNavPage title="权益中心" rightText="权益规则" backHref="/promotion">
+        <div>权益内容</div>
+      </TransparentActionNavPage>
+    );
+
+    expect(html).toContain("权益中心");
+    expect(html).toContain("权益规则");
+    expect(html).toContain("text-text-inverse");
+    expect(html).toContain("权益内容");
   });
 });
