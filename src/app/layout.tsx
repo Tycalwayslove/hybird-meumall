@@ -1,5 +1,8 @@
+import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import "@/styles/globals.css";
+import { formatStatusBarCssVars } from "@/lib/runtime/status-bar";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +17,13 @@ export const viewport: Viewport = {
   viewportFit: "cover"
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const statusHeight = cookieStore.get("statusHeight")?.value;
   const releaseVariant = process.env.H5_RELEASE_VARIANT || "blue";
   const releaseLabel =
     process.env.H5_RELEASE_LABEL ||
@@ -27,7 +32,11 @@ export default function RootLayout({
 
   return (
     <html lang="zh-CN">
-      <body data-release-variant={releaseVariant} data-release-label={releaseLabel}>
+      <body
+        data-release-variant={releaseVariant}
+        data-release-label={releaseLabel}
+        style={formatStatusBarCssVars(statusHeight) as CSSProperties}
+      >
         {children}
         <div className="h5-version-badge" aria-label={`当前 H5 版本：${releaseLabel}`}>
           {releaseLabel}

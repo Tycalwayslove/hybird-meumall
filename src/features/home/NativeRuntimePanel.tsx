@@ -152,5 +152,10 @@ function applyNativeStatusHeight(statusHeight: number | null) {
   }
 
   const height = statusHeight ?? 0;
-  document.documentElement.style.setProperty("--native-status-height", `${height}px`);
+  document.documentElement.style.setProperty("--meu-status-bar-height", `${height}px`);
+  document.documentElement.style.setProperty("--meu-nav-height", "44px");
+  document.documentElement.style.setProperty(
+    "--meu-top-bar-height",
+    "calc(var(--meu-status-bar-height) + var(--meu-nav-height))"
+  );
 }
