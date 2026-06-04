@@ -1,5 +1,44 @@
 # 变更摘要
 
+## 2026-06-04 - 推广模块首批页面与 BFF Mock 实现
+
+### 变更
+
+- 新增推广模块类型、mock 数据、server service 和 H5 BFF route。
+- 实现 `/promotion`、`/promotion/activities`、`/promotion/rank-center`、`/promotion/ranking/sales`、`/promotion/ranking/amount`、`/promotion/benefits` 首批页面。
+- 首页支持 V1-V5 达人等级主题，活动、榜单、权益页面使用可替换的图片和 icon 占位组件，不引入 Figma 临时资源。
+- 更新推广模块工作项、BFF mock 契约、项目状态和 TODO。
+
+### 验证
+
+- `pnpm test src/features/promotion/promotion-service.test.ts`：通过，1 file / 4 tests。
+- `pnpm typecheck`：通过。
+- `pnpm test`：通过，20 files / 93 tests。
+- `pnpm build`：通过。
+- 本地 H5 dev server `http://localhost:3112` 路由 smoke：推广页面和 BFF mock 均返回 200。
+
+### 后续
+
+- 继续确认真实后端接口、达人等级规则、活动状态和榜单刷新策略。
+
+## 2026-06-04 - 推广模块页面开发总则和 BFF Mock 契约
+
+### 变更
+
+- 新增推广模块页面开发总则 `src/features/promotion/PAGE_DEVELOPMENT_GUIDE.md`。
+- 根级新增 H5 页面开发工作流 `.ai-workspace/H5_PAGE_DEVELOPMENT_WORKFLOW.md`。
+- 根级新增推广模块工作项、对接说明和 BFF mock 契约，明确首批页面路由、SSR 策略、mock 字段、Figma 节点和资产占位规则。
+
+### 验证
+
+- 本轮为文档和需求准备，不涉及业务代码构建。
+- 已检查新增文档路径存在，并确认路由、BFF、SSR、Figma node、底部 Tab 剥离等关键规则可检索。
+
+### 后续
+
+- 按 `TASK-2026-0604-002-promotion-pages-bff-foundation.md` 实现推广模块 BFF mock 和高保真页面。
+- 页面实现后需要运行 `pnpm test`、`pnpm typecheck` 和 `pnpm build`。
+
 ## 2026-06-04 - 原生 Cookie 双 token 与状态栏高度
 
 ### 变更

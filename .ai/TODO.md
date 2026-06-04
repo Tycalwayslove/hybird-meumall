@@ -2,7 +2,7 @@
 
 ## Active
 
-- 暂无。
+- [ ] 确认推广模块真实后端接口、达人等级规则、活动状态和榜单刷新策略。
 
 ## Backlog
 
@@ -56,3 +56,4 @@
 - [x] 落地正式发版入口：H5 CI 注册 candidate release、server-meumall 发布/灰度/回滚 API、admin-meumall 正式发版操作台。
 - [x] 跑通 Mac Studio 本地 Jenkins 参数化构建 H5，并上传 standalone SSR 产物到云服务器 release 目录。
 - [x] 将本地多项目工作区和 Jenkins/CI 运行路径统一到 `/Users/mac/person_code/meu-mall`，移除旧路径软链接依赖。
+- [x] 按根级 `TASK-2026-0604-002-promotion-pages-bff-foundation.md` 实现推广模块首批 BFF mock 和高保真页面。

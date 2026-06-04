@@ -62,6 +62,8 @@
 - 添加 H5 BFF HTTP 鉴权基础：服务端 Cookie auth、Java/Python 后端 registry、backend client、浏览器端 BFF client 和 BFF 响应转换。
 - 添加首页原生传参展示面板，展示完整 Cookie 值、`meu_page_config`、URL 参数和 H5 环境信息，用于内部联调。
 - 添加 `statusHeight` 运行时 CSS 变量写入，H5 可通过 `--native-status-height` 处理手机顶部状态栏高度。
+- 添加推广模块页面开发总则，明确首批推广首页、活动中心、榜单中心、榜单详情和权益中心的路由、SSR 策略、BFF mock、Figma 节点和资产占位规则。
+- 添加推广模块首批页面和 BFF mock：推广首页、活动中心、榜单中心、达人销量榜、达人销售额榜和达人权益中心。
 
 ### 变更
 
@@ -107,6 +109,7 @@
 - API 鉴权推荐方案从浏览器端直接读取 token 调后端，调整为 App 写 Cookie、Next BFF 读取 Cookie、服务端转 Authorization 调 Java/Python 后端。
 - 原生传参展示调整为内部调试口径：展示完整 Cookie 值，后续正式开放前必须删除或关闭。
 - 原生 Cookie 契约从单一 token 调整为 `pythonToken`、`mallToken` 和 `statusHeight`；Python 后端使用 `pythonToken`，Java / mall 后端使用 `mallToken`。
+- 推广模块首页工具入口收敛到本批已闭环路由，避免联调时点击进入未实现页面。
 
 ### 废弃
 
@@ -144,6 +147,7 @@
 - 已通过 Bridge adapter 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 Cookie auth、backend registry、backend client、BFF response 和 H5 client 目标测试验证 BFF 鉴权基础。
 - 已通过 native runtime context 目标测试验证原生传参调试信息。
+- 已通过推广模块 service 单测、类型检查、本地路由 smoke 和生产构建验证首批推广页面。
 - 已通过远程配置 schema 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 theme runtime 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 API client 单测、全量测试、类型检查、lint 和 AI 工作流检查。
