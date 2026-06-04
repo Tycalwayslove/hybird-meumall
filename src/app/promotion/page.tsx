@@ -12,6 +12,7 @@ type PromotionPageProps = {
 
 export default async function PromotionPage({ searchParams }: PromotionPageProps) {
   const params = await searchParams;
+  // const data = getPromotionHome("v1");
   const data = getPromotionHome(params?.level);
 
   return <PromotionHomeScreen data={data} />;
