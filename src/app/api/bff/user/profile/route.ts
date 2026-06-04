@@ -1,4 +1,4 @@
-import { readCookieAuthFromRequest } from "@/server/auth/cookie-auth";
+import { getBackendAuthToken, readCookieAuthFromRequest } from "@/server/auth/cookie-auth";
 import { createBackendClient } from "@/server/http/backend-client";
 import { createBackendRegistry } from "@/server/http/backend-registry";
 import { toBffResponse } from "@/server/http/bff-response";
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     backend: "java",
     path: "/api/user/profile",
     authRequired: true,
-    authToken: auth.token,
+    authToken: getBackendAuthToken(auth, "java"),
     route: "/mine"
   });
 

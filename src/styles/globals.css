@@ -12,6 +12,7 @@
   --color-border: 229 231 235;
   --radius-sm: 4px;
   --radius-md: 8px;
+  --native-status-height: 0px;
 }
 
 [data-theme="dark"] {
@@ -70,7 +71,7 @@ body {
 
 .h5-version-badge {
   position: fixed;
-  top: max(10px, env(safe-area-inset-top));
+  top: max(10px, calc(env(safe-area-inset-top) + var(--native-status-height)));
   right: 10px;
   z-index: 2147483647;
   border-radius: 999px;

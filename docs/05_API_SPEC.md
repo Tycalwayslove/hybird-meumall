@@ -30,8 +30,10 @@
   -> WebView 打开 H5
 
 Next SSR / BFF
-  -> 从 Cookie 读取 token
-  -> 请求 Python / Java 后端时转换为 Authorization: Bearer <token>
+  -> 从 Cookie 读取 pythonToken / mallToken
+  -> 请求 Python 后端时使用 pythonToken
+  -> 请求 Java / mall 后端时使用 mallToken
+  -> 转换为 Authorization: Bearer <token>
 
 浏览器端 H5
   -> 不读取 token
@@ -44,7 +46,9 @@ Python / Java 后端不需要支持 Cookie 鉴权，仍继续按 `Authorization`
 
 | Cookie | 说明 | JS 可读 | 建议属性 |
 | --- | --- | --- | --- |
-| `meu_access_token` | 原生 App 写入的访问 token。 | 否 | `HttpOnly; Secure; Path=/; SameSite=Lax` |
+| `pythonToken` | 原生 App 写入的 Python 服务 token。 | 否 | `HttpOnly; Secure; Path=/; SameSite=Lax` |
+| `mallToken` | 原生 App 写入的 Java / mall 服务 token。 | 否 | `HttpOnly; Secure; Path=/; SameSite=Lax` |
+| `statusHeight` | 原生 App 写入的手机顶部状态栏高度，H5 按 px 处理。 | 可按需 | `Secure; Path=/; SameSite=Lax` |
 | `meu_page_config` | 可选页面启动配置，禁止放敏感信息。 | 可按需 | `Secure; Path=/; SameSite=Lax` |
 
 H5 浏览器端禁止通过 `document.cookie` 读取 token。服务端读取逻辑位于 `src/server/auth/cookie-auth.ts`。
@@ -90,10 +94,12 @@ const result = await backendClient.request({
   backend: "java",
   path: "/api/user/profile",
   authRequired: true,
-  authToken: auth.token,
+  authToken: getBackendAuthToken(auth, "java"),
   route: "/mine"
 });
 ```
+
+`getBackendAuthToken(auth, "python")` 返回 `pythonToken`；`getBackendAuthToken(auth, "java")` 返回 `mallToken`。
 
 ### SSR / BFF / CSR 边界
 
@@ -124,7 +130,9 @@ type H5BffResult<T> =
 
 首页已增加原生传参展示面板，调用 `/api/bff/runtime/context` 获取服务端调试信息：
 
-- `meu_access_token`：展示是否存在、长度和完整值。
+- `pythonToken`：展示是否存在、长度和完整值。
+- `mallToken`：展示是否存在、长度和完整值。
+- `statusHeight`：展示原生传入的状态栏高度，并写入 `--native-status-height` CSS 变量。
 - `meu_page_config`：展示可解析的页面配置。
 - 其它 Cookie：展示完整值。
 - URL 参数：展示 App 打开 H5 时附带的启动参数。

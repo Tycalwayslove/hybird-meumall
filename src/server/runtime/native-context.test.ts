@@ -2,10 +2,12 @@ import { describe, expect, test } from "vitest";
 import { buildNativeRuntimeContext } from "./native-context";
 
 describe("native runtime context", () => {
-  test("summarizes native cookies without exposing full sensitive token", () => {
+  test("summarizes native cookies and status height", () => {
     const context = buildNativeRuntimeContext({
       cookieHeader: [
-        "meu_access_token=abcdef1234567890",
+        "pythonToken=python-token-123",
+        "mallToken=mall-token-456",
+        "statusHeight=47",
         `meu_page_config=${encodeURIComponent(JSON.stringify({ channel: "ios", theme: "green" }))}`,
         "native_tab=home",
         "refresh_token=secret-refresh"
@@ -18,10 +20,22 @@ describe("native runtime context", () => {
     });
 
     expect(context.auth).toEqual({
-      tokenCookieName: "meu_access_token",
-      tokenPresent: true,
-      tokenPreview: "abcdef1234567890",
-      tokenLength: 16
+      pythonToken: {
+        cookieName: "pythonToken",
+        present: true,
+        preview: "python-token-123",
+        length: 16
+      },
+      mallToken: {
+        cookieName: "mallToken",
+        present: true,
+        preview: "mall-token-456",
+        length: 14
+      }
+    });
+    expect(context.statusBar).toEqual({
+      statusHeight: 47,
+      statusHeightCookieName: "statusHeight"
     });
     expect(context.pageConfig).toEqual({
       channel: "ios",
@@ -29,10 +43,22 @@ describe("native runtime context", () => {
     });
     expect(context.cookies).toEqual([
       {
-        name: "meu_access_token",
+        name: "pythonToken",
         sensitive: true,
         present: true,
-        preview: "abcdef1234567890"
+        preview: "python-token-123"
+      },
+      {
+        name: "mallToken",
+        sensitive: true,
+        present: true,
+        preview: "mall-token-456"
+      },
+      {
+        name: "statusHeight",
+        sensitive: false,
+        present: true,
+        preview: "47"
       },
       {
         name: "meu_page_config",
@@ -65,11 +91,13 @@ describe("native runtime context", () => {
 
   test("reports missing token and invalid page config safely", () => {
     const context = buildNativeRuntimeContext({
-      cookieHeader: "meu_page_config=not-json",
+      cookieHeader: "meu_page_config=not-json; statusHeight=invalid",
       sourceSearch: ""
     });
 
-    expect(context.auth.tokenPresent).toBe(false);
+    expect(context.auth.pythonToken.present).toBe(false);
+    expect(context.auth.mallToken.present).toBe(false);
+    expect(context.statusBar.statusHeight).toBeNull();
     expect(context.pageConfig).toBeNull();
   });
 });

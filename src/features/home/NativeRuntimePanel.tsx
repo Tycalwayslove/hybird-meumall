@@ -28,6 +28,7 @@ export function NativeRuntimePanel() {
         }
 
         if (result.success) {
+          applyNativeStatusHeight(result.data.statusBar.statusHeight);
           setState({ status: "ready", context: result.data });
         } else {
           setState({ status: "error", message: result.message });
@@ -66,8 +67,11 @@ function RuntimeContextView({ context }: { context: NativeRuntimeContext }) {
   return (
     <div className="mt-2 space-y-2 text-[11px] font-semibold">
       <div className="grid grid-cols-2 gap-2">
-        <RuntimeField label="Token" value={context.auth.tokenPresent ? "已接收" : "未接收"} strong={context.auth.tokenPresent} />
-        <RuntimeField label="Token 值" value={context.auth.tokenPreview ?? "-"} />
+        <RuntimeField label="Python Token" value={context.auth.pythonToken.present ? "已接收" : "未接收"} strong={context.auth.pythonToken.present} />
+        <RuntimeField label="Python Token 值" value={context.auth.pythonToken.preview ?? "-"} />
+        <RuntimeField label="Mall Token" value={context.auth.mallToken.present ? "已接收" : "未接收"} strong={context.auth.mallToken.present} />
+        <RuntimeField label="Mall Token 值" value={context.auth.mallToken.preview ?? "-"} />
+        <RuntimeField label="状态栏高度" value={context.statusBar.statusHeight === null ? "-" : `${context.statusBar.statusHeight}px`} />
         <RuntimeField label="环境" value={context.environment.appEnv} />
         <RuntimeField label="H5" value={context.environment.h5Version} />
       </div>
@@ -140,4 +144,13 @@ function formatRuntimeValue(value: unknown) {
     return String(value);
   }
   return JSON.stringify(value);
+}
+
+function applyNativeStatusHeight(statusHeight: number | null) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const height = statusHeight ?? 0;
+  document.documentElement.style.setProperty("--native-status-height", `${height}px`);
 }

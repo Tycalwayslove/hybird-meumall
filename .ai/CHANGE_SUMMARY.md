@@ -1,5 +1,28 @@
 # 变更摘要
 
+## 2026-06-04 - 原生 Cookie 双 token 与状态栏高度
+
+### 变更
+
+- `src/server/auth/cookie-auth.ts` 改为读取 `pythonToken`、`mallToken` 和 `statusHeight`。
+- 新增 `getBackendAuthToken(auth, backend)`，Python 后端使用 `pythonToken`，Java / mall 后端使用 `mallToken`。
+- `src/app/api/bff/user/profile/route.ts` 示例 Java BFF 改用 `mallToken`。
+- `src/server/runtime/native-context.ts` 和首页原生传参面板展示 Python Token、Mall Token、状态栏高度。
+- `statusHeight` 写入 `--native-status-height` CSS 变量，供顶部安全区处理。
+- 更新 H5 API 文档和根级 H5 BFF 鉴权契约。
+
+### 验证
+
+- `pnpm test src/server/auth/cookie-auth.test.ts src/server/runtime/native-context.test.ts src/server/http/backend-client.test.ts`：通过，3 files / 9 tests。
+- `pnpm typecheck`：通过。
+- `pnpm test`：通过，19 files / 89 tests。
+- `pnpm build`：通过。
+
+### 后续
+
+- 原生 App 需要确认 `statusHeight` 单位是否为 CSS px。
+- 原生 App 需要确认 `pythonToken` / `mallToken` 的 Cookie 属性。
+
 ## 2026-06-03 - 建立 H5 BFF HTTP 鉴权基础
 
 ### 变更

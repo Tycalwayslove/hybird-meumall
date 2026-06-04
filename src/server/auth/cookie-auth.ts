@@ -1,22 +1,36 @@
 export type CookieAuth = {
-  token: string | null;
-  tokenCookieName: string;
+  pythonToken: string | null;
+  pythonTokenCookieName: string;
+  mallToken: string | null;
+  mallTokenCookieName: string;
+  statusHeight: number | null;
+  statusHeightCookieName: string;
 };
 
 export type CookieAuthOptions = {
-  tokenCookieName?: string;
+  mallTokenCookieName?: string;
+  pythonTokenCookieName?: string;
+  statusHeightCookieName?: string;
 };
 
-const defaultTokenCookieName = "meu_access_token";
+const defaultPythonTokenCookieName = "pythonToken";
+const defaultMallTokenCookieName = "mallToken";
+const defaultStatusHeightCookieName = "statusHeight";
 const defaultPageConfigCookieName = "meu_page_config";
 
 export function readCookieAuthFromHeader(cookieHeader: string | null | undefined, options: CookieAuthOptions = {}): CookieAuth {
-  const tokenCookieName = options.tokenCookieName ?? defaultTokenCookieName;
+  const pythonTokenCookieName = options.pythonTokenCookieName ?? defaultPythonTokenCookieName;
+  const mallTokenCookieName = options.mallTokenCookieName ?? defaultMallTokenCookieName;
+  const statusHeightCookieName = options.statusHeightCookieName ?? defaultStatusHeightCookieName;
   const cookies = parseCookieHeader(cookieHeader);
 
   return {
-    token: cookies.get(tokenCookieName) ?? null,
-    tokenCookieName
+    pythonToken: cookies.get(pythonTokenCookieName) ?? null,
+    pythonTokenCookieName,
+    mallToken: cookies.get(mallTokenCookieName) ?? null,
+    mallTokenCookieName,
+    statusHeight: parseStatusHeight(cookies.get(statusHeightCookieName)),
+    statusHeightCookieName
   };
 }
 
@@ -36,6 +50,10 @@ export function readPageConfigFromHeader(cookieHeader: string | null | undefined
   } catch {
     return null;
   }
+}
+
+export function getBackendAuthToken(auth: CookieAuth, backend: "java" | "python") {
+  return backend === "python" ? auth.pythonToken : auth.mallToken;
 }
 
 export function parseCookieHeader(cookieHeader: string | null | undefined): Map<string, string> {
@@ -63,4 +81,13 @@ function safeDecode(value: string) {
   } catch {
     return value;
   }
+}
+
+function parseStatusHeight(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const height = Number(value);
+  return Number.isFinite(height) && height >= 0 ? height : null;
 }

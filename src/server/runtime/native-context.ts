@@ -2,10 +2,12 @@ import { parseCookieHeader, readCookieAuthFromHeader, readPageConfigFromHeader }
 
 export type NativeRuntimeContext = {
   auth: {
-    tokenCookieName: string;
-    tokenPresent: boolean;
-    tokenPreview: string | null;
-    tokenLength: number;
+    pythonToken: RuntimeTokenContext;
+    mallToken: RuntimeTokenContext;
+  };
+  statusBar: {
+    statusHeight: number | null;
+    statusHeightCookieName: string;
   };
   pageConfig: Record<string, unknown> | null;
   cookies: Array<{
@@ -19,6 +21,13 @@ export type NativeRuntimeContext = {
     appEnv: string;
     h5Version: string;
   };
+};
+
+type RuntimeTokenContext = {
+  cookieName: string;
+  present: boolean;
+  preview: string | null;
+  length: number;
 };
 
 export type NativeRuntimeContextInput = {
@@ -35,10 +44,12 @@ export function buildNativeRuntimeContext({ cookieHeader, env = process.env, sou
 
   return {
     auth: {
-      tokenCookieName: auth.tokenCookieName,
-      tokenPresent: Boolean(auth.token),
-      tokenPreview: auth.token ?? null,
-      tokenLength: auth.token?.length ?? 0
+      pythonToken: buildRuntimeTokenContext(auth.pythonTokenCookieName, auth.pythonToken),
+      mallToken: buildRuntimeTokenContext(auth.mallTokenCookieName, auth.mallToken)
+    },
+    statusBar: {
+      statusHeight: auth.statusHeight,
+      statusHeightCookieName: auth.statusHeightCookieName
     },
     pageConfig: readPageConfigFromHeader(cookieHeader),
     cookies: Array.from(cookies.entries()).map(([name, value]) => {
@@ -55,6 +66,15 @@ export function buildNativeRuntimeContext({ cookieHeader, env = process.env, sou
       appEnv: env.APP_ENV ?? "unknown",
       h5Version: env.H5_VERSION ?? env.H5_RELEASE_LABEL ?? "unknown"
     }
+  };
+}
+
+function buildRuntimeTokenContext(cookieName: string, value: string | null): RuntimeTokenContext {
+  return {
+    cookieName,
+    present: Boolean(value),
+    preview: value,
+    length: value?.length ?? 0
   };
 }
 

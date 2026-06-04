@@ -61,6 +61,7 @@
 - 添加 `src/lib/bridge/protocol-bridge.ts`，支持 `bridgeHandler`、`__bridgeHandler.resolve/reject/emit`、callbackId 和超时。
 - 添加 H5 BFF HTTP 鉴权基础：服务端 Cookie auth、Java/Python 后端 registry、backend client、浏览器端 BFF client 和 BFF 响应转换。
 - 添加首页原生传参展示面板，展示完整 Cookie 值、`meu_page_config`、URL 参数和 H5 环境信息，用于内部联调。
+- 添加 `statusHeight` 运行时 CSS 变量写入，H5 可通过 `--native-status-height` 处理手机顶部状态栏高度。
 
 ### 变更
 
@@ -105,6 +106,7 @@
 - Native Bridge 从旧 `MeumallNativeBridge.call(method, payload)` 扩展为统一信封调试 runtime；旧入口暂不删除，新联调优先使用 `navigate`、`emit`、`rpc` 和 `on`。
 - API 鉴权推荐方案从浏览器端直接读取 token 调后端，调整为 App 写 Cookie、Next BFF 读取 Cookie、服务端转 Authorization 调 Java/Python 后端。
 - 原生传参展示调整为内部调试口径：展示完整 Cookie 值，后续正式开放前必须删除或关闭。
+- 原生 Cookie 契约从单一 token 调整为 `pythonToken`、`mallToken` 和 `statusHeight`；Python 后端使用 `pythonToken`，Java / mall 后端使用 `mallToken`。
 
 ### 废弃
 
@@ -128,6 +130,10 @@
 - 已确认项目级 Codex Skills 存在并包含必需工作流章节。
 - 已确认 AI 辅助脚本支持 help、参数校验、本地烟测和非法参数非 0 退出。
 - 本轮使用 AI 工作流自动化完善任务完成一次完整闭环演练。
+- `pnpm test src/server/auth/cookie-auth.test.ts src/server/runtime/native-context.test.ts src/server/http/backend-client.test.ts` 通过。
+- `pnpm test` 通过。
+- `pnpm typecheck` 通过。
+- `pnpm build` 通过。
 - 已通过真实 OSS smoke 上传和公网 `curl` 验证静态 HTML/JS 对象可访问。
 - 已通过 release ops 单测、真实 OSS smoke、manifest candidate 上传和公网 manifest 读取验证。
 - 已通过 Next.js SSR/standalone 构建、standalone 产物检查、本地 SSR 服务 smoke 和 SSR release 脚本测试。
