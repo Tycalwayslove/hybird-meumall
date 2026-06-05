@@ -82,6 +82,13 @@ ready for implementation
 - 等级切换动效仅作用于 transform 和 opacity，不做布局尺寸动画；用户开启 `prefers-reduced-motion` 时跳过 GSAP 动效。
 - 权益页背景图、徽章、箭头和 icon 必须通过 `localAssetUrl()` 解析，保证线上 `/h5-v/<version>` basePath 和后续 CDN 前缀一致。
 
+## 本地图片资源规范
+
+- 推广模块所有随 H5 发版的本地图片、icon、背景图必须注册到 `src/lib/assets/local-assets.ts`，组件内通过 `localAssetUrl(assetKey)` 使用。
+- mock 或页面数据不保存 `/assets/...` 裸路径；需要本地资源时保存 `LocalAssetKey`，组件渲染时再转换为 URL。
+- 禁止在组件、mock、style 中直接写 `src="/assets/..."`、`href="/assets/..."` 或 `url(/assets/...)`，否则线上 `/h5-v/<version>` 路径和 CDN 路径会丢失前缀。
+- 只有后端或 CMS 返回的完整远程 URL 可以直接渲染；如果是远程 URL，字段名应明确带 `Url` 或在类型注释里说明。
+
 ## 推荐目录结构
 
 ```text

@@ -71,6 +71,7 @@
 - 注册 V1-V5 推广首页达人背景图和汇总卡背景图本地资源。
 - 注册权益中心 V1-V5 顶部背景、切换箭头和权益 icon 本地资源。
 - 添加 GSAP 和 `@gsap/react`，用于权益中心等级切换动效。
+- 添加 H5 静态资源长期约束：本地稳定图片必须注册到 `local-assets.ts` 并通过 `localAssetUrl()` 解析版本 basePath 或后续 CDN 前缀。
 
 ### 变更
 
@@ -124,6 +125,8 @@
 - 达人徽章由 CSS 临时绘制改为本地 PNG 图片资源，推广页面通过 `badgeAssetKey` 和 `localAssetUrl()` 引用。
 - 推广首页达人区域和汇总卡由等级渐变背景切换为本地 PNG 背景图，原渐变保留为加载兜底。
 - 权益中心从单档 SSR 静态展示调整为 SSR 准备五档数据、客户端左右滑切换、query 同步和 GSAP transform/opacity 动效。
+- 活动中心、活动详情和奖励记录页面中的本地图片引用从 `/assets/...` 裸路径调整为 `LocalAssetKey` + `localAssetUrl()`。
+- 推广首页达人头像、昵称区域和徽章增加权益中心入口，点击进入 `/promotion/benefits?level=<level>`。
 
 ### 废弃
 
@@ -136,7 +139,7 @@
 
 ### 修复
 
-- 无。
+- 修复版本化路径下部分推广图片缺失风险：渲染测试会在 `/h5-v/<version>` basePath 场景检查本地图片路径必须带版本前缀。
 
 ### 安全
 
@@ -167,6 +170,7 @@
 - 已通过推广模块 service 单测、design token 单测、类型检查和直接颜色 class 检查验证推广二级页迁移。
 - 已通过资源 URL 单测、推广模块 service 单测、类型检查、lint 和图片文件检查验证达人徽章本地资源接入。
 - 已通过资源 URL 单测、推广模块 service 单测和类型检查验证权益中心本地资源与五档切换数据。
+- 已通过推广模块渲染测试验证活动中心、活动详情和奖励记录的本地图片在 `/h5-v/<version>` basePath 下会输出版本前缀，并确认业务源码无裸 `src="/assets/`、`href="/assets/` 或 `url(/assets/`。
 - 已通过远程配置 schema 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 theme runtime 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 API client 单测、全量测试、类型检查、lint 和 AI 工作流检查。

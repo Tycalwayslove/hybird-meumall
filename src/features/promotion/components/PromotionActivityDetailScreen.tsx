@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 import Link from "next/link";
 
 import { TransparentActionNavPage } from "@/design-system";
+import { localAssetUrl } from "@/lib/assets";
 
 import { activityDetailTheme } from "../theme/promotion-page-theme";
 import type { PromotionActivityDetailData } from "../types";
@@ -40,7 +41,7 @@ export function PromotionActivityDetailScreen({ data }: { data: PromotionActivit
             width: designWidth
           }}
         >
-          <img alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" src={data.heroBackgroundSrc} />
+          <img alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" src={localAssetUrl(data.heroBackgroundAssetKey)} />
 
           <ActivityHeroTitle data={data} />
           <HeroBadge text={data.badgeText} />

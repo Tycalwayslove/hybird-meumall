@@ -1,22 +1,21 @@
 import Link from "next/link";
 
 import { AppScreen, TopNavigation, UnderlineTabs } from "@/design-system";
+import { localAssetUrl, type LocalAssetKey } from "@/lib/assets";
 
 import { rewardRecordsTheme } from "../theme/promotion-page-theme";
 import type { PromotionRewardRecordsData, RewardRecordItem } from "../types";
 import { PromotionEmptyState } from "./PromotionStates";
 
-const rewardRecordIconSrc: Record<RewardRecordItem["iconTone"], string> = {
-  settled: "/assets/promotion/reward-records/settled-reward-icon.png",
-  pending: "/assets/promotion/reward-records/pending-reward-icon.png"
+const rewardRecordIconAssetKey: Record<RewardRecordItem["iconTone"], LocalAssetKey> = {
+  settled: "promotion.rewardRecordIcon.settled",
+  pending: "promotion.rewardRecordIcon.pending"
 };
-
-const rewardRecordsBackgroundSrc = "/assets/promotion/reward-records/reward-records-bg.png";
 
 export function PromotionRewardRecordsScreen({ data }: { data: PromotionRewardRecordsData }) {
   return (
     <AppScreen className="bg-fill-page" contentClassName="relative h-screen min-h-screen overflow-y-auto pb-8">
-      <img alt="" aria-hidden="true" className="absolute left-0 top-0 h-[250px] w-full object-cover object-top" src={rewardRecordsBackgroundSrc} />
+      <img alt="" aria-hidden="true" className="absolute left-0 top-0 h-[250px] w-full object-cover object-top" src={localAssetUrl("promotion.rewardRecordsBg")} />
       <header className="relative z-10">
         <div aria-hidden="true" className="h-[var(--meu-status-bar-height)] shrink-0" />
         <TopNavigation backHref="/promotion/activities" background="transparent" title="奖励记录" />
@@ -77,7 +76,7 @@ function RewardRecordRow({ record, showDivider }: { record: RewardRecordItem; sh
       <Link className="flex min-h-[42px] items-center justify-between gap-3" href={record.href}>
         <div className="flex min-w-0 items-center gap-[7px]">
           <span className="flex size-[42px] shrink-0 items-center justify-center rounded-full" style={{ background: record.iconTone === "pending" ? rewardRecordsTheme.pendingIconBackground : rewardRecordsTheme.settledIconBackground }}>
-            <img alt="" className={record.iconTone === "pending" ? "h-[23px] w-4" : "h-[21px] w-[22px]"} src={rewardRecordIconSrc[record.iconTone]} />
+            <img alt="" className={record.iconTone === "pending" ? "h-[23px] w-4" : "h-[21px] w-[22px]"} src={localAssetUrl(rewardRecordIconAssetKey[record.iconTone])} />
           </span>
           <span className="min-w-0">
             <span className="block truncate text-[14px] font-semibold leading-5 text-text-primary">{record.title}</span>

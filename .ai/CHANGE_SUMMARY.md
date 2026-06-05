@@ -1,5 +1,26 @@
 # 变更摘要
 
+## 2026-06-05 - 本地静态资源版本 basePath 约束
+
+### 变更
+
+- `AGENTS.md` 新增 H5 静态资源约束：业务组件禁止直接写 `/assets/...`、`/_next/...` 根路径，本地图片必须注册到 `local-assets.ts` 并通过 `localAssetUrl()` 解析。
+- 推广模块页面开发总则补充本地图片资源规范，要求 mock 和业务数据保存 `LocalAssetKey`，组件渲染时再转换为 URL。
+- 活动中心 icon、活动详情顶部背景、奖励记录背景和记录 icon 统一改为 `LocalAssetKey` + `localAssetUrl()`。
+- 推广首页达人头像、昵称区域和徽章增加到权益中心 `/promotion/benefits?level=<level>` 的入口。
+- 补充推广页面渲染测试，在 `NEXT_PUBLIC_H5_BASE_PATH=/h5-v/v1.0.9` 场景下断言图片地址带版本前缀，并检查不出现裸 `src="/assets/`、`href="/assets/` 或 `url(/assets/`。
+
+### 验证
+
+- `rg 'src="/assets|href="/assets|url\(/assets|heroBackgroundSrc' -n src/features/promotion src/lib/assets AGENTS.md`：业务源码未发现裸本地资源引用，剩余命中为文档规则和测试禁止项。
+- `pnpm exec vitest run src/features/promotion/promotion-service.test.ts src/lib/assets/asset-url.test.ts`：通过，2 files / 17 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条 Next `<img>` 性能 warning，无 error。
+
+### 后续
+
+- 本轮未发布线上；线上图片修复需要后续按 H5 release 流程发布新版本并切 active。
+
 ## 2026-06-05 - 权益中心本地资源与滑动动效
 
 ### 变更

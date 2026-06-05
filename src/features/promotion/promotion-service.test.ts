@@ -17,6 +17,29 @@ import {
   normalizeTalentLevel
 } from "./server/promotion-service";
 
+const versionBasePath = "/h5-v/v1.0.9";
+
+function withVersionBasePath<T>(fn: () => T): T {
+  const previousBasePath = process.env.NEXT_PUBLIC_H5_BASE_PATH;
+  process.env.NEXT_PUBLIC_H5_BASE_PATH = versionBasePath;
+
+  try {
+    return fn();
+  } finally {
+    if (previousBasePath === undefined) {
+      delete process.env.NEXT_PUBLIC_H5_BASE_PATH;
+    } else {
+      process.env.NEXT_PUBLIC_H5_BASE_PATH = previousBasePath;
+    }
+  }
+}
+
+function expectNoBareLocalAssetUrls(html: string) {
+  expect(html).not.toContain('src="/assets/');
+  expect(html).not.toContain('href="/assets/');
+  expect(html).not.toContain("url(/assets/");
+}
+
 describe("promotion service", () => {
   it("falls back to v1 when talent level is invalid", () => {
     expect(normalizeTalentLevel("bad-level")).toBe("v1");
@@ -55,14 +78,17 @@ describe("promotion service", () => {
   });
 
   it("renders activity center cards and reward record as links", () => {
-    const html = renderToStaticMarkup(createElement(PromotionActivitiesScreen, { data: getPromotionActivities() }));
+    const html = withVersionBasePath(() =>
+      renderToStaticMarkup(createElement(PromotionActivitiesScreen, { data: getPromotionActivities() }))
+    );
 
     expect(html).toContain('href="/promotion/activities/reward-records"');
     expect(html).toContain('href="/promotion/activities/open-order-july"');
     expect(html).toContain('href="/promotion/activities/pk-july"');
     expect(html).toContain('href="/promotion/activities/pk-june"');
-    expect(html).toContain('src="/assets/promotion/activities/order-reward-icon.png"');
-    expect(html).toContain('src="/assets/promotion/activities/pk-reward-icon.png"');
+    expect(html).toContain(`src="${versionBasePath}/assets/promotion/activities/order-reward-icon.png"`);
+    expect(html).toContain(`src="${versionBasePath}/assets/promotion/activities/pk-reward-icon.png"`);
+    expectNoBareLocalAssetUrls(html);
   });
 
   it("returns mapped activity detail data for current activity routes", () => {
@@ -77,11 +103,13 @@ describe("promotion service", () => {
     const detail = getPromotionActivityDetail("pk-july");
     expect(detail).not.toBeNull();
 
-    const html = renderToStaticMarkup(createElement(PromotionActivityDetailScreen, { data: detail! }));
+    const html = withVersionBasePath(() =>
+      renderToStaticMarkup(createElement(PromotionActivityDetailScreen, { data: detail! }))
+    );
 
     expect(html).toContain("fixed left-1/2 top-0 z-40");
     expect(html).toContain("7月PK有礼");
-    expect(html).toContain('src="/assets/promotion/activity-details/pk-hero-bg.png"');
+    expect(html).toContain(`src="${versionBasePath}/assets/promotion/activity-details/pk-hero-bg.png"`);
     expect(html).toContain("--activity-scale");
     expect(html).toContain("translateX(-50%) scale(var(--activity-scale))");
     expect(html).toContain("去领奖");
@@ -96,6 +124,7 @@ describe("promotion service", () => {
     expect(html).toContain("奖励规则");
     expect(html).toContain("border-l border-r border-fill-muted");
     expect(html).toContain("rounded-b-lg border-b");
+    expectNoBareLocalAssetUrls(html);
   });
 
   it("returns reward record tab data with fallback", () => {
@@ -118,12 +147,14 @@ describe("promotion service", () => {
   });
 
   it("renders reward record summary, tabs and records", () => {
-    const html = renderToStaticMarkup(createElement(PromotionRewardRecordsScreen, { data: getPromotionRewardRecords("settled") }));
+    const html = withVersionBasePath(() =>
+      renderToStaticMarkup(createElement(PromotionRewardRecordsScreen, { data: getPromotionRewardRecords("settled") }))
+    );
 
     expect(html).toContain("奖励记录");
     expect(html).toContain("已获得奖励(元)");
     expect(html).toContain("2383.43");
-    expect(html).toContain('src="/assets/promotion/reward-records/reward-records-bg.png"');
+    expect(html).toContain(`src="${versionBasePath}/assets/promotion/reward-records/reward-records-bg.png"`);
     expect(html).toContain("object-cover object-top");
     expect(html).toContain("grid-cols-[1fr_auto_1fr]");
     expect(html).toContain('role="tablist"');
@@ -135,6 +166,7 @@ describe("promotion service", () => {
     expect(html).toContain("h-[21px] w-[22px]");
     expect(html).toContain("2026年8月奖励");
     expect(html).toContain("+98746.57");
+    expectNoBareLocalAssetUrls(html);
   });
 
   it("returns v5 commission and benefits for benefits page", () => {

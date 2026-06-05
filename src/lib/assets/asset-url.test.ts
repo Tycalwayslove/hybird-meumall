@@ -44,6 +44,15 @@ describe("assetUrl", () => {
     expect(localAssetPaths["promotion.equityIcon.ai"]).toBe(
       "/assets/promotion/equity/equity-icon-ai.png"
     );
+    expect(localAssetPaths["promotion.activityIcon.order"]).toBe(
+      "/assets/promotion/activities/order-reward-icon.png"
+    );
+    expect(localAssetPaths["promotion.activityDetailHero.pk"]).toBe(
+      "/assets/promotion/activity-details/pk-hero-bg.png"
+    );
+    expect(localAssetPaths["promotion.rewardRecordsBg"]).toBe(
+      "/assets/promotion/reward-records/reward-records-bg.png"
+    );
     expect(localAssetUrl("promotion.talentBadge.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-badge-v5.png"
     );
@@ -52,6 +61,9 @@ describe("assetUrl", () => {
     );
     expect(localAssetUrl("promotion.equityArrow.next", { basePath: "/h5-v/v1.0.8" })).toBe(
       "/h5-v/v1.0.8/assets/promotion/equity/equity-arrow-next.png"
+    );
+    expect(localAssetUrl("promotion.rewardRecordsBg", { basePath: "/h5-v/v1.0.9" })).toBe(
+      "/h5-v/v1.0.9/assets/promotion/reward-records/reward-records-bg.png"
     );
   });
 });

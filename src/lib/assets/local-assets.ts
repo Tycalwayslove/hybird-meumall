@@ -31,7 +31,14 @@ export const localAssetPaths = {
   "promotion.equityIcon.agent": "/assets/promotion/equity/equity-icon-agent.png",
   "promotion.equityIcon.box": "/assets/promotion/equity/equity-icon-box.png",
   "promotion.equityIcon.training": "/assets/promotion/equity/equity-icon-training.png",
-  "promotion.equityIcon.ai": "/assets/promotion/equity/equity-icon-ai.png"
+  "promotion.equityIcon.ai": "/assets/promotion/equity/equity-icon-ai.png",
+  "promotion.activityIcon.order": "/assets/promotion/activities/order-reward-icon.png",
+  "promotion.activityIcon.pk": "/assets/promotion/activities/pk-reward-icon.png",
+  "promotion.activityDetailHero.order": "/assets/promotion/activity-details/order-hero-bg.png",
+  "promotion.activityDetailHero.pk": "/assets/promotion/activity-details/pk-hero-bg.png",
+  "promotion.rewardRecordIcon.settled": "/assets/promotion/reward-records/settled-reward-icon.png",
+  "promotion.rewardRecordIcon.pending": "/assets/promotion/reward-records/pending-reward-icon.png",
+  "promotion.rewardRecordsBg": "/assets/promotion/reward-records/reward-records-bg.png"
 } as const;
 
 export type LocalAssetKey = keyof typeof localAssetPaths;

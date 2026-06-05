@@ -22,7 +22,7 @@ export const promotionActivityDetails: Record<ActivityDetailSlug, PromotionActiv
       suffix: "有礼",
       highlightTone: "order"
     },
-    heroBackgroundSrc: "/assets/promotion/activity-details/order-hero-bg.png",
+    heroBackgroundAssetKey: "promotion.activityDetailHero.order",
     rewardRecordHref: "/promotion/activities/reward-records",
     badgeText: "10单以上可获额外激励",
     statusText: "去带货",
@@ -51,7 +51,7 @@ export const promotionActivityDetails: Record<ActivityDetailSlug, PromotionActiv
       suffix: "有礼",
       highlightTone: "pk"
     },
-    heroBackgroundSrc: "/assets/promotion/activity-details/pk-hero-bg.png",
+    heroBackgroundAssetKey: "promotion.activityDetailHero.pk",
     rewardRecordHref: "/promotion/activities/reward-records",
     badgeText: "销售额TOP10可获额外激励",
     statusText: "去领奖",
@@ -80,7 +80,7 @@ export const promotionActivityDetails: Record<ActivityDetailSlug, PromotionActiv
       suffix: "有礼",
       highlightTone: "pk"
     },
-    heroBackgroundSrc: "/assets/promotion/activity-details/pk-hero-bg.png",
+    heroBackgroundAssetKey: "promotion.activityDetailHero.pk",
     rewardRecordHref: "/promotion/activities/reward-records",
     badgeText: "销售额TOP10可获额外激励",
     statusText: "活动已结束",

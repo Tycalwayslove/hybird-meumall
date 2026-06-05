@@ -130,6 +130,14 @@
 - 静态打包页面必须声明所需原生 App 版本或能力。
 - 依赖 Bridge 的能力必须说明原生方法不可用时的 fallback 行为。
 
+## 静态资源约束
+
+- H5 线上页面运行在版本 basePath 下，例如 `/h5-v/v1.0.8`，禁止在业务组件里直接写死 `/assets/...`、`/_next/...` 等根路径资源地址。
+- 本地随 H5 发版的图片、icon、背景图必须先注册到 `src/lib/assets/local-assets.ts`，业务代码通过 `localAssetUrl(assetKey)` 获取地址。
+- 业务数据或 mock 如果需要引用本地图片，字段应保存 `LocalAssetKey`，不要保存裸路径字符串；组件渲染时再调用 `localAssetUrl()`。
+- 只有后端、CMS 或外部 CDN 返回的完整 URL 才可以直接作为图片地址使用；这类字段必须在类型或注释中明确是远程 URL。
+- 新增页面提交前必须检查渲染 HTML 中是否存在未处理的 `src="/assets/`、`href="/assets/` 或 `url(/assets/`。出现这类路径时视为缺陷，因为线上版本路径和后续 CDN 会失效。
+
 ## 主题约束
 
 - 主题变更必须定义 CSS Variable 名称、默认值、fallback 和 Tailwind 使用方式。

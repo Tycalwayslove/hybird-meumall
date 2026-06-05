@@ -1,14 +1,15 @@
 import Link from "next/link";
 
 import { AppScreen, TopNavigation } from "@/design-system";
+import { localAssetUrl, type LocalAssetKey } from "@/lib/assets";
 
 import type { PromotionActivitiesData, PromotionActivity } from "../types";
 import { activityCenterTheme, activityStatusTone } from "../theme/promotion-page-theme";
 import { PromotionEmptyState } from "./PromotionStates";
 
-const activityIconSrc: Record<PromotionActivity["iconKind"], string> = {
-  order: "/assets/promotion/activities/order-reward-icon.png",
-  pk: "/assets/promotion/activities/pk-reward-icon.png"
+const activityIconAssetKey: Record<PromotionActivity["iconKind"], LocalAssetKey> = {
+  order: "promotion.activityIcon.order",
+  pk: "promotion.activityIcon.pk"
 };
 
 export function PromotionActivitiesScreen({ data }: { data: PromotionActivitiesData }) {
@@ -77,6 +78,6 @@ function ActivityCard({ item }: { item: PromotionActivity }) {
 
 function ActivityIcon({ kind }: { kind: PromotionActivity["iconKind"] }) {
   return (
-    <img alt="" className="size-[18px] shrink-0" src={activityIconSrc[kind]} />
+    <img alt="" className="size-[18px] shrink-0" src={localAssetUrl(activityIconAssetKey[kind])} />
   );
 }

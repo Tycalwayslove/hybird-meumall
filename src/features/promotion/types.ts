@@ -98,7 +98,7 @@ export type PromotionActivityDetailData = {
     suffix: string;
     highlightTone: "order" | "pk";
   };
-  heroBackgroundSrc: string;
+  heroBackgroundAssetKey: LocalAssetKey;
   rewardRecordHref: string;
   badgeText: string;
   statusText: string;

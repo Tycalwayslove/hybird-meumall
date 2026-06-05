@@ -20,6 +20,38 @@
 ### 备选方案
 ```
 
+## ADR-0020 - H5 本地静态资源必须通过资源 registry 解析
+
+日期：2026-06-05
+
+状态：Accepted
+
+### 背景
+
+H5 线上页面运行在版本化 basePath 下，例如 `/h5-v/v1.0.8`。如果业务组件直接写 `src="/assets/..."`、`href="/assets/..."` 或 `url(/assets/...)`，浏览器会请求域名根路径资源，绕过当前 H5 版本目录，导致线上图片 404。新开 AI 会话继续开发页面时，如果只依赖聊天记忆，很容易再次写出裸路径。
+
+### 决策
+
+本地随 H5 发版的稳定图片、icon、背景图必须先注册到 `src/lib/assets/local-assets.ts`，业务类型和 mock 使用 `LocalAssetKey` 表达资源，组件渲染时通过 `localAssetUrl(assetKey)` 得到最终 URL。
+
+`localAssetUrl()` 统一处理：
+
+- `NEXT_PUBLIC_H5_ASSET_BASE_URL`：后续资源上 CDN 时使用。
+- `NEXT_PUBLIC_H5_BASE_PATH` / `H5_BASE_PATH`：当前多版本 SSR 路径使用。
+- 裸 `public/assets` 路径：只允许在 registry 内部保存，业务组件不得直接引用。
+
+### 影响
+
+- 新增页面可以在本地、版本目录、后续 CDN 三种资源来源之间复用同一套代码。
+- 新会话只要读取 `AGENTS.md`、本 ADR 或推广页面开发规范，就能恢复静态资源规则。
+- 测试需要覆盖 basePath 场景，避免只在本地根路径通过。
+
+### 备选方案
+
+- 在每个组件里手动拼 `basePath + "/assets/..."`：拒绝，因为会造成重复逻辑和遗漏。
+- 继续直接写 `/assets/...`：拒绝，因为版本目录和后续 CDN 场景都会失效。
+- 只把规则写在聊天里：拒绝，因为跨会话无法可靠恢复。
+
 ## ADR-0019 - H5 页面采用 Figma Token 驱动的 Design System
 
 日期：2026-06-04
