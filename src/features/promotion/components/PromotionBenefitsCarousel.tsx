@@ -89,9 +89,9 @@ export function PromotionBenefitsCarousel({
           "<0.12"
         )
         .fromTo(
-          ".equity-level-active-label",
-          { autoAlpha: 0, y: 8 },
-          { autoAlpha: 1, y: 0, duration: 0.24 },
+          ".equity-level-active-current",
+          { y: 8 },
+          { y: 0, duration: 0.24 },
           "<0.04"
         )
         .fromTo(
@@ -297,9 +297,6 @@ function LevelTrack({
   onSwitch: (level: TalentLevel, direction: SwitchDirection) => void;
 }) {
   const gradientId = `equity-track-gradient-${activeIndex}`;
-  const activeOffset = levelTrackPoints[activeIndex]?.gradientOffset ?? 50;
-  const accentStart = Math.max(0, activeOffset - 8);
-  const accentEnd = Math.min(100, activeOffset + 8);
 
   return (
     <div className="equity-level-track relative mx-[-10px] mt-4 h-[92px] will-change-transform">
@@ -312,13 +309,9 @@ function LevelTrack({
       >
         <defs>
           <linearGradient id={gradientId} x1="0%" x2="100%" y1="0%" y2="0%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.02)" />
-            <stop offset="18%" stopColor="rgba(255,255,255,0.30)" />
-            <stop offset={`${accentStart}%`} stopColor="rgba(255,255,255,0.48)" />
-            <stop offset={`${activeOffset}%`} stopColor={accentColor} />
-            <stop offset={`${accentEnd}%`} stopColor="rgba(255,255,255,0.48)" />
-            <stop offset="82%" stopColor="rgba(255,255,255,0.30)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
+            <stop offset="0%" stopColor="rgba(255,255,255,0)" />
+            <stop offset="49.29%" stopColor="rgba(255,255,255,0.48)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
         </defs>
         <path
@@ -326,7 +319,7 @@ function LevelTrack({
           d="M8 13 C88 34 272 34 352 13"
           stroke={`url(#${gradientId})`}
           strokeLinecap="round"
-          strokeWidth="2.2"
+          strokeWidth="2"
         />
       </svg>
       {orderedLevels.map((level, index) => {
@@ -357,7 +350,7 @@ function LevelTrack({
             <span
               className={cn(
                 "mt-[5px] text-[13px] leading-[15px]",
-                isActive ? "equity-level-active-label font-black" : "font-semibold"
+                isActive ? "font-black" : "font-semibold"
               )}
               style={{ color: isActive ? accentColor : "rgb(var(--mm-color-text-inverse))" }}
             >
@@ -366,9 +359,13 @@ function LevelTrack({
             <span
               className={cn(
                 "mt-[2px] h-[14px] text-[10px] font-semibold leading-[14px]",
-                isActive ? "equity-level-active-label opacity-100" : "opacity-0"
+                isActive ? "equity-level-active-current" : ""
               )}
-              style={{ color: accentColor }}
+              style={{
+                color: accentColor,
+                opacity: isActive ? 1 : 0,
+                visibility: isActive ? "visible" : "hidden"
+              }}
             >
               当前等级
             </span>
