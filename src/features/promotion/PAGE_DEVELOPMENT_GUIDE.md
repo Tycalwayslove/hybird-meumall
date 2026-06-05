@@ -20,7 +20,7 @@ ready for implementation
 | 榜单中心 | `/promotion/rank-center` | SSR dynamic。 |
 | 达人销量榜 | `/promotion/ranking/sales` | SSR dynamic，榜期 tab 为客户端交互。 |
 | 达人销售额榜 | `/promotion/ranking/amount` | SSR dynamic，榜期 tab 为客户端交互。 |
-| 达人权益中心 | `/promotion/benefits?level=v1` | SSR dynamic，query 控制 V1-V5 调试。 |
+| 达人权益中心 | `/promotion/benefits?level=v1` | SSR dynamic，首屏服务端准备 V1-V5 mock，客户端支持左右滑切换和 query 同步。 |
 
 ## 设计来源
 
@@ -49,7 +49,7 @@ ready for implementation
   - `PromotionAssetPlaceholder`
   - `PromotionIcon`
   - `TalentBadge`
-- 等级徽章后续可替换为本地静态资源或 CDN 资源，数据中只保留 `badgeAssetKey`。
+- 等级徽章、权益中心背景、切换箭头和权益 icon 使用本地静态资源，数据和组件中只保留资源 key。
 - Figma 中的底部 Tab 和 Home Indicator 属于原生 App，不在 H5 中实现。
 - Figma 中的状态栏只作为顶部间距参考，H5 实际使用 `statusHeight` 和 `env(safe-area-inset-top)`。
 - 所有卡片圆角以 Figma 为准，避免沿用旧低保真 `PageShell` 风格。
@@ -72,6 +72,14 @@ ready for implementation
 - 透明导航页面头图内容如需避开导航按钮，使用 `pt-[var(--meu-top-bar-height)]`。
 - 固定在底部或顶部的 H5 浮层必须限制在 `max-w-[430px]` 容器内，不能在桌面宽屏铺满窗口。
 - 设计图没有的投影不添加；旧页面迁移时优先移除历史 `shadow-card` / `shadow-floating`。
+
+## 权益中心交互规范
+
+- 权益中心首屏仍由 SSR 准备数据，页面入口一次传入 V1-V5 五档权益数据。
+- `level` query 只作为初始档位和调试入口，客户端左右滑切换时通过 `router.replace` 同步 query，不触发整页滚动重置。
+- 左右切换按钮使用本地 PNG 箭头资源；移动端支持横向滑动，滑动阈值不低于 38px，避免误触。
+- 等级切换动效仅作用于 transform 和 opacity，不做布局尺寸动画；用户开启 `prefers-reduced-motion` 时跳过 GSAP 动效。
+- 权益页背景图、徽章、箭头和 icon 必须通过 `localAssetUrl()` 解析，保证线上 `/h5-v/<version>` basePath 和后续 CDN 前缀一致。
 
 ## 推荐目录结构
 

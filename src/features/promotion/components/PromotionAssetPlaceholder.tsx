@@ -1,7 +1,12 @@
 import { localAssetUrl, type LocalAssetKey } from "@/lib/assets";
 
 import type { TalentLevel } from "../types";
-import { promotionAvatarTone, promotionIconTones, talentBadgeAssetKeyByLevel } from "../theme/talent-theme";
+import {
+  promotionAvatarTone,
+  promotionIconTones,
+  promotionLocalIconAssetKeyByIconKey,
+  talentBadgeAssetKeyByLevel
+} from "../theme/talent-theme";
 
 export function PromotionAvatar({ className = "" }: { className?: string }) {
   return (
@@ -41,6 +46,23 @@ export function TalentBadge({
 }
 
 export function PromotionIcon({ iconKey, className = "" }: { iconKey: string; className?: string }) {
+  const assetKey = promotionLocalIconAssetKeyByIconKey[iconKey];
+  if (assetKey) {
+    return (
+      <span className={`inline-flex shrink-0 items-center justify-center ${className}`} aria-hidden="true">
+        {/* eslint-disable-next-line @next/next/no-img-element -- local PNG icons are registered through localAssetUrl for versioned basePath support. */}
+        <img
+          alt=""
+          className="block h-full w-full object-contain"
+          draggable={false}
+          height={72}
+          src={localAssetUrl(assetKey)}
+          width={72}
+        />
+      </span>
+    );
+  }
+
   const tone = promotionIconTones[iconKey] ?? { background: "rgb(var(--mm-color-fill-muted))", foreground: "rgb(var(--mm-color-text-muted))", mark: "·" };
 
   return (

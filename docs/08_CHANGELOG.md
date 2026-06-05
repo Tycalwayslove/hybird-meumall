@@ -69,6 +69,8 @@
 - 添加推广二级页业务主题配置 `promotion-page-theme.ts`，集中维护活动、榜单和权益中心的业务视觉参数。
 - 添加本地资源 registry `local-assets.ts`，首批注册 V1-V5 达人徽章图片。
 - 注册 V1-V5 推广首页达人背景图和汇总卡背景图本地资源。
+- 注册权益中心 V1-V5 顶部背景、切换箭头和权益 icon 本地资源。
+- 添加 GSAP 和 `@gsap/react`，用于权益中心等级切换动效。
 
 ### 变更
 
@@ -121,6 +123,7 @@
 - 活动中心、榜单中心、榜单详情和权益中心迁移到 design-system token 模式，`PromotionShell` 和状态组件改为复用全局 primitives。
 - 达人徽章由 CSS 临时绘制改为本地 PNG 图片资源，推广页面通过 `badgeAssetKey` 和 `localAssetUrl()` 引用。
 - 推广首页达人区域和汇总卡由等级渐变背景切换为本地 PNG 背景图，原渐变保留为加载兜底。
+- 权益中心从单档 SSR 静态展示调整为 SSR 准备五档数据、客户端左右滑切换、query 同步和 GSAP transform/opacity 动效。
 
 ### 废弃
 
@@ -163,6 +166,7 @@
 - 已通过全量测试、类型检查、lint、生产构建和 `/promotion` 本地 smoke 验证本轮 design-system 改造。
 - 已通过推广模块 service 单测、design token 单测、类型检查和直接颜色 class 检查验证推广二级页迁移。
 - 已通过资源 URL 单测、推广模块 service 单测、类型检查、lint 和图片文件检查验证达人徽章本地资源接入。
+- 已通过资源 URL 单测、推广模块 service 单测和类型检查验证权益中心本地资源与五档切换数据。
 - 已通过远程配置 schema 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 theme runtime 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 API client 单测、全量测试、类型检查、lint 和 AI 工作流检查。

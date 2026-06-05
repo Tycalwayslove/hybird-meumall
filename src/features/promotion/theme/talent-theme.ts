@@ -26,6 +26,31 @@ export const talentSummaryCardAssetKeyByLevel = {
   v5: "promotion.talentSummaryCard.v5"
 } as const satisfies Record<TalentLevel, LocalAssetKey>;
 
+export const equityHeroBackgroundAssetKeyByLevel = {
+  v1: "promotion.equityHeroBg.v1",
+  v2: "promotion.equityHeroBg.v2",
+  v3: "promotion.equityHeroBg.v3",
+  v4: "promotion.equityHeroBg.v4",
+  v5: "promotion.equityHeroBg.v5"
+} as const satisfies Record<TalentLevel, LocalAssetKey>;
+
+export const equityArrowAssetKeys = {
+  next: "promotion.equityArrow.next",
+  prev: "promotion.equityArrow.prev"
+} as const satisfies Record<"next" | "prev", LocalAssetKey>;
+
+export const promotionLocalIconAssetKeyByIconKey: Record<string, LocalAssetKey> = {
+  "benefit-money": "promotion.equityIcon.money",
+  "benefit-discount": "promotion.equityIcon.discount",
+  "benefit-cake": "promotion.equityIcon.cake",
+  "benefit-coupon": "promotion.equityIcon.coupon",
+  "benefit-gift": "promotion.equityIcon.gift",
+  "benefit-agent": "promotion.equityIcon.agent",
+  "benefit-box": "promotion.equityIcon.box",
+  "benefit-bag": "promotion.equityIcon.training",
+  "benefit-ai": "promotion.equityIcon.ai"
+};
+
 export const talentThemes = {
   v1: {
     name: "peach",

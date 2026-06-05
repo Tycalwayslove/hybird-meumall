@@ -38,11 +38,20 @@ describe("assetUrl", () => {
     expect(localAssetPaths["promotion.talentSummaryCard.v3"]).toBe(
       "/assets/promotion/talent-badges/talent-summary-card-v3.png"
     );
+    expect(localAssetPaths["promotion.equityHeroBg.v4"]).toBe(
+      "/assets/promotion/equity/equity-bg-v4.png"
+    );
+    expect(localAssetPaths["promotion.equityIcon.ai"]).toBe(
+      "/assets/promotion/equity/equity-icon-ai.png"
+    );
     expect(localAssetUrl("promotion.talentBadge.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-badge-v5.png"
     );
     expect(localAssetUrl("promotion.talentSummaryCard.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-summary-card-v5.png"
+    );
+    expect(localAssetUrl("promotion.equityArrow.next", { basePath: "/h5-v/v1.0.8" })).toBe(
+      "/h5-v/v1.0.8/assets/promotion/equity/equity-arrow-next.png"
     );
   });
 });

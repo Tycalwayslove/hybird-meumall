@@ -1,5 +1,8 @@
 import { PromotionBenefitsScreen } from "@/features/promotion/components/PromotionBenefitsScreen";
-import { getPromotionBenefits } from "@/features/promotion/server/promotion-service";
+import {
+  getAllPromotionBenefits,
+  normalizeTalentLevel
+} from "@/features/promotion/server/promotion-service";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -12,7 +15,8 @@ type BenefitsPageProps = {
 
 export default async function PromotionBenefitsPage({ searchParams }: BenefitsPageProps) {
   const params = await searchParams;
-  const data = getPromotionBenefits(params?.level);
+  const initialLevel = normalizeTalentLevel(params?.level);
+  const levels = getAllPromotionBenefits();
 
-  return <PromotionBenefitsScreen data={data} />;
+  return <PromotionBenefitsScreen initialLevel={initialLevel} levels={levels} />;
 }

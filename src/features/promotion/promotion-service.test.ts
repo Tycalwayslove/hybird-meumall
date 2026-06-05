@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getAllPromotionBenefits,
   getPromotionBenefits,
   getPromotionHome,
   getPromotionRanking,
@@ -40,5 +41,18 @@ describe("promotion service", () => {
     expect(benefits.commission.label).toBe("基础 * 200%");
     expect(benefits.exclusiveBenefits.length).toBeGreaterThan(0);
     expect(benefits.memberBenefits.length).toBeGreaterThan(0);
+  });
+
+  it("returns all five benefit levels for client switching", () => {
+    const benefits = getAllPromotionBenefits();
+
+    expect(benefits.map((item) => item.profile.level)).toEqual(["v1", "v2", "v3", "v4", "v5"]);
+    expect(benefits.map((item) => item.theme.badgeAssetKey)).toEqual([
+      "promotion.talentBadge.v1",
+      "promotion.talentBadge.v2",
+      "promotion.talentBadge.v3",
+      "promotion.talentBadge.v4",
+      "promotion.talentBadge.v5"
+    ]);
   });
 });

@@ -1,5 +1,29 @@
 # 变更摘要
 
+## 2026-06-05 - 权益中心本地资源与滑动动效
+
+### 变更
+
+- 将权益中心 V1-V5 顶部背景、左右切换箭头和 9 个权益 icon 放入 `public/assets/promotion/equity/`。
+- `local-assets.ts` 新增 `promotion.equity*` 资源 key，权益页资源继续通过 `localAssetUrl()` 解析 H5 basePath。
+- `PromotionIcon` 优先渲染已注册的本地 PNG icon，未注册时保留文字色块 fallback。
+- 权益中心页面入口改为一次准备 V1-V5 五档数据，新增客户端 `PromotionBenefitsCarousel` 支持左右滑、箭头切换和 query 同步。
+- 新增 GSAP / `@gsap/react`，等级切换时对头图内容、徽章、等级进度和权益项做 transform/opacity 动效，并尊重 `prefers-reduced-motion`。
+
+### 验证
+
+- `pnpm exec vitest run src/lib/assets/asset-url.test.ts src/features/promotion/promotion-service.test.ts`：通过，2 files / 10 tests。
+- `pnpm typecheck`：通过。
+- `pnpm test`：通过，23 files / 112 tests。
+- `pnpm lint`：通过。
+- `pnpm build`：通过。
+- 本地 `http://localhost:3112/promotion/benefits?level=v1-v5` smoke：均返回 200。
+- 本地新增权益资源 smoke：`equity-bg-v1-v5.png`、`equity-arrow-next.png`、`equity-arrow-prev.png`、`equity-icon-money.png`、`equity-icon-ai.png` 均返回 200。
+
+### 后续
+
+- Figma Connector 当前仍返回旧的 `token_expired`，后续工具会话恢复后需要再对权益中心节点做一轮像素级细调。
+
 ## 2026-06-04 - 推广首页达人背景和汇总卡背景图片接入
 
 ### 变更

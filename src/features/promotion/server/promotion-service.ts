@@ -35,6 +35,10 @@ export function getPromotionBenefits(level?: string | null) {
   return buildPromotionBenefits(normalizeTalentLevel(level ?? "v3"));
 }
 
+export function getAllPromotionBenefits() {
+  return Array.from(talentLevelSet).map((level) => buildPromotionBenefits(level));
+}
+
 export function bffJson<T>(data: T, requestId: string) {
   return Response.json({
     success: true,
