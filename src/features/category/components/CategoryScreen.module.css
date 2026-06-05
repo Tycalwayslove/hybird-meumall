@@ -1,0 +1,141 @@
+.screen {
+  background: rgb(var(--mm-color-fill-white));
+}
+
+.content {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+  background: rgb(var(--mm-color-fill-white));
+}
+
+.sidebar {
+  min-height: 0;
+  overflow-y: auto;
+  background: rgb(var(--mm-color-fill-page));
+  scrollbar-width: none;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+.categoryLink {
+  position: relative;
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  padding: 16px;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 24px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.categoryLinkActive {
+  background: rgb(var(--mm-color-fill-white));
+  color: rgb(var(--mm-color-brand-action));
+  font-weight: 600;
+}
+
+.activeIndicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 24px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+}
+
+.main {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 15px 28px 18px;
+  background: rgb(var(--mm-color-fill-white));
+  scrollbar-width: none;
+}
+
+.main::-webkit-scrollbar {
+  display: none;
+}
+
+.section {
+  margin-top: 0;
+}
+
+.section + .section {
+  margin-top: 18px;
+}
+
+.sectionTitle {
+  margin: 0 0 17px;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 20px;
+}
+
+.leafGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 74px));
+  column-gap: 14px;
+  row-gap: 18px;
+  align-items: start;
+}
+
+.leafLink {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: rgb(var(--mm-color-text-secondary));
+  text-decoration: none;
+}
+
+.leafMedia {
+  width: 100%;
+  max-width: 74px;
+  border-radius: 11px;
+  background:
+    linear-gradient(145deg, rgb(var(--mm-color-fill-page)) 0%, rgb(var(--mm-color-fill-muted) / 0.45) 100%);
+}
+
+.leafLabel {
+  width: 100%;
+  overflow: hidden;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 18px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 340px) {
+  .content {
+    grid-template-columns: 86px minmax(0, 1fr);
+  }
+
+  .categoryLink {
+    padding-inline: 12px;
+  }
+
+  .main {
+    padding-inline: 12px;
+  }
+
+  .leafGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 10px;
+  }
+}
