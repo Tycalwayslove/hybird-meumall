@@ -18,11 +18,11 @@ gsap.registerPlugin(useGSAP);
 const orderedLevels: TalentLevel[] = ["v1", "v2", "v3", "v4", "v5"];
 const swipeThreshold = 38;
 const levelTrackPoints = [
-  { left: "6%", top: 6, gradientOffset: 6 },
-  { left: "28%", top: 18, gradientOffset: 28 },
-  { left: "50%", top: 23, gradientOffset: 50 },
-  { left: "72%", top: 18, gradientOffset: 72 },
-  { left: "94%", top: 6, gradientOffset: 94 }
+  { left: "6%", top: 4, gradientOffset: 6 },
+  { left: "28%", top: 13, gradientOffset: 28 },
+  { left: "50%", top: 17, gradientOffset: 50 },
+  { left: "72%", top: 13, gradientOffset: 72 },
+  { left: "94%", top: 4, gradientOffset: 94 }
 ] as const;
 
 type SwitchDirection = "next" | "prev";
@@ -58,6 +58,9 @@ export function PromotionBenefitsCarousel({
       const direction = directionRef.current === "next" ? 1 : -1;
       const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
 
+      gsap.set(".equity-level-label", { clearProps: "all" });
+      gsap.set(".equity-level-current", { clearProps: "transform" });
+
       timeline
         .fromTo(
           ".equity-animated-hero",
@@ -89,9 +92,9 @@ export function PromotionBenefitsCarousel({
           "<0.12"
         )
         .fromTo(
-          ".equity-level-active-current",
-          { y: 8 },
-          { y: 0, duration: 0.24 },
+          ".equity-level-active-copy",
+          { autoAlpha: 0, y: 6 },
+          { autoAlpha: 1, y: 0, duration: 0.26, ease: "power2.out" },
           "<0.04"
         )
         .fromTo(
@@ -349,8 +352,8 @@ function LevelTrack({
             </span>
             <span
               className={cn(
-                "mt-[5px] text-[13px] leading-[15px]",
-                isActive ? "font-black" : "font-semibold"
+                "equity-level-label mt-[5px] text-[13px] leading-[15px]",
+                isActive ? "equity-level-active-copy font-black" : "font-semibold"
               )}
               style={{ color: isActive ? accentColor : "rgb(var(--mm-color-text-inverse))" }}
             >
@@ -358,8 +361,8 @@ function LevelTrack({
             </span>
             <span
               className={cn(
-                "mt-[2px] h-[14px] text-[10px] font-semibold leading-[14px]",
-                isActive ? "equity-level-active-current" : ""
+                "equity-level-current mt-[2px] h-[14px] text-[10px] font-semibold leading-[14px]",
+                isActive ? "equity-level-active-copy" : ""
               )}
               style={{
                 color: accentColor,
