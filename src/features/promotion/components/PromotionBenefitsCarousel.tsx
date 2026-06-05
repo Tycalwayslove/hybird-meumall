@@ -2,7 +2,6 @@
 
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useRef, useState, type TouchEvent } from "react";
 
 import { cn } from "@/design-system";
@@ -34,9 +33,6 @@ export function PromotionBenefitsCarousel({
   initialLevel: TalentLevel;
   levels: PromotionBenefitsData[];
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const rootRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef<number | null>(null);
   const directionRef = useRef<SwitchDirection>("next");
@@ -59,6 +55,7 @@ export function PromotionBenefitsCarousel({
       const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
 
       gsap.killTweensOf(".equity-level-active-dot");
+      gsap.killTweensOf(".equity-content-section");
 
       timeline
         .fromTo(
@@ -91,9 +88,9 @@ export function PromotionBenefitsCarousel({
           "<0.12"
         )
         .fromTo(
-          ".equity-benefit-item",
-          { autoAlpha: 0, y: 12 },
-          { autoAlpha: 1, y: 0, stagger: 0.035, duration: 0.26 },
+          ".equity-content-section",
+          { autoAlpha: 0.92, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.18, ease: "power2.out" },
           "<0.08"
         );
     },
@@ -109,11 +106,11 @@ export function PromotionBenefitsCarousel({
       directionRef.current = direction;
       setActiveLevel(level);
 
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("level", level);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+      const url = new URL(window.location.href);
+      url.searchParams.set("level", level);
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     },
-    [activeLevel, pathname, router, searchParams]
+    [activeLevel]
   );
 
   const switchBy = useCallback(
@@ -378,13 +375,13 @@ function ContentSection({ data }: { data: PromotionBenefitsData }) {
 
   return (
     <section
-      className="relative z-[2] -mt-4 rounded-t-[20px] px-4 pb-8 pt-7"
+      className="equity-content-section relative z-[2] -mt-4 rounded-t-[20px] px-4 pb-8 pt-7 will-change-transform"
       style={{ background: benefitsTheme.contentBackground }}
     >
       <BenefitSection title={`${profile.level.toUpperCase()}${profile.levelName}专属特权`} items={data.exclusiveBenefits} />
       <div className="mt-5" />
       <BenefitSection title="喵呜达人会员特权" items={data.memberBenefits} />
-      <div className="equity-benefit-item mt-5 rounded-[14px] bg-fill-white/[0.06] p-4">
+      <div className="mt-5 rounded-[14px] bg-fill-white/[0.06] p-4">
         <p className="text-[14px] font-semibold text-text-inverse/90">达人定位</p>
         <p className="mt-2 text-[13px] leading-5 text-text-inverse/60">{data.persona}</p>
         <p className="mt-2 text-[13px] leading-5 text-text-inverse/60">佣金分成：{data.commission.label}</p>
@@ -409,7 +406,7 @@ function BenefitSection({
       </h2>
       <div className="mt-[14px] space-y-5 rounded-[14px] bg-fill-white/[0.06] px-[14px] py-4">
         {items.map((item) => (
-          <div key={item.id} className="equity-benefit-item flex items-center gap-[13px] will-change-transform">
+          <div key={item.id} className="flex items-center gap-[13px]">
             <PromotionIcon className="size-[38px]" iconKey={item.iconKey} />
             <div className="min-w-0">
               <p className="truncate text-[15px] font-semibold leading-5 text-text-inverse/90">{item.title}</p>
