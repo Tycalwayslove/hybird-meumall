@@ -58,11 +58,7 @@ export function PromotionBenefitsCarousel({
       const direction = directionRef.current === "next" ? 1 : -1;
       const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-      gsap.killTweensOf(".equity-level-label");
-      gsap.killTweensOf(".equity-level-current");
       gsap.killTweensOf(".equity-level-active-dot");
-      gsap.set(".equity-level-label", { clearProps: "transform,opacity,visibility" });
-      gsap.set(".equity-level-current", { clearProps: "transform" });
 
       timeline
         .fromTo(
@@ -93,18 +89,6 @@ export function PromotionBenefitsCarousel({
           { scale: 0.72 },
           { scale: 1, duration: 0.28, ease: "back.out(2)" },
           "<0.12"
-        )
-        .fromTo(
-          ".equity-level-active-label",
-          { autoAlpha: 0, y: 6 },
-          { autoAlpha: 1, y: 0, duration: 0.26, ease: "power2.out" },
-          "<0.04"
-        )
-        .fromTo(
-          ".equity-level-active-current",
-          { y: 5 },
-          { y: 0, duration: 0.24, ease: "power2.out" },
-          "<0.02"
         )
         .fromTo(
           ".equity-benefit-item",
@@ -362,22 +346,22 @@ function LevelTrack({
             </span>
             <span
               className={cn(
-                "equity-level-label mt-[5px] text-[13px] leading-[15px]",
-                isActive ? "equity-level-active-label font-black" : "font-semibold"
+                "equity-level-label mt-[5px] text-[13px] leading-[15px] transition-[color,transform] duration-200 ease-out",
+                isActive ? "translate-y-0 font-black" : "translate-y-px font-semibold"
               )}
               style={{ color: itemColor }}
             >
               {level.toUpperCase()}
             </span>
             <span
+              aria-hidden={!isActive}
               className={cn(
-                "equity-level-current mt-[2px] h-[14px] text-[10px] font-semibold leading-[14px]",
-                isActive ? "equity-level-active-current" : ""
+                "equity-level-current mt-[2px] h-[14px] text-[10px] font-semibold leading-[14px] transition-[color,opacity,transform] duration-200 ease-out",
+                isActive ? "translate-y-0" : "translate-y-1"
               )}
               style={{
                 color: itemColor,
-                opacity: isActive ? 1 : 0,
-                visibility: isActive ? "visible" : "hidden"
+                opacity: isActive ? 1 : 0
               }}
             >
               当前等级
