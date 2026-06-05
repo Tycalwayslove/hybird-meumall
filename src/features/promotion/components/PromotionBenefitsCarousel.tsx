@@ -58,6 +58,9 @@ export function PromotionBenefitsCarousel({
       const direction = directionRef.current === "next" ? 1 : -1;
       const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
 
+      gsap.killTweensOf(".equity-level-label");
+      gsap.killTweensOf(".equity-level-current");
+      gsap.killTweensOf(".equity-level-active-dot");
       gsap.set(".equity-level-label", { clearProps: "transform,opacity,visibility" });
       gsap.set(".equity-level-current", { clearProps: "transform" });
 
@@ -92,10 +95,16 @@ export function PromotionBenefitsCarousel({
           "<0.12"
         )
         .fromTo(
-          ".equity-level-active-copy",
+          ".equity-level-active-label",
           { autoAlpha: 0, y: 6 },
           { autoAlpha: 1, y: 0, duration: 0.26, ease: "power2.out" },
           "<0.04"
+        )
+        .fromTo(
+          ".equity-level-active-current",
+          { y: 5 },
+          { y: 0, duration: 0.24, ease: "power2.out" },
+          "<0.02"
         )
         .fromTo(
           ".equity-benefit-item",
@@ -354,7 +363,7 @@ function LevelTrack({
             <span
               className={cn(
                 "equity-level-label mt-[5px] text-[13px] leading-[15px]",
-                isActive ? "equity-level-active-copy font-black" : "font-semibold"
+                isActive ? "equity-level-active-label font-black" : "font-semibold"
               )}
               style={{ color: itemColor }}
             >
@@ -363,7 +372,7 @@ function LevelTrack({
             <span
               className={cn(
                 "equity-level-current mt-[2px] h-[14px] text-[10px] font-semibold leading-[14px]",
-                isActive ? "equity-level-active-copy" : ""
+                isActive ? "equity-level-active-current" : ""
               )}
               style={{
                 color: itemColor,
