@@ -11,3 +11,5 @@ export { StateView } from "./StateView";
 export { Surface } from "./Surface";
 export { TopNavigation } from "./TopNavigation";
 export type { TopNavigationProps } from "./TopNavigation";
+export { UnderlineTabs } from "./UnderlineTabs";
+export type { UnderlineTabItem, UnderlineTabsProps } from "./UnderlineTabs";

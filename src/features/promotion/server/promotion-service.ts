@@ -1,11 +1,14 @@
 import { promotionActivities } from "../mock/activities";
+import { getPromotionActivityDetailBySlug } from "../mock/activity-details";
 import { buildPromotionBenefits } from "../mock/benefits";
 import { buildPromotionHome } from "../mock/home";
 import { buildRanking, rankCenter } from "../mock/rankings";
-import type { RankingPeriod, RankingType, TalentLevel } from "../types";
+import { buildPromotionRewardRecords } from "../mock/reward-records";
+import type { RankingPeriod, RankingType, RewardRecordTab, TalentLevel } from "../types";
 
 const talentLevelSet = new Set<TalentLevel>(["v1", "v2", "v3", "v4", "v5"]);
 const rankingPeriodSet = new Set<RankingPeriod>(["day", "week", "month"]);
+const rewardRecordTabSet = new Set<RewardRecordTab>(["settled", "pending"]);
 
 export function normalizeTalentLevel(level: string | null | undefined): TalentLevel {
   return talentLevelSet.has(level as TalentLevel) ? (level as TalentLevel) : "v1";
@@ -15,12 +18,24 @@ export function normalizeRankingPeriod(period: string | null | undefined): Ranki
   return rankingPeriodSet.has(period as RankingPeriod) ? (period as RankingPeriod) : "day";
 }
 
+export function normalizeRewardRecordTab(tab: string | null | undefined): RewardRecordTab {
+  return rewardRecordTabSet.has(tab as RewardRecordTab) ? (tab as RewardRecordTab) : "settled";
+}
+
 export function getPromotionHome(level?: string | null) {
   return buildPromotionHome(normalizeTalentLevel(level ?? "v3"));
 }
 
 export function getPromotionActivities() {
   return promotionActivities;
+}
+
+export function getPromotionActivityDetail(slug: string) {
+  return getPromotionActivityDetailBySlug(slug);
+}
+
+export function getPromotionRewardRecords(tab?: string | null) {
+  return buildPromotionRewardRecords(normalizeRewardRecordTab(tab));
 }
 
 export function getPromotionRankCenter() {

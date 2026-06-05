@@ -8,6 +8,8 @@ export type RankingType = "sales" | "amount";
 
 export type RankingPeriod = "day" | "week" | "month";
 
+export type RewardRecordTab = "settled" | "pending";
+
 export type ActivityStatus = "claiming" | "active" | "ended";
 
 export type PromotionProfile = {
@@ -67,20 +69,97 @@ export type PromotionHomeData = {
 
 export type PromotionActivity = {
   id: string;
+  href: string;
   tag: string;
+  iconKind: "order" | "pk";
   title: string;
   status: ActivityStatus;
-  statusText: string;
+  statusText?: string;
   description: string;
   periodText: string;
   progressLabel: string;
   progressValue: string;
+  progressPercent: number;
 };
 
 export type PromotionActivitiesData = {
-  couponSummary: string;
+  activeCount: number;
   rewardRecordHref: string;
   items: PromotionActivity[];
+};
+
+export type ActivityDetailSlug = "open-order-july" | "pk-july" | "pk-june";
+
+export type PromotionActivityDetailData = {
+  slug: ActivityDetailSlug;
+  title: {
+    prefix: string;
+    highlight: string;
+    suffix: string;
+    highlightTone: "order" | "pk";
+  };
+  heroBackgroundSrc: string;
+  rewardRecordHref: string;
+  badgeText: string;
+  statusText: string;
+  statusKind: "primary" | "neutral";
+  actionHref?: string;
+  periodText: string;
+  metrics:
+    | {
+        kind: "single";
+        label: string;
+        value: string;
+      }
+    | {
+        kind: "split";
+        items: Array<{
+          label: string;
+          value: string;
+        }>;
+      };
+  progress: {
+    completedText: string;
+    hintText: string;
+    percent: number;
+    complete?: boolean;
+    amountLabels?: string[];
+    milestoneLabels: string[];
+  };
+  rules: {
+    description: string;
+    columns: [string, string];
+    rows: Array<[string, string]>;
+  };
+};
+
+export type RewardRecordSummary = {
+  totalReward: string;
+  settledAmount: string;
+  pendingAmount: string;
+  withdrawHref: string;
+};
+
+export type RewardRecordItem = {
+  id: string;
+  title: string;
+  timeText: string;
+  amount: string;
+  iconTone: "settled" | "pending";
+  href: string;
+};
+
+export type RewardRecordTabItem = {
+  id: RewardRecordTab;
+  title: string;
+  href: string;
+};
+
+export type PromotionRewardRecordsData = {
+  activeTab: RewardRecordTab;
+  summary: RewardRecordSummary;
+  tabs: RewardRecordTabItem[];
+  records: RewardRecordItem[];
 };
 
 export type RankCenterCard = {

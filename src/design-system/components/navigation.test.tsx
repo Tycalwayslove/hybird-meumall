@@ -3,6 +3,7 @@ import { describe, expect, test } from "vitest";
 
 import { StandardNavPage, TransparentActionNavPage, TransparentNavPage } from "./NavPageShell";
 import { TopNavigation } from "./TopNavigation";
+import { UnderlineTabs } from "./UnderlineTabs";
 
 describe("TopNavigation", () => {
   test("renders standard white navigation with title and back link", () => {
@@ -132,5 +133,28 @@ describe("navigation page shells", () => {
 
     expect(standardHtml.match(/<main/g)).toHaveLength(1);
     expect(transparentHtml.match(/<main/g)).toHaveLength(1);
+  });
+});
+
+describe("UnderlineTabs", () => {
+  test("renders linked tabs with active state and shared tab semantics", () => {
+    const html = renderToStaticMarkup(
+      <UnderlineTabs
+        activeId="settled"
+        tabs={[
+          { id: "settled", title: "已结算", href: "/promotion/activities/reward-records?tab=settled" },
+          { id: "pending", title: "待结算", href: "/promotion/activities/reward-records?tab=pending" }
+        ]}
+      />
+    );
+
+    expect(html).toContain('role="tablist"');
+    expect(html.match(/role="tab"/g)).toHaveLength(2);
+    expect(html).toContain('aria-current="page"');
+    expect(html).toContain('aria-selected="true"');
+    expect(html).toContain('aria-selected="false"');
+    expect(html).toContain('href="/promotion/activities/reward-records?tab=settled"');
+    expect(html).toContain("inline-flex h-7 items-start justify-center");
+    expect(html).toContain("bg-brand-action");
   });
 });
