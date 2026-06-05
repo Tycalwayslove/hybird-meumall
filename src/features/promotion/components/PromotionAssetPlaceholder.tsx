@@ -58,7 +58,7 @@ export function PromotionIcon({ iconKey, className = "" }: { iconKey: string; cl
         {/* eslint-disable-next-line @next/next/no-img-element -- local PNG icons are registered through localAssetUrl for versioned basePath support. */}
         <img
           alt=""
-          className="block h-[72%] w-[72%] object-contain"
+          className="block h-[62%] w-[62%] object-contain"
           draggable={false}
           height={72}
           src={localAssetUrl(assetKey)}
