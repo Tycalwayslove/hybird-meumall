@@ -355,7 +355,7 @@ function LevelTrack({
                 "equity-level-label mt-[5px] text-[13px] leading-[15px]",
                 isActive ? "equity-level-active-copy font-black" : "font-semibold"
               )}
-              style={{ color: isActive ? accentColor : "rgb(var(--mm-color-text-inverse))" }}
+              style={{ color: accentColor }}
             >
               {level.toUpperCase()}
             </span>
