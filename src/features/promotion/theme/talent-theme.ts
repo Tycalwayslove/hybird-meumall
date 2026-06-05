@@ -51,6 +51,8 @@ export const promotionLocalIconAssetKeyByIconKey: Record<string, LocalAssetKey> 
   "benefit-ai": "promotion.equityIcon.ai"
 };
 
+export const promotionLocalIconBackground = "rgba(255, 225, 183, 0.15)";
+
 export const talentThemes = {
   v1: {
     name: "peach",

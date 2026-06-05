@@ -4,6 +4,7 @@ import type { TalentLevel } from "../types";
 import {
   promotionAvatarTone,
   promotionIconTones,
+  promotionLocalIconBackground,
   promotionLocalIconAssetKeyByIconKey,
   talentBadgeAssetKeyByLevel
 } from "../theme/talent-theme";
@@ -49,11 +50,15 @@ export function PromotionIcon({ iconKey, className = "" }: { iconKey: string; cl
   const assetKey = promotionLocalIconAssetKeyByIconKey[iconKey];
   if (assetKey) {
     return (
-      <span className={`inline-flex shrink-0 items-center justify-center ${className}`} aria-hidden="true">
+      <span
+        className={`inline-flex shrink-0 items-center justify-center rounded-full ${className}`}
+        style={{ background: promotionLocalIconBackground }}
+        aria-hidden="true"
+      >
         {/* eslint-disable-next-line @next/next/no-img-element -- local PNG icons are registered through localAssetUrl for versioned basePath support. */}
         <img
           alt=""
-          className="block h-full w-full object-contain"
+          className="block h-[72%] w-[72%] object-contain"
           draggable={false}
           height={72}
           src={localAssetUrl(assetKey)}
