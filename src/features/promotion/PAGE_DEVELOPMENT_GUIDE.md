@@ -77,7 +77,7 @@ ready for implementation
 
 - 权益中心首屏仍由 SSR 准备数据，页面入口一次传入 V1-V5 五档权益数据。
 - `level` query 只作为初始档位和调试入口，客户端左右滑切换时通过 `window.history.replaceState` 轻量同步 query，不触发 Next 路由导航和服务端重渲染。
-- 权益列表切换时只允许整块内容做轻量 transform / opacity 过渡，不逐条 item 做 stagger，避免快速切换时产生大量重叠 tween。
+- 权益列表切换时允许 item 级轻量 stagger，但必须只使用 transform / opacity，并在新一轮切换开始前清理旧 tween，避免快速切换时产生大量重叠动画。
 - 左右切换按钮使用本地 PNG 箭头资源；移动端支持横向滑动，滑动阈值不低于 38px，避免误触。
 - 等级切换动效仅作用于 transform 和 opacity，不做布局尺寸动画；用户开启 `prefers-reduced-motion` 时跳过 GSAP 动效。
 - 权益页背景图、徽章、箭头和 icon 必须通过 `localAssetUrl()` 解析，保证线上 `/h5-v/<version>` basePath 和后续 CDN 前缀一致。

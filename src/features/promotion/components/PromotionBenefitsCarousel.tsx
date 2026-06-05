@@ -53,9 +53,11 @@ export function PromotionBenefitsCarousel({
 
       const direction = directionRef.current === "next" ? 1 : -1;
       const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
+      const benefitItems = gsap.utils.toArray<HTMLElement>(".equity-benefit-item");
 
       gsap.killTweensOf(".equity-level-active-dot");
-      gsap.killTweensOf(".equity-content-section");
+      gsap.killTweensOf(benefitItems);
+      gsap.set(benefitItems, { willChange: "transform,opacity" });
 
       timeline
         .fromTo(
@@ -88,9 +90,16 @@ export function PromotionBenefitsCarousel({
           "<0.12"
         )
         .fromTo(
-          ".equity-content-section",
-          { autoAlpha: 0.92, y: 8 },
-          { autoAlpha: 1, y: 0, duration: 0.18, ease: "power2.out" },
+          benefitItems,
+          { autoAlpha: 0, y: 10 },
+          {
+            autoAlpha: 1,
+            y: 0,
+            clearProps: "transform,opacity,visibility,willChange",
+            duration: 0.2,
+            ease: "power2.out",
+            stagger: { each: 0.022, from: "start" }
+          },
           "<0.08"
         );
     },
@@ -375,13 +384,13 @@ function ContentSection({ data }: { data: PromotionBenefitsData }) {
 
   return (
     <section
-      className="equity-content-section relative z-[2] -mt-4 rounded-t-[20px] px-4 pb-8 pt-7 will-change-transform"
+      className="relative z-[2] -mt-4 rounded-t-[20px] px-4 pb-8 pt-7"
       style={{ background: benefitsTheme.contentBackground }}
     >
       <BenefitSection title={`${profile.level.toUpperCase()}${profile.levelName}专属特权`} items={data.exclusiveBenefits} />
       <div className="mt-5" />
       <BenefitSection title="喵呜达人会员特权" items={data.memberBenefits} />
-      <div className="mt-5 rounded-[14px] bg-fill-white/[0.06] p-4">
+      <div className="equity-benefit-item mt-5 rounded-[14px] bg-fill-white/[0.06] p-4">
         <p className="text-[14px] font-semibold text-text-inverse/90">达人定位</p>
         <p className="mt-2 text-[13px] leading-5 text-text-inverse/60">{data.persona}</p>
         <p className="mt-2 text-[13px] leading-5 text-text-inverse/60">佣金分成：{data.commission.label}</p>
@@ -406,7 +415,7 @@ function BenefitSection({
       </h2>
       <div className="mt-[14px] space-y-5 rounded-[14px] bg-fill-white/[0.06] px-[14px] py-4">
         {items.map((item) => (
-          <div key={item.id} className="flex items-center gap-[13px]">
+          <div key={item.id} className="equity-benefit-item flex items-center gap-[13px]">
             <PromotionIcon className="size-[38px]" iconKey={item.iconKey} />
             <div className="min-w-0">
               <p className="truncate text-[15px] font-semibold leading-5 text-text-inverse/90">{item.title}</p>
