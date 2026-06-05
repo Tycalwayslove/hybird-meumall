@@ -58,7 +58,7 @@ export function PromotionBenefitsCarousel({
       const direction = directionRef.current === "next" ? 1 : -1;
       const timeline = gsap.timeline({ defaults: { ease: "power3.out" } });
 
-      gsap.set(".equity-level-label", { clearProps: "all" });
+      gsap.set(".equity-level-label", { clearProps: "transform,opacity,visibility" });
       gsap.set(".equity-level-current", { clearProps: "transform" });
 
       timeline
