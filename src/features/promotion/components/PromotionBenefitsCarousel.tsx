@@ -328,6 +328,7 @@ function LevelTrack({
       {orderedLevels.map((level, index) => {
         const isActive = index === activeIndex;
         const point = levelTrackPoints[index];
+        const itemColor = isActive ? accentColor : "rgb(var(--mm-color-text-inverse))";
         return (
           <button
             key={level}
@@ -347,7 +348,7 @@ function LevelTrack({
             >
               <span
                 className="block size-[11px] rounded-full"
-                style={{ background: isActive ? accentColor : "rgb(var(--mm-color-text-inverse))" }}
+                style={{ background: itemColor }}
               />
             </span>
             <span
@@ -355,7 +356,7 @@ function LevelTrack({
                 "equity-level-label mt-[5px] text-[13px] leading-[15px]",
                 isActive ? "equity-level-active-copy font-black" : "font-semibold"
               )}
-              style={{ color: accentColor }}
+              style={{ color: itemColor }}
             >
               {level.toUpperCase()}
             </span>
@@ -365,7 +366,7 @@ function LevelTrack({
                 isActive ? "equity-level-active-copy" : ""
               )}
               style={{
-                color: accentColor,
+                color: itemColor,
                 opacity: isActive ? 1 : 0,
                 visibility: isActive ? "visible" : "hidden"
               }}
