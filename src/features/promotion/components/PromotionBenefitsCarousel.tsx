@@ -272,9 +272,17 @@ function LevelTrack({
   onSwitch: (level: TalentLevel, direction: SwitchDirection) => void;
 }) {
   return (
-    <div className="equity-level-track relative mt-4 h-[58px] will-change-transform">
-      <div className="absolute left-[8%] right-[8%] top-[12px] h-px bg-fill-white/45" />
-      <div className="grid grid-cols-5">
+    <div className="equity-level-track relative mt-4 h-[64px] will-change-transform">
+      <svg
+        aria-hidden="true"
+        className="pointer-events-none absolute left-[8%] right-[8%] top-[7px] h-[18px] w-[84%]"
+        fill="none"
+        preserveAspectRatio="none"
+        viewBox="0 0 320 24"
+      >
+        <path d="M4 16 C88 5 232 5 316 16" stroke="rgba(255,255,255,0.46)" strokeLinecap="round" />
+      </svg>
+      <div className="relative grid grid-cols-5">
         {orderedLevels.map((level, index) => {
           const isActive = index === activeIndex;
           const isReached = index <= activeIndex;
@@ -311,7 +319,7 @@ function ContentSection({ data }: { data: PromotionBenefitsData }) {
 
   return (
     <section
-      className="-mt-[38px] rounded-t-[20px] px-4 pb-8 pt-5"
+      className="relative z-[2] -mt-4 rounded-t-[20px] px-4 pb-8 pt-7"
       style={{ background: benefitsTheme.contentBackground }}
     >
       <BenefitSection title={`${profile.level.toUpperCase()}${profile.levelName}专属特权`} items={data.exclusiveBenefits} />
