@@ -17,6 +17,13 @@ gsap.registerPlugin(useGSAP);
 
 const orderedLevels: TalentLevel[] = ["v1", "v2", "v3", "v4", "v5"];
 const swipeThreshold = 38;
+const levelTrackPoints = [
+  { left: "6%", top: 6, gradientOffset: 6 },
+  { left: "28%", top: 18, gradientOffset: 28 },
+  { left: "50%", top: 23, gradientOffset: 50 },
+  { left: "72%", top: 18, gradientOffset: 72 },
+  { left: "94%", top: 6, gradientOffset: 94 }
+] as const;
 
 type SwitchDirection = "next" | "prev";
 
@@ -68,6 +75,24 @@ export function PromotionBenefitsCarousel({
           { autoAlpha: 0, y: 10 },
           { autoAlpha: 1, y: 0, duration: 0.28 },
           "<0.08"
+        )
+        .fromTo(
+          ".equity-track-path",
+          { strokeDasharray: "0 520" },
+          { strokeDasharray: "520 0", duration: 0.46 },
+          "<"
+        )
+        .fromTo(
+          ".equity-level-active-dot",
+          { scale: 0.72 },
+          { scale: 1, duration: 0.28, ease: "back.out(2)" },
+          "<0.12"
+        )
+        .fromTo(
+          ".equity-level-active-label",
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.24 },
+          "<0.04"
         )
         .fromTo(
           ".equity-benefit-item",
@@ -271,45 +296,85 @@ function LevelTrack({
   accentColor: string;
   onSwitch: (level: TalentLevel, direction: SwitchDirection) => void;
 }) {
+  const gradientId = `equity-track-gradient-${activeIndex}`;
+  const activeOffset = levelTrackPoints[activeIndex]?.gradientOffset ?? 50;
+  const accentStart = Math.max(0, activeOffset - 8);
+  const accentEnd = Math.min(100, activeOffset + 8);
+
   return (
-    <div className="equity-level-track relative mt-4 h-[64px] will-change-transform">
+    <div className="equity-level-track relative mx-[-10px] mt-4 h-[92px] will-change-transform">
       <svg
         aria-hidden="true"
-        className="pointer-events-none absolute left-[8%] right-[8%] top-[7px] h-[18px] w-[84%]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[48px] w-full"
         fill="none"
         preserveAspectRatio="none"
-        viewBox="0 0 320 24"
+        viewBox="0 0 360 52"
       >
-        <path d="M4 16 C88 5 232 5 316 16" stroke="rgba(255,255,255,0.46)" strokeLinecap="round" />
+        <defs>
+          <linearGradient id={gradientId} x1="0%" x2="100%" y1="0%" y2="0%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.02)" />
+            <stop offset="18%" stopColor="rgba(255,255,255,0.30)" />
+            <stop offset={`${accentStart}%`} stopColor="rgba(255,255,255,0.48)" />
+            <stop offset={`${activeOffset}%`} stopColor={accentColor} />
+            <stop offset={`${accentEnd}%`} stopColor="rgba(255,255,255,0.48)" />
+            <stop offset="82%" stopColor="rgba(255,255,255,0.30)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.02)" />
+          </linearGradient>
+        </defs>
+        <path
+          className="equity-track-path"
+          d="M8 13 C88 34 272 34 352 13"
+          stroke={`url(#${gradientId})`}
+          strokeLinecap="round"
+          strokeWidth="2.2"
+        />
       </svg>
-      <div className="relative grid grid-cols-5">
-        {orderedLevels.map((level, index) => {
-          const isActive = index === activeIndex;
-          const isReached = index <= activeIndex;
-          return (
-            <button
-              key={level}
-              className="flex min-w-0 flex-col items-center gap-1"
-              type="button"
-              onClick={() => onSwitch(level, index > activeIndex ? "next" : "prev")}
+      {orderedLevels.map((level, index) => {
+        const isActive = index === activeIndex;
+        const point = levelTrackPoints[index];
+        return (
+          <button
+            key={level}
+            className="absolute flex w-[58px] -translate-x-1/2 flex-col items-center text-center"
+            style={{ left: point.left, top: point.top }}
+            type="button"
+            onClick={() => onSwitch(level, index > activeIndex ? "next" : "prev")}
+          >
+            <span
+              className={cn(
+                "flex size-[17px] items-center justify-center rounded-full",
+                isActive ? "equity-level-active-dot" : ""
+              )}
+              style={{
+                background: isActive ? `${accentColor}36` : "rgba(255,255,255,0.14)"
+              }}
             >
               <span
-                className={cn("size-[7px] rounded-full", isReached ? "bg-fill-white" : "bg-fill-white/45")}
-                style={isActive ? { background: accentColor } : undefined}
+                className="block size-[11px] rounded-full"
+                style={{ background: isActive ? accentColor : "rgb(var(--mm-color-text-inverse))" }}
               />
-              <span
-                className={cn("text-[13px] leading-[14px]", isActive ? "font-black" : "font-semibold")}
-                style={{ color: isActive ? accentColor : "rgb(var(--mm-color-text-inverse))" }}
-              >
-                {level.toUpperCase()}
-              </span>
-              <span className={cn("h-[14px] text-[10px] leading-[14px]", isActive ? "opacity-100" : "opacity-0")} style={{ color: accentColor }}>
-                当前等级
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            </span>
+            <span
+              className={cn(
+                "mt-[5px] text-[13px] leading-[15px]",
+                isActive ? "equity-level-active-label font-black" : "font-semibold"
+              )}
+              style={{ color: isActive ? accentColor : "rgb(var(--mm-color-text-inverse))" }}
+            >
+              {level.toUpperCase()}
+            </span>
+            <span
+              className={cn(
+                "mt-[2px] h-[14px] text-[10px] font-semibold leading-[14px]",
+                isActive ? "equity-level-active-label opacity-100" : "opacity-0"
+              )}
+              style={{ color: accentColor }}
+            >
+              当前等级
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
