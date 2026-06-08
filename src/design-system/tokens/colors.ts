@@ -1,6 +1,7 @@
 export const meuColorValues = {
   brand: {
     action: "#94DD42",
+    normal: "#A8F156",
     hover: "#C4FC85",
     disabled: "#E7FFCD",
     subtle: "#F3FFE5"
@@ -65,6 +66,7 @@ const cssVar = (name: string) => `rgb(var(${name}) / <alpha-value>)`;
 
 export const meuColorVariables = {
   "--mm-color-brand-action": hexToRgb(meuColorValues.brand.action),
+  "--mm-color-brand-normal": hexToRgb(meuColorValues.brand.normal),
   "--mm-color-brand-hover": hexToRgb(meuColorValues.brand.hover),
   "--mm-color-brand-disabled": hexToRgb(meuColorValues.brand.disabled),
   "--mm-color-brand-subtle": hexToRgb(meuColorValues.brand.subtle),
@@ -106,6 +108,7 @@ export const meuColorVariables = {
 export const meuTailwindColors = {
   brand: {
     action: cssVar("--mm-color-brand-action"),
+    normal: cssVar("--mm-color-brand-normal"),
     hover: cssVar("--mm-color-brand-hover"),
     disabled: cssVar("--mm-color-brand-disabled"),
     subtle: cssVar("--mm-color-brand-subtle")

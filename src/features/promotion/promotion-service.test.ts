@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { PromotionActivitiesScreen } from "./components/PromotionActivitiesScreen";
 import { PromotionActivityDetailScreen } from "./components/PromotionActivityDetailScreen";
+import { PromotionRankingScreen } from "./components/PromotionRankingScreen";
 import { PromotionRewardRecordsScreen } from "./components/PromotionRewardRecordsScreen";
 import {
   getAllPromotionBenefits,
@@ -64,6 +65,34 @@ describe("promotion service", () => {
     expect(sales.activePeriod).toBe("day");
     expect(amount.rows[0]?.unit).toBe("元");
     expect(amount.activePeriod).toBe("week");
+  });
+
+  it("renders ranking pages with local podium assets and latest ranking layout", () => {
+    const salesHtml = withVersionBasePath(() =>
+      renderToStaticMarkup(createElement(PromotionRankingScreen, { data: getPromotionRanking("sales", "day") }))
+    );
+    const amountHtml = withVersionBasePath(() =>
+      renderToStaticMarkup(createElement(PromotionRankingScreen, { data: getPromotionRanking("amount", "month") }))
+    );
+
+    expect(salesHtml).toContain(`background-image:url(${versionBasePath}/assets/shared/green-hero-bg.png)`);
+    expect(salesHtml).toContain(`src="${versionBasePath}/assets/promotion/ranking/ranking-podium-card-first.png"`);
+    expect(salesHtml).toContain(`src="${versionBasePath}/assets/promotion/ranking/ranking-crown-first.png"`);
+    expect(salesHtml).toContain(`src="${versionBasePath}/assets/promotion/ranking/ranking-podium-card-second.png"`);
+    expect(salesHtml).toContain(`src="${versionBasePath}/assets/promotion/ranking/ranking-podium-card-third.png"`);
+    expect(salesHtml).toContain("达人销量榜");
+    expect(salesHtml).toContain("达人激励榜");
+    expect(salesHtml).toContain("SoulKeeper");
+    expect(salesHtml).toContain("深圳喵小喵");
+    expect(salesHtml).toContain("137单");
+    expectNoBareLocalAssetUrls(salesHtml);
+
+    expect(amountHtml).toContain(`background-image:url(${versionBasePath}/assets/shared/green-hero-bg.png)`);
+    expect(amountHtml).toContain(`src="${versionBasePath}/assets/promotion/ranking/ranking-crown-second.png"`);
+    expect(amountHtml).toContain("达人销售额榜");
+    expect(amountHtml).toContain("¥9621374");
+    expect(amountHtml).toContain("您未上榜");
+    expectNoBareLocalAssetUrls(amountHtml);
   });
 
   it("returns activity center navigation targets", () => {
@@ -154,7 +183,7 @@ describe("promotion service", () => {
     expect(html).toContain("奖励记录");
     expect(html).toContain("已获得奖励(元)");
     expect(html).toContain("2383.43");
-    expect(html).toContain(`src="${versionBasePath}/assets/promotion/reward-records/reward-records-bg.png"`);
+    expect(html).toContain(`src="${versionBasePath}/assets/shared/green-hero-bg.png"`);
     expect(html).toContain("object-cover object-top");
     expect(html).toContain("grid-cols-[1fr_auto_1fr]");
     expect(html).toContain('role="tablist"');

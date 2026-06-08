@@ -54,6 +54,8 @@ ready for implementation
 - Figma 中的状态栏只作为顶部间距参考，H5 实际使用 `statusHeight` 和 `env(safe-area-inset-top)`。
 - 所有卡片圆角以 Figma 为准，避免沿用旧低保真 `PageShell` 风格。
 - V5 大金额必须做容器适配，不能溢出。
+- 排行榜销量榜和销售额榜当前以 2026-06-05 最新 Figma 节点为准：浅绿渐变头图、三榜 tab、绿色分段周期控件、三列领奖台、白底列表和底部当前用户栏。
+- 我的页、奖励记录和排行榜使用同一张浅绿顶部背景，统一资源 key 为 `shared.greenHeroBg`，业务 alias 为 `mine.hero.background`、`promotion.rewardRecordsBg` 和 `promotion.rankingHeroBg`；后续同款头图页面优先复用，不重复复制图片。
 
 ## 顶部导航规范
 
@@ -85,7 +87,10 @@ ready for implementation
 ## 本地图片资源规范
 
 - 推广模块所有随 H5 发版的本地图片、icon、背景图必须注册到 `src/lib/assets/local-assets.ts`，组件内通过 `localAssetUrl(assetKey)` 使用。
+- 浅绿顶部背景属于跨页面共享资源，路径位于 `public/assets/shared/green-hero-bg.png`，页面只引用 `shared.greenHeroBg` 或已登记的业务 alias。
+- 排行榜领奖台背景和皇冠属于稳定本地图片资源，路径位于 `public/assets/promotion/ranking/`，只允许通过 `promotion.rankingPodium.*` / `promotion.rankingCrown.*` 资源 key 引用。
 - mock 或页面数据不保存 `/assets/...` 裸路径；需要本地资源时保存 `LocalAssetKey`，组件渲染时再转换为 URL。
+- 客户端组件会在切换等级、轮播或动画时重新计算图片 URL，资源工具必须依赖显式 `process.env.NEXT_PUBLIC_*` 配置，不允许动态 `process.env[key]`。
 - 禁止在组件、mock、style 中直接写 `src="/assets/..."`、`href="/assets/..."` 或 `url(/assets/...)`，否则线上 `/h5-v/<version>` 路径和 CDN 路径会丢失前缀。
 - 只有后端或 CMS 返回的完整远程 URL 可以直接渲染；如果是远程 URL，字段名应明确带 `Url` 或在类型注释里说明。
 

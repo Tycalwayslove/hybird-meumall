@@ -51,8 +51,26 @@ export const rankCenterCardTone: Record<RankCenterCard["theme"], string> = {
 };
 
 export const rankingTheme = {
-  heroBackground: "linear-gradient(180deg, #FF725F 0%, #FFB45A 100%)",
-  activeText: "#D25F00"
+  sales: {
+    pageBackground: "#FFF8E9",
+    heroBackground: "linear-gradient(180deg, #FF6E4B 0%, #FFB34F 58%, #FFF8E9 100%)",
+    heroHalo: "radial-gradient(circle at 50% 18%, rgba(255,255,255,0.6), transparent 36%)",
+    activeText: "#D25F00",
+    activeTabBackground: "#FFFFFF",
+    inactiveTabBackground: "rgba(255,255,255,0.26)",
+    rankValue: "#FF6A00",
+    currentBarBackground: "linear-gradient(90deg, #2A2116 0%, #15100B 100%)"
+  },
+  amount: {
+    pageBackground: "#FFF7EA",
+    heroBackground: "linear-gradient(180deg, #FF6A51 0%, #FFB156 54%, #FFF7EA 100%)",
+    heroHalo: "radial-gradient(circle at 50% 18%, rgba(255,255,255,0.55), transparent 38%)",
+    activeText: "#D25F00",
+    activeTabBackground: "#FFFFFF",
+    inactiveTabBackground: "rgba(255,255,255,0.26)",
+    rankValue: "#FF3D2E",
+    currentBarBackground: "linear-gradient(90deg, #2B1D15 0%, #15100D 100%)"
+  }
 } as const;
 
 export const benefitsTheme = {

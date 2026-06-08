@@ -13,5 +13,5 @@ type RankingPageProps = {
 export default async function PromotionAmountRankingPage({ searchParams }: RankingPageProps) {
   const params = await searchParams;
 
-  return <PromotionRankingScreen data={getPromotionRanking("amount", params?.period)} />;
+  return <PromotionRankingScreen data={getPromotionRanking("amount", params?.period ?? "week")} />;
 }
