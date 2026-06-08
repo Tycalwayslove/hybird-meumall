@@ -6,6 +6,7 @@ import { HomeSkeleton } from "./HomeSkeleton";
 import { getVisibleHomeModules, HomeModules } from "./HomeModules";
 import { resolveHomeConfigState } from "./HomeScreen";
 import { getHomeConfigCacheKey, readHomeConfigCache, writeHomeConfigCache } from "./home-cache";
+import { homeExperienceData } from "./mock/home-page-data";
 import type { ActivitySectionModule, CategoryGridModule, HomeConfig } from "./types";
 
 describe("home config api", () => {
@@ -130,6 +131,13 @@ describe("home module rendering", () => {
     expect(html).not.toContain("隐藏分类");
     expect(html).not.toContain("购物车");
     expect(html).not.toContain("未开始活动");
+  });
+});
+
+describe("home experience data", () => {
+  test("links recommended products to the available product detail mock", () => {
+    expect(homeExperienceData.products).toHaveLength(10);
+    expect(homeExperienceData.products.every((product) => product.href === "/product/p-1001")).toBe(true);
   });
 });
 

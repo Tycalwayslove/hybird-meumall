@@ -1,15 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ReplicaShell } from "@/components/commerce/ReplicaShell";
 import { fetchActiveHomeConfig } from "./api";
-import { BridgeDebugPanel } from "./BridgeDebugPanel";
+import { HomeExperience } from "./components/HomeExperience";
 import { defaultHomeConfig } from "./default-config";
 import { HomeSkeleton } from "./HomeSkeleton";
-import { getHomePreloadImages, HomeModules } from "./HomeModules";
+import { getHomePreloadImages } from "./HomeModules";
 import { readHomeConfigCache, writeHomeConfigCache } from "./home-cache";
-import { NativeRuntimePanel } from "./NativeRuntimePanel";
+import { homeExperienceData } from "./mock/home-page-data";
 import type { HomeConfig, HomeConfigState, HomeEnvironment } from "./types";
 
 const DEFAULT_SKELETON_MIN_MS = 200;
@@ -110,55 +108,7 @@ export function HomeScreen({ environment = "prod", releaseLabel }: { environment
     return <HomeSkeleton />;
   }
 
-  return (
-    <ReplicaShell>
-      <div className="px-3 pt-3">
-        <HomeHeader />
-        {releaseLabel ? <HomeVersionNotice releaseLabel={releaseLabel} /> : null}
-        <NativeRuntimePanel />
-        <BridgeDebugPanel />
-        <HomeModules modules={state.config.modules} />
-      </div>
-    </ReplicaShell>
-  );
-}
-
-function HomeHeader() {
-  return (
-    <header className="flex h-9 items-center gap-2.5">
-      <Link href="/" className="flex w-[112px] shrink-0 items-center gap-2 max-[340px]:w-[100px] max-[340px]:gap-1.5">
-        <span className="relative inline-flex size-[22px] rounded-[5px] bg-[#75e92e]">
-          <span className="absolute left-[5px] top-[4px] h-[14px] w-[3px] rotate-[-28deg] rounded-full bg-white" />
-          <span className="absolute left-[11px] top-[3px] h-[16px] w-[3px] rotate-[-28deg] rounded-full bg-white" />
-        </span>
-        <span className="text-[21px] font-black max-[340px]:text-[18px]">喵呜AI</span>
-      </Link>
-      <Link
-        href="/category"
-        className="flex h-9 min-w-0 flex-1 items-center gap-2 rounded-full border border-[#78de2d] bg-white px-3 text-[14px] text-[#b7b7b7] max-[340px]:px-2 max-[340px]:text-[12px]"
-      >
-        <span className="relative size-[15px] shrink-0 rounded-full border-2 border-[#111] after:absolute after:-bottom-[3px] after:-right-[3px] after:h-[7px] after:w-0.5 after:rotate-[-45deg] after:rounded-full after:bg-[#111]" />
-        <span className="truncate">请输入关键词</span>
-      </Link>
-      <Link href="/messages" className="relative flex size-[28px] shrink-0 items-center justify-center">
-        <span className="h-[18px] w-[17px] rounded-t-full border-2 border-[#111] border-b-0" />
-        <span className="absolute bottom-[4px] h-0.5 w-[19px] rounded-full bg-[#111]" />
-        <span className="absolute -right-1 -top-0.5 rounded-full bg-[#ff3f62] px-1 text-[9px] font-bold leading-[12px] text-white">22</span>
-      </Link>
-    </header>
-  );
-}
-
-function HomeVersionNotice({ releaseLabel }: { releaseLabel: string }) {
-  return (
-    <div className="mt-3 rounded-[8px] border border-[#d9f99d] bg-[#f7fee7] px-3 py-2 text-[#3f6212]">
-      <div className="flex items-center justify-between text-[12px] font-bold">
-        <span>当前 H5 版本</span>
-        <span>{releaseLabel}</span>
-      </div>
-      <p className="mt-1 text-[11px] font-semibold">首页演练标记：第二次首页改动</p>
-    </div>
-  );
+  return <HomeExperience data={homeExperienceData} releaseLabel={releaseLabel} />;
 }
 
 function sleep(ms: number) {
