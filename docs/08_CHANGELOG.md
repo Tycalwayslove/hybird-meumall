@@ -72,10 +72,19 @@
 - 注册权益中心 V1-V5 顶部背景、切换箭头和权益 icon 本地资源。
 - 添加 GSAP 和 `@gsap/react`，用于权益中心等级切换动效。
 - 添加 H5 静态资源长期约束：本地稳定图片必须注册到 `local-assets.ts` 并通过 `localAssetUrl()` 解析版本 basePath 或后续 CDN 前缀。
+- 添加 `assetUrl()` 客户端 bundle 防回归测试，禁止通过动态 `process.env[key]` 读取 H5 静态资源配置。
+- 添加 design-system `brand.normal` token，对应 Figma 品牌色常规 `#A8F156`。
+- 添加共享浅绿顶部背景 `shared.greenHeroBg`，供我的页、奖励记录和排行榜复用。
 
 ### 变更
 
 - H5 route 清单移除旧兼容入口，智能体不再提供 H5 占位页面。
+- 排行榜顶部背景从手写渐变调整为共享图片背景，领奖台三卡改为 360px 贴合居中布局，皇冠固定到头像右上角。
+- `mine.hero.background`、`promotion.rewardRecordsBg` 和 `promotion.rankingHeroBg` 统一解析到共享背景资源，避免同图多份维护。
+
+### 移除
+
+- 删除旧的奖励记录专属背景图片 `public/assets/promotion/reward-records/reward-records-bg.png`，改由共享背景资源承载。
 - 页面右上角版本标识改为显式 DOM 节点，方便 App 联调和截图确认。
 - 将面向协作的项目文档、AI 状态文档、任务文件和 Skill 文档转换为中文。
 - 将 `task-create` Skill 升级为对话式任务创建流程，支持自然语言输入、多轮澄清、草案确认后落盘。
@@ -127,6 +136,8 @@
 - 权益中心从单档 SSR 静态展示调整为 SSR 准备五档数据、客户端左右滑切换、query 同步和 GSAP transform/opacity 动效。
 - 活动中心、活动详情和奖励记录页面中的本地图片引用从 `/assets/...` 裸路径调整为 `LocalAssetKey` + `localAssetUrl()`。
 - 推广首页达人头像、昵称区域和徽章增加权益中心入口，点击进入 `/promotion/benefits?level=<level>`。
+- 达人销量榜和达人销售额榜按 2026-06-05 最新 Figma 节点重做为浅绿渐变头图、三榜 tab、绿色分段周期控件、三列领奖台、白底列表和底部当前用户栏。
+- 排行榜 mock 数据更新为最新设计稿展示姓名、销量、销售额和当前用户状态；销售额榜默认激活周榜。
 
 ### 废弃
 
@@ -140,6 +151,9 @@
 ### 修复
 
 - 修复版本化路径下部分推广图片缺失风险：渲染测试会在 `/h5-v/<version>` basePath 场景检查本地图片路径必须带版本前缀。
+- 修复客户端组件重新渲染后本地静态资源可能退回裸 `/assets/...` 的问题：`assetUrl()` 改为显式读取 `NEXT_PUBLIC_H5_BASE_PATH`，保证权益中心等级切换、轮播和动画后的图片 URL 仍带版本 basePath。
+- 修复本地开发环境只设置 `H5_BASE_PATH` 导致客户端组件 hydrate 后图片路径可能退回裸 `/assets/...` 的问题：根目录 `dev:h5`、`dev-all.sh` 和 `next.config.ts` 均同步使用 `NEXT_PUBLIC_H5_BASE_PATH`。
+- 修复排行榜旧实现中领奖台在 375 宽度下被裁切的问题，新布局经 CDP 验证无横向溢出。
 
 ### 安全
 
@@ -185,6 +199,7 @@
 - 已通过 Jenkins build #11 完整验证：测试、类型检查、SSR 构建、release 注册、远端激活和公网 smoke 均通过。
 - 已验证 `http://118.196.24.12/hybird`、`/hybird/`、`/` 不再出现无限重定向。
 - 已通过 `src/lib/bridge/protocol-bridge.test.ts`、`pnpm typecheck` 和 `pnpm build` 验证首页 Bridge 调试面板。
+- 已通过推广模块渲染测试、资源 URL 测试、design token 测试、类型检查、lint、生产构建和 CDP 375x812 移动端 smoke 验证最新版排行榜页面。
 ## 2026-05-15 - 归档任务
 
 ### 变更

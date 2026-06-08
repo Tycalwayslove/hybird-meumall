@@ -29,6 +29,7 @@ export default async function RootLayout({
     process.env.H5_RELEASE_LABEL ||
     process.env.H5_VERSION ||
     "H5 unknown";
+  const showVersionBadge = process.env.H5_SHOW_VERSION_BADGE === "true";
 
   return (
     <html lang="zh-CN">
@@ -38,9 +39,11 @@ export default async function RootLayout({
         style={formatStatusBarCssVars(statusHeight) as CSSProperties}
       >
         {children}
-        <div className="h5-version-badge" aria-label={`当前 H5 版本：${releaseLabel}`}>
-          {releaseLabel}
-        </div>
+        {showVersionBadge ? (
+          <div className="h5-version-badge" aria-label={`当前 H5 版本：${releaseLabel}`}>
+            {releaseLabel}
+          </div>
+        ) : null}
       </body>
     </html>
   );

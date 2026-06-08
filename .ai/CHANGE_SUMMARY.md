@@ -1,5 +1,86 @@
 # 变更摘要
 
+## 2026-06-05 - 修复本地 dev 权益中心图片丢失
+
+### 根因
+
+- 本地 `http://localhost:3109/hybird/promotion/benefits?level=v3` 服务端 HTML 会输出 `/hybird/assets/...`，图片文件本身也能通过 `/hybird/assets/...` 访问。
+- 但根目录 `dev:h5` 和 `dev-all.sh` 只设置了 `H5_BASE_PATH=/hybird`，没有设置 `NEXT_PUBLIC_H5_BASE_PATH=/hybird`。
+- 权益中心是客户端组件，hydrate 或切换等级后会在浏览器端重新执行 `localAssetUrl()`；浏览器端无法读取非公开的 `H5_BASE_PATH`，因此可能退回裸 `/assets/...`，而裸 `/assets/...` 在当前 basePath 下是 404。
+
+### 变更
+
+- 根目录 `package.json` 的 `dev:h5` 增加 `NEXT_PUBLIC_H5_BASE_PATH=/hybird`。
+- `scripts/root/dev-all.sh` 启动 H5 时同步传入 `NEXT_PUBLIC_H5_BASE_PATH="${H5_BASE_PATH}"`。
+- `next.config.ts` 改为优先读取 `NEXT_PUBLIC_H5_BASE_PATH`，确保 Next basePath 和客户端资源 helper 使用同一个公开变量。
+- `asset-url.test.ts` 增加 `next.config.ts` 防回归检查，确保 Next basePath 继续包含 `process.env.NEXT_PUBLIC_H5_BASE_PATH`。
+
+### 验证
+
+- `pnpm exec vitest run src/lib/assets/asset-url.test.ts src/features/promotion/promotion-service.test.ts`：通过，2 files / 20 tests。
+- `pnpm typecheck`：通过。
+- 使用 `H5_BASE_PATH=/hybird NEXT_PUBLIC_H5_BASE_PATH=/hybird pnpm exec next dev -H localhost -p 3109` 启动后，`/hybird/promotion/benefits?level=v3` 返回 200。
+- `curl http://localhost:3109/hybird/promotion/benefits?level=v3`：HTML 中权益中心背景、徽章、箭头、icon 均为 `/hybird/assets/...`，未发现裸 `src="/assets/` 或 `url(/assets/`。
+- `/hybird/assets/promotion/equity/equity-bg-v3.png` 返回 200；裸 `/assets/promotion/equity/equity-bg-v3.png` 返回 404，符合 basePath 预期。
+
+## 2026-06-05 - 排行榜共享背景和领奖台布局修正
+
+### 变更
+
+- 新增共享浅绿顶部背景资源 `shared.greenHeroBg`，路径为 `public/assets/shared/green-hero-bg.png`。
+- `mine.hero.background`、`promotion.rewardRecordsBg` 和 `promotion.rankingHeroBg` 均复用同一张共享背景，避免我的页、奖励记录和排行榜重复维护相同图片。
+- 排行榜顶部背景从手写渐变改为 `localAssetUrl("promotion.rankingHeroBg")` 图片背景，并保留 `background-size: 100% 100%`。
+- 排行榜领奖台三张卡改为 360px 容器内贴合居中排列，避免 430px 调试宽度下中间间隙过大。
+- 排行榜皇冠位置改到头像顶部右侧，保持皇冠、头像和领奖台的层级关系。
+- 确认排行榜顶部导航使用项目公共预设 `TransparentNavPage`，底层组合 `TopNavigation`。
+- 删除已跟踪的旧奖励记录专属背景 `public/assets/promotion/reward-records/reward-records-bg.png`，避免与共享背景重复维护。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-service.test.ts src/lib/assets/asset-url.test.ts`：通过，2 files / 19 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm build`：通过。
+- 本地 `curl http://localhost:3109/hybird/promotion/ranking/amount`：HTML 中已输出 `/hybird/assets/shared/green-hero-bg.png`，并保留 `TransparentNavPage` / `TopNavigation` 结构。
+
+## 2026-06-05 - 排行榜销量榜和销售额榜按最新 Figma 重做
+
+### 变更
+
+- 重新拉取 Figma 节点 `270:5973`、`277:6570`，将达人销量榜和达人销售额榜从旧橙色头图方案调整为最新浅绿渐变背景方案。
+- 排行榜顶部改为三榜 tab：达人销量榜、达人销售额榜、达人激励榜；周期切换改为绿色描边分段控件。
+- 领奖台按 375 设计稿精确落位：第 1 名 120x133，第 2/3 名 120x111，并继续使用 `localAssetUrl()` 引用本地领奖台背景和皇冠资源。
+- 列表和底部当前用户栏改为白底浮层 + `fill-muted` 卡片样式，销售额榜默认激活周榜。
+- 设计体系补充 `brand.normal` token，对应 Figma 品牌色常规 `#A8F156`。
+- mock 榜单数据更新为最新设计稿展示姓名、销量和销售额。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-service.test.ts src/lib/assets/asset-url.test.ts src/design-system/tokens/design-tokens.test.ts`：通过，3 files / 22 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm build`：通过。
+- CDP 移动端 375x812 smoke：`/hybird/promotion/ranking/sales` 和 `/hybird/promotion/ranking/amount` 均无横向溢出，`innerWidth/clientWidth/scrollWidth/bodyScrollWidth` 均为 375；销售额榜默认 active 为“达人销售额榜 / 周榜”。
+
+## 2026-06-05 - 修复客户端静态资源 basePath 丢失
+
+### 变更
+
+- `assetUrl()` 从动态 `process.env[key]` 读取改为显式 `process.env.NEXT_PUBLIC_H5_ASSET_BASE_URL` / `process.env.NEXT_PUBLIC_H5_BASE_PATH`，确保 Next 客户端 bundle 能稳定内联版本 basePath。
+- `asset-url.test.ts` 增加保护性测试，禁止资源工具重新出现动态 `process.env[` 读取。
+- 同步更新 `AGENTS.md`、release spec、ADR、`public/assets` README 和推广页面开发规范，明确客户端组件切换状态时也必须保留 `/h5-v/<version>` 资源前缀。
+
+### 验证
+
+- 已先运行 `pnpm exec vitest run src/lib/assets/asset-url.test.ts`，新增测试按预期失败；修复后通过，1 file / 6 tests。
+- `pnpm exec vitest run src/lib/assets/asset-url.test.ts src/features/promotion/promotion-service.test.ts`：通过，2 files / 18 tests。
+- `H5_BASE_PATH=/h5-v/v-check NEXT_PUBLIC_H5_BASE_PATH=/h5-v/v-check pnpm build`：通过。
+- 干净构建后扫描 `.next/static .next/server .next/standalone`：未发现 `process.env[`。
+- 构建产物片段确认客户端 bundle 已内联 `e.basePath ?? "/h5-v/v-check"`。
+- 本地 standalone 请求 `/h5-v/v-check/promotion/benefits?level=v2`：HTML 中裸 `src="/assets/`、`href="/assets/`、`url(/assets/` 均为 0，`/h5-v/v-check/assets/promotion` 出现 19 次。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` 性能 warning，无 error。
+
 ## 2026-06-05 - 本地静态资源版本 basePath 约束
 
 ### 变更
