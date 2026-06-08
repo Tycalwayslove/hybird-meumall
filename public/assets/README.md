@@ -39,6 +39,7 @@ const badge = localAssetUrl("promotion.talentBadge.v1");
 - WebView 生产环境使用 `H5_BASE_PATH=/hybird` 时，需要返回 `/hybird/assets/...`。
 - 配置 `NEXT_PUBLIC_H5_ASSET_BASE_URL` 后，会返回 CDN 地址。
 - 业务组件只依赖资源 key，不直接拼接文件路径，后续迁移 CDN 或版本目录时不用改页面。
+- `assetUrl()` 内部必须使用显式 `process.env.NEXT_PUBLIC_*` 读取客户端配置，不能使用 `process.env[key]` 动态读取，避免客户端切换状态后丢失版本 basePath。
 
 ## 放入规则
 
@@ -56,6 +57,7 @@ const badge = localAssetUrl("promotion.talentBadge.v1");
 
 | Key | Path | 用途 |
 | --- | --- | --- |
+| `shared.greenHeroBg` | `/assets/shared/green-hero-bg.png` | 浅绿顶部通用背景，当前用于我的页、奖励记录和排行榜 |
 | `promotion.talentBadge.v1` | `/assets/promotion/talent-badges/talent-badge-v1.png` | V1 新锐达人徽章 |
 | `promotion.talentBadge.v2` | `/assets/promotion/talent-badges/talent-badge-v2.png` | V2 白银达人徽章 |
 | `promotion.talentBadge.v3` | `/assets/promotion/talent-badges/talent-badge-v3.png` | V3 黄金达人徽章 |
@@ -71,3 +73,12 @@ const badge = localAssetUrl("promotion.talentBadge.v1");
 | `promotion.talentSummaryCard.v3` | `/assets/promotion/talent-badges/talent-summary-card-v3.png` | V3 汇总卡背景 |
 | `promotion.talentSummaryCard.v4` | `/assets/promotion/talent-badges/talent-summary-card-v4.png` | V4 汇总卡背景 |
 | `promotion.talentSummaryCard.v5` | `/assets/promotion/talent-badges/talent-summary-card-v5.png` | V5 汇总卡背景 |
+| `promotion.rankingPodium.first` | `/assets/promotion/ranking/ranking-podium-card-first.png` | 排行榜第 1 名领奖台背景 |
+| `promotion.rankingPodium.second` | `/assets/promotion/ranking/ranking-podium-card-second.png` | 排行榜第 2 名领奖台背景 |
+| `promotion.rankingPodium.third` | `/assets/promotion/ranking/ranking-podium-card-third.png` | 排行榜第 3 名领奖台背景 |
+| `promotion.rankingCrown.first` | `/assets/promotion/ranking/ranking-crown-first.png` | 排行榜第 1 名皇冠 |
+| `promotion.rankingCrown.second` | `/assets/promotion/ranking/ranking-crown-second.png` | 排行榜第 2 名皇冠 |
+| `promotion.rankingCrown.third` | `/assets/promotion/ranking/ranking-crown-third.png` | 排行榜第 3 名皇冠 |
+| `promotion.rankingHeroBg` | `/assets/shared/green-hero-bg.png` | 排行榜顶部背景，复用共享浅绿背景 |
+| `promotion.rewardRecordsBg` | `/assets/shared/green-hero-bg.png` | 奖励记录顶部背景，复用共享浅绿背景 |
+| `mine.hero.background` | `/assets/shared/green-hero-bg.png` | 我的页顶部背景，复用共享浅绿背景 |

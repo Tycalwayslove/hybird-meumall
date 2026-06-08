@@ -136,6 +136,7 @@
 - 本地随 H5 发版的图片、icon、背景图必须先注册到 `src/lib/assets/local-assets.ts`，业务代码通过 `localAssetUrl(assetKey)` 获取地址。
 - 业务数据或 mock 如果需要引用本地图片，字段应保存 `LocalAssetKey`，不要保存裸路径字符串；组件渲染时再调用 `localAssetUrl()`。
 - 只有后端、CMS 或外部 CDN 返回的完整 URL 才可以直接作为图片地址使用；这类字段必须在类型或注释中明确是远程 URL。
+- `assetUrl()` / `localAssetUrl()` 的环境变量读取必须使用显式 `process.env.NEXT_PUBLIC_*` 引用，禁止 `process.env[key]` 这类动态读取；否则 Next 客户端 bundle 可能无法内联 basePath，客户端切换状态后会退回裸 `/assets/...`。
 - 新增页面提交前必须检查渲染 HTML 中是否存在未处理的 `src="/assets/`、`href="/assets/` 或 `url(/assets/`。出现这类路径时视为缺陷，因为线上版本路径和后续 CDN 会失效。
 
 ## 主题约束

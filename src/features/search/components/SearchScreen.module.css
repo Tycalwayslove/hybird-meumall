@@ -6,7 +6,7 @@
 
 .viewport {
   width: 100%;
-  max-width: 375px;
+  max-width: 430px;
   min-height: 100vh;
   background: rgb(var(--mm-color-fill-white));
 }

@@ -9,14 +9,12 @@ export function assetUrl(path: string, options: AssetUrlOptions = {}): string {
   }
 
   const normalizedPath = normalizeAssetPath(path);
-  const assetBaseUrl = trimTrailingSlash(options.assetBaseUrl ?? readEnv("NEXT_PUBLIC_H5_ASSET_BASE_URL"));
+  const assetBaseUrl = trimTrailingSlash(options.assetBaseUrl ?? getRuntimeAssetBaseUrl());
   if (assetBaseUrl) {
     return `${assetBaseUrl}${normalizedPath}`;
   }
 
-  const basePath = normalizeBasePath(
-    options.basePath ?? readEnv("NEXT_PUBLIC_H5_BASE_PATH") ?? readEnv("H5_BASE_PATH")
-  );
+  const basePath = normalizeBasePath(options.basePath ?? getRuntimeBasePath());
 
   return `${basePath}${normalizedPath}`;
 }
@@ -43,6 +41,10 @@ function trimTrailingSlash(value: string | undefined): string {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
-function readEnv(key: string): string | undefined {
-  return process.env[key];
+function getRuntimeAssetBaseUrl(): string | undefined {
+  return process.env.NEXT_PUBLIC_H5_ASSET_BASE_URL;
+}
+
+function getRuntimeBasePath(): string | undefined {
+  return process.env.NEXT_PUBLIC_H5_BASE_PATH || process.env.H5_BASE_PATH;
 }

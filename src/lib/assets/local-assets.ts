@@ -1,6 +1,7 @@
 import { assetUrl, type AssetUrlOptions } from "./asset-url";
 
 export const localAssetPaths = {
+  "shared.greenHeroBg": "/assets/shared/green-hero-bg.png",
   "promotion.talentBadge.v1": "/assets/promotion/talent-badges/talent-badge-v1.png",
   "promotion.talentBadge.v2": "/assets/promotion/talent-badges/talent-badge-v2.png",
   "promotion.talentBadge.v3": "/assets/promotion/talent-badges/talent-badge-v3.png",
@@ -38,7 +39,40 @@ export const localAssetPaths = {
   "promotion.activityDetailHero.pk": "/assets/promotion/activity-details/pk-hero-bg.png",
   "promotion.rewardRecordIcon.settled": "/assets/promotion/reward-records/settled-reward-icon.png",
   "promotion.rewardRecordIcon.pending": "/assets/promotion/reward-records/pending-reward-icon.png",
-  "promotion.rewardRecordsBg": "/assets/promotion/reward-records/reward-records-bg.png"
+  "promotion.rewardRecordsBg": "/assets/shared/green-hero-bg.png",
+  "promotion.rankingHeroBg": "/assets/shared/green-hero-bg.png",
+  "promotion.rankingPodium.first": "/assets/promotion/ranking/ranking-podium-card-first.png",
+  "promotion.rankingPodium.second": "/assets/promotion/ranking/ranking-podium-card-second.png",
+  "promotion.rankingPodium.third": "/assets/promotion/ranking/ranking-podium-card-third.png",
+  "promotion.rankingCrown.first": "/assets/promotion/ranking/ranking-crown-first.png",
+  "promotion.rankingCrown.second": "/assets/promotion/ranking/ranking-crown-second.png",
+  "promotion.rankingCrown.third": "/assets/promotion/ranking/ranking-crown-third.png",
+  "home.logo": "/assets/home/logo.png",
+  "home.message": "/assets/home/message.png",
+  "home.banner.springPlan": "/assets/home/spring-plan-banner.png",
+  "home.activity.seckillBg": "/assets/home/activity-seckill-bg.png",
+  "home.activity.promotionBg": "/assets/home/activity-promotion-bg.png",
+  "home.activity.seckillLabel": "/assets/home/seckill-label.png",
+  "home.recommend.icon": "/assets/home/recommend-icon.png",
+  "home.more": "/assets/home/more.png",
+  "home.talentPriceTag": "/assets/home/talent-price-tag.png",
+  "mine.hero.background": "/assets/shared/green-hero-bg.png",
+  "mine.hero.role": "/assets/mine/hero-role.png",
+  "mine.notification": "/assets/mine/mine-mascot.png",
+  "mine.banner.springPlan": "/assets/mine/spring-plan-banner.png",
+  "mine.order.pendingPayment": "/assets/mine/orders/pending-payment.png",
+  "mine.order.pendingShipment": "/assets/mine/orders/pending-shipment.png",
+  "mine.order.pendingReceipt": "/assets/mine/orders/pending-receipt.png",
+  "mine.order.completed": "/assets/mine/orders/completed.png",
+  "mine.order.refund": "/assets/mine/orders/refund.png",
+  "mine.tool.footprint": "/assets/mine/tools/footprint.png",
+  "mine.tool.favorites": "/assets/mine/tools/favorites.png",
+  "mine.tool.address": "/assets/mine/tools/address.png",
+  "mine.tool.settings": "/assets/mine/tools/settings.png",
+  "mine.tool.customerService": "/assets/mine/tools/customer-service.png",
+  "mine.tool.helpCenter": "/assets/mine/tools/help-center.png",
+  "mine.tool.messageCenter": "/assets/mine/tools/message-center.png",
+  "mine.tool.productService": "/assets/mine/tools/product-service.png"
 } as const;
 
 export type LocalAssetKey = keyof typeof localAssetPaths;

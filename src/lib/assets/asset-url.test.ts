@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { assetUrl } from "./asset-url";
 import { localAssetPaths, localAssetUrl } from "./local-assets";
@@ -29,6 +31,9 @@ describe("assetUrl", () => {
   });
 
   it("resolves registered local assets through the same URL rules", () => {
+    expect(localAssetPaths["shared.greenHeroBg"]).toBe(
+      "/assets/shared/green-hero-bg.png"
+    );
     expect(localAssetPaths["promotion.talentBadge.v1"]).toBe(
       "/assets/promotion/talent-badges/talent-badge-v1.png"
     );
@@ -51,7 +56,16 @@ describe("assetUrl", () => {
       "/assets/promotion/activity-details/pk-hero-bg.png"
     );
     expect(localAssetPaths["promotion.rewardRecordsBg"]).toBe(
-      "/assets/promotion/reward-records/reward-records-bg.png"
+      "/assets/shared/green-hero-bg.png"
+    );
+    expect(localAssetPaths["promotion.rankingHeroBg"]).toBe(
+      "/assets/shared/green-hero-bg.png"
+    );
+    expect(localAssetPaths["promotion.rankingPodium.first"]).toBe(
+      "/assets/promotion/ranking/ranking-podium-card-first.png"
+    );
+    expect(localAssetPaths["promotion.rankingCrown.third"]).toBe(
+      "/assets/promotion/ranking/ranking-crown-third.png"
     );
     expect(localAssetUrl("promotion.talentBadge.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-badge-v5.png"
@@ -63,7 +77,27 @@ describe("assetUrl", () => {
       "/h5-v/v1.0.8/assets/promotion/equity/equity-arrow-next.png"
     );
     expect(localAssetUrl("promotion.rewardRecordsBg", { basePath: "/h5-v/v1.0.9" })).toBe(
-      "/h5-v/v1.0.9/assets/promotion/reward-records/reward-records-bg.png"
+      "/h5-v/v1.0.9/assets/shared/green-hero-bg.png"
     );
+    expect(localAssetUrl("promotion.rankingHeroBg", { basePath: "/h5-v/v1.0.9" })).toBe(
+      "/h5-v/v1.0.9/assets/shared/green-hero-bg.png"
+    );
+    expect(localAssetUrl("promotion.rankingPodium.first", { basePath: "/h5-v/v1.0.9" })).toBe(
+      "/h5-v/v1.0.9/assets/promotion/ranking/ranking-podium-card-first.png"
+    );
+  });
+
+  it("uses static env references so Next can inline client asset config", () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/assets/asset-url.ts"), "utf8");
+
+    expect(source).not.toContain("process.env[");
+    expect(source).toContain("process.env.NEXT_PUBLIC_H5_ASSET_BASE_URL");
+    expect(source).toContain("process.env.NEXT_PUBLIC_H5_BASE_PATH");
+  });
+
+  it("keeps Next basePath aligned with the public client basePath", () => {
+    const source = readFileSync(join(process.cwd(), "next.config.ts"), "utf8");
+
+    expect(source).toContain("process.env.NEXT_PUBLIC_H5_BASE_PATH");
   });
 });

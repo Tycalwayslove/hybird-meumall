@@ -304,6 +304,8 @@ const bannerUrl = assetUrl("/assets/home/banner-renewal.webp");
 2. 配置 `NEXT_PUBLIC_H5_ASSET_BASE_URL` 或调用时传入 `assetBaseUrl` 时，返回 `assetBaseUrl + /assets/...`。
 3. 未配置 CDN 时，返回 `H5_BASE_PATH + /assets/...`，例如 `/hybird/assets/home/banner-renewal.webp`。
 
+`assetUrl()` 需要同时在 SSR 和客户端组件中运行。环境变量读取必须使用显式 `process.env.NEXT_PUBLIC_H5_ASSET_BASE_URL`、`process.env.NEXT_PUBLIC_H5_BASE_PATH` 这类静态引用，禁止封装成 `process.env[key]` 动态读取；否则 Next 客户端 bundle 可能无法内联版本 basePath，页面 hydrate 或客户端切换状态后会退回裸 `/assets/...`。
+
 生产推荐以 CDN 为主：
 
 ```text
