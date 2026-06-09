@@ -75,12 +75,17 @@
 - 添加 `assetUrl()` 客户端 bundle 防回归测试，禁止通过动态 `process.env[key]` 读取 H5 静态资源配置。
 - 添加 design-system `brand.normal` token，对应 Figma 品牌色常规 `#A8F156`。
 - 添加共享浅绿顶部背景 `shared.greenHeroBg`，供我的页、奖励记录和排行榜复用。
+- 添加 H5 统一导航封装 `src/lib/navigation`，提供 `HybridLink`、`createHybridNavigator()` 和 `HybridRouteReporter`。
+- 扩展 Bridge 路由信封，新增 `tab`、`close_webview`、`native_page` 和 `event/route_changed`，用于 H5 与原生 App 的 WebView 容器跳转、返回和路由变化上报。
 
 ### 变更
 
 - H5 route 清单移除旧兼容入口，智能体不再提供 H5 占位页面。
 - 排行榜顶部背景从手写渐变调整为共享图片背景，领奖台三卡改为 360px 贴合居中布局，皇冠固定到头像右上角。
 - `mine.hero.background`、`promotion.rewardRecordsBg` 和 `promotion.rankingHeroBg` 统一解析到共享背景资源，避免同图多份维护。
+- H5 顶部导航返回统一交给 `createHybridNavigator().back()`，原生容器优先 WebView history back，退不动再关闭当前二级 WebView。
+- 首页、推广首页、我的页按容器策略改造跳转入口：Tab 根页进入二级页默认新开 H5 WebView，二级页内部下钻默认当前 WebView push。
+- 推广首页头像、昵称和徽章不再跳权益中心；权益中心入口收敛到我的页。
 
 ### 移除
 

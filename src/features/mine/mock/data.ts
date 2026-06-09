@@ -27,18 +27,17 @@ export const minePageData = {
     { label: "退货退款", href: "/orders?status=refund", assetKey: "mine.order.refund" }
   ],
   banner: {
-    href: "/member",
     assetKey: "mine.banner.springPlan",
     alt: "续航春P计划"
   },
   tools: [
-    { label: "我的足迹", href: "/mine", assetKey: "mine.tool.footprint" },
-    { label: "我的收藏", href: "/favorites/products", assetKey: "mine.tool.favorites" },
-    { label: "地址管理", href: "/mine", assetKey: "mine.tool.address" },
-    { label: "设置", href: "/mine", assetKey: "mine.tool.settings" },
-    { label: "客服服务", href: "/consult", assetKey: "mine.tool.customerService" },
-    { label: "帮助中心", href: "/mine", assetKey: "mine.tool.helpCenter" },
-    { label: "消息中心", href: "/messages", assetKey: "mine.tool.messageCenter" },
-    { label: "商品服务", href: "/orders", assetKey: "mine.tool.productService" }
+    { label: "我的足迹", assetKey: "mine.tool.footprint", navigation: "none" },
+    { label: "我的收藏", href: "/favorites/products", assetKey: "mine.tool.favorites", navigation: "new-webview" },
+    { label: "地址管理", assetKey: "mine.tool.address", navigation: "none" },
+    { label: "设置", assetKey: "mine.tool.settings", navigation: "native-page", nativePage: "settings" },
+    { label: "客服服务", href: "/consult", assetKey: "mine.tool.customerService", navigation: "new-webview" },
+    { label: "帮助中心", assetKey: "mine.tool.helpCenter", navigation: "none" },
+    { label: "消息中心", href: "/messages", assetKey: "mine.tool.messageCenter", navigation: "new-webview" },
+    { label: "商品服务", href: "/orders", assetKey: "mine.tool.productService", navigation: "new-webview" }
   ]
 } as const satisfies MinePageData;

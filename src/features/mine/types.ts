@@ -14,8 +14,10 @@ export type MineOrderEntry = {
 
 export type MineToolEntry = {
   label: string;
-  href: string;
+  href?: string;
   assetKey: LocalAssetKey;
+  navigation?: "new-webview" | "native-page" | "none";
+  nativePage?: string;
 };
 
 export type MineProfile = {
@@ -27,7 +29,7 @@ export type MineProfile = {
 };
 
 export type MineBanner = {
-  href: string;
+  href?: string;
   assetKey: LocalAssetKey;
   alt: string;
 };

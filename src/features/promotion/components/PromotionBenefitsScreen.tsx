@@ -12,7 +12,7 @@ export function PromotionBenefitsScreen({
 }) {
   return (
     <TransparentActionNavPage
-      backHref="/promotion"
+      backHref="/mine"
       foreground="light"
       rightText="权益规则"
       title="权益中心"

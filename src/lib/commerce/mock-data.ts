@@ -57,7 +57,7 @@ export const promotionEntries: CommerceEntry[] = [
 export const mineEntries: CommerceEntry[] = [
   { label: "商品收藏", href: "/favorites/products", tone: "bg-rose-500" },
   { label: "店铺收藏", href: "/favorites/shops", tone: "bg-amber-500" },
-  { label: "会员/达人", href: "/member", tone: "bg-violet-500" },
+  { label: "推广首页", href: "/promotion", tone: "bg-violet-500" },
   { label: "购买记录", href: "/orders", tone: "bg-emerald-500" }
 ];
 

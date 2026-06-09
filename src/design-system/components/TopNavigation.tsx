@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { createHybridNavigator } from "@/lib/navigation";
+
 import { cn } from "../utils/cn";
 
 type NavigationBackground = "solid" | "transparent";
@@ -88,9 +90,16 @@ function NavigationBackButton({ backHref, backLabel, onBack }: { backHref?: stri
 
   if (backHref) {
     return (
-      <Link aria-label={backLabel} className={className} href={backHref}>
+      <button
+        aria-label={backLabel}
+        className={className}
+        type="button"
+        onClick={() => {
+          createHybridNavigator().back({ fallbackHref: backHref });
+        }}
+      >
         {icon}
-      </Link>
+      </button>
     );
   }
 

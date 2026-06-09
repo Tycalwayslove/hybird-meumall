@@ -2,10 +2,10 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useState } from "react";
-import Link from "next/link";
 
 import { cn } from "@/design-system";
 import { localAssetUrl } from "@/lib/assets";
+import { HybridLink } from "@/lib/navigation";
 
 import { BridgeDebugPanel } from "../BridgeDebugPanel";
 import type { HomeActivityCard, HomeExperienceData, HomeProductCard } from "../home-page-data";
@@ -35,18 +35,18 @@ function HomeHeader({ data }: { data: HomeExperienceData }) {
   return (
     <header className={styles.stickyHeader}>
       <div className={styles.topBar}>
-        <Link className={styles.logoLink} href="/" aria-label="喵呜AI 首页">
+        <HybridLink className={styles.logoLink} href="/" strategy="switch-tab" tab="home" aria-label="喵呜AI 首页">
           <img className={styles.logoImage} src={localAssetUrl(data.logoAssetKey)} alt="喵呜AI" />
-        </Link>
+        </HybridLink>
         <div className={styles.headerActions}>
-          <Link className={styles.searchLink} href="/search" aria-label="搜索商品">
+          <HybridLink className={styles.searchLink} href="/search" source="home" strategy="new-webview" title="搜索" aria-label="搜索商品">
             <span className={styles.searchIcon} aria-hidden="true" />
             <span className={styles.searchText}>请输入关键词</span>
-          </Link>
-          <Link className={styles.messageLink} href="/messages" aria-label="进入消息中心，当前 22 条未读">
+          </HybridLink>
+          <HybridLink className={styles.messageLink} href="/messages" source="home" strategy="new-webview" title="消息中心" aria-label="进入消息中心，当前 22 条未读">
             <img className={styles.messageIcon} src={localAssetUrl(data.messageAssetKey)} alt="" />
             <span className={styles.messageBadge}>22</span>
-          </Link>
+          </HybridLink>
         </div>
       </div>
     </header>
@@ -55,9 +55,9 @@ function HomeHeader({ data }: { data: HomeExperienceData }) {
 
 function HomeBanner({ data }: { data: HomeExperienceData }) {
   return (
-    <Link className={styles.bannerLink} href={data.banner.href} aria-label={data.banner.alt}>
+    <HybridLink className={styles.bannerLink} href={data.banner.href} strategy="switch-tab" tab="promotion" aria-label={data.banner.alt}>
       <img className={styles.bannerImage} src={localAssetUrl(data.banner.assetKey)} alt={data.banner.alt} />
-    </Link>
+    </HybridLink>
   );
 }
 
@@ -65,10 +65,10 @@ function CategoryGrid({ data }: { data: HomeExperienceData }) {
   return (
     <nav className={styles.categoryGrid} aria-label="首页分类">
       {data.categories.map((category) => (
-        <Link className={styles.categoryItem} href={category.href} key={category.label}>
+        <HybridLink className={styles.categoryItem} href={category.href} key={category.label} source="home" strategy="new-webview" title="商品分类">
           <span className={styles.categoryIcon} aria-hidden="true" />
           <span className={styles.categoryLabel}>{category.label}</span>
-        </Link>
+        </HybridLink>
       ))}
     </nav>
   );
@@ -78,13 +78,21 @@ function ActivityGrid({ activities }: { activities: HomeActivityCard[] }) {
   return (
     <section className={styles.activityGrid} aria-label="限时活动">
       {activities.map((activity) => (
-        <Link className={styles.activityCard} href={activity.href} key={activity.title}>
+        <HybridLink
+          className={styles.activityCard}
+          href={activity.href}
+          key={activity.title}
+          source="home"
+          strategy={activity.href === "/promotion" ? "switch-tab" : "new-webview"}
+          tab={activity.href === "/promotion" ? "promotion" : undefined}
+          title={activity.title}
+        >
           <img className={styles.activityBg} src={localAssetUrl(activity.backgroundAssetKey)} alt="" />
           <div className={styles.activityText}>
             <p className={styles.activityTitle}>{activity.title}</p>
             <p className={styles.activitySubtitle}>{activity.subtitle}</p>
           </div>
-        </Link>
+        </HybridLink>
       ))}
     </section>
   );
@@ -98,10 +106,10 @@ function RecommendationSection({ data }: { data: HomeExperienceData }) {
           <img className={styles.recommendIcon} src={localAssetUrl(data.recommendationIconAssetKey)} alt="" />
           <h2 className={styles.recommendTitleText}>为您推荐</h2>
         </div>
-        <Link className={styles.moreLink} href="/category">
+        <HybridLink className={styles.moreLink} href="/category" source="home" strategy="new-webview" title="商品分类">
           更多
           <img className={styles.moreIcon} src={localAssetUrl(data.moreAssetKey)} alt="" />
-        </Link>
+        </HybridLink>
       </div>
       <div className={styles.productGrid}>
         {data.products.map((product) => (
@@ -127,7 +135,7 @@ function ProductCard({
   talentPriceTagAssetKey: HomeExperienceData["talentPriceTagAssetKey"];
 }) {
   return (
-    <Link className={styles.productCard} href={product.href}>
+    <HybridLink className={styles.productCard} href={product.href} source="home" strategy="new-webview" title="商品详情">
       <div className={styles.productMedia}>
         <span className={cn(styles.productBadge, product.badge === "推荐" && styles.productBadgeRecommended)}>{product.badge}</span>
       </div>
@@ -149,7 +157,7 @@ function ProductCard({
           <span className={styles.originalPrice}>￥{product.originalPrice}</span>
         </div>
       </div>
-    </Link>
+    </HybridLink>
   );
 }
 

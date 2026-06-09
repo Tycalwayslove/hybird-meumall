@@ -3,6 +3,7 @@
 ## Active
 
 - [ ] 确认推广模块真实后端接口、达人等级规则、活动状态和榜单刷新策略。
+- [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、`native_page`、`route_changed`、手势返回和 URL 白名单。
 
 ## Backlog
 
@@ -66,3 +67,4 @@
 - [x] 修复客户端静态资源 basePath 丢失问题，并为 `assetUrl()` 增加动态 env 读取防回归测试。
 - [x] 按最新 Figma 重做达人销量榜和达人销售额榜，接入本地领奖台/皇冠资源并完成移动端 375 视口验证。
 - [x] 将我的页、奖励记录和排行榜的浅绿顶部背景收敛为共享资源，并修正排行榜皇冠和领奖台布局。
+- [x] 建立 H5 与原生路由跳转基础闭环，完成 H5 统一导航封装、入口改造和 route_changed 上报。

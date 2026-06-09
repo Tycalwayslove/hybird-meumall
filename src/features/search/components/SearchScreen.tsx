@@ -107,7 +107,7 @@ function KeywordSection({
 
 function RankingProductCard({ product }: { product: SearchProduct }) {
   return (
-    <article className={styles.productCard}>
+    <Link className={styles.productCard} href={product.href}>
       <div className={styles.productInner}>
         <div aria-hidden="true" className={`${styles.productVisual} ${imageToneClassName[product.imageTone]}`} />
         <div className={styles.productInfo}>
@@ -130,7 +130,7 @@ function RankingProductCard({ product }: { product: SearchProduct }) {
           </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
 

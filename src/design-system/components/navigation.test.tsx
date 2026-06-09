@@ -10,7 +10,8 @@ describe("TopNavigation", () => {
     const html = renderToStaticMarkup(<TopNavigation title="榜单中心" backHref="/promotion" />);
 
     expect(html).toContain("榜单中心");
-    expect(html).toContain('href="/promotion"');
+    expect(html).toContain("<button");
+    expect(html).toContain('aria-label="返回"');
     expect(html).toContain("bg-fill-white");
     expect(html).toContain("text-text-primary");
     expect(html).toContain("size-11");

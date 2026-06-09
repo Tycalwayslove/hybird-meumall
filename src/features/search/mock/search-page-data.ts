@@ -9,6 +9,7 @@ export const searchPageData: SearchPageData = {
   products: [
     {
       id: "summer-cotton-tee-seckill",
+      href: "/product/p-1001",
       title: "棉短袖T恤男女同款宽松百搭休闲圆领上衣ins潮牌打底衫",
       feature: "精选优质姜根提取物",
       price: 628,
@@ -19,6 +20,7 @@ export const searchPageData: SearchPageData = {
     },
     {
       id: "summer-cotton-tee-talent-1",
+      href: "/product/p-1001",
       title: "棉短袖T恤男女同款宽松百搭休闲圆领上衣ins潮牌打底衫",
       feature: "精选优质姜根提取物",
       price: 628,
@@ -29,6 +31,7 @@ export const searchPageData: SearchPageData = {
     },
     {
       id: "summer-cotton-tee-talent-2",
+      href: "/product/p-1001",
       title: "棉短袖T恤男女同款宽松百搭休闲圆领上衣ins潮牌打底衫",
       feature: "精选优质姜根提取物",
       price: 628,

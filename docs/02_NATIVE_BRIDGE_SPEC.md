@@ -119,6 +119,60 @@ type BridgeResult<T> =
 | router/navigate | 调试中 | H5 发出导航信封，原生当前只接收记录。 |
 | event/token_expired | 调试中 | H5 发出 token 失效事件，原生当前只接收记录。 |
 | event/share | 调试中 | H5 发出分享事件，原生当前只接收记录。 |
+| event/route_changed | 调试中 | H5 路由变化上报，用于原生记录当前路径、标题和 fallback Tab。 |
+
+## H5 跳转封装
+
+H5 业务页面不要直接拼 Bridge 信封。正式页面跳转统一从 `src/lib/navigation` 进入：
+
+| 入口 | 用途 |
+| --- | --- |
+| `HybridLink` | 业务 JSX 中使用的跳转组件，支持普通 H5 push、新开 H5 WebView、切 Tab、打开原生页和关闭当前 WebView。 |
+| `createHybridNavigator()` | 非 JSX 场景使用的命令式跳转 helper。 |
+| `HybridRouteReporter` | 挂在根 layout 中，自动上报当前 H5 路由变化。 |
+
+当前策略：
+
+- Tab 根页面：`/`、`/promotion`、`/mine` 由原生 Tab WebView 常驻缓存。
+- Tab 根页面进入 H5 二级页面：默认使用 `HybridLink strategy="new-webview"`，由原生新开 H5 WebView。
+- 二级页面内部继续下钻：默认使用普通 Next Link 或 `strategy="push"`，在当前 WebView 内 push。
+- 二级页面返回 Tab 根页面：调用 `router/navigate route=tab` 并让原生关闭当前二级 WebView，不在当前 WebView 内直接打开根路由。
+- 导航栏返回：`TopNavigation` 通过 `router/navigate route=back` 交给原生；原生优先执行当前 WebView history back，退不动再关闭当前 WebView。
+
+## router/navigate 路由清单
+
+```ts
+type BridgeRoute =
+  | "home"
+  | "back"
+  | "product_detail"
+  | "webview"
+  | "tab"
+  | "close_webview"
+  | "native_page";
+```
+
+| route | H5 发起场景 | 原生处理 |
+| --- | --- | --- |
+| `webview` | 从首页、推广首页、我的页打开 H5 二级页。 | 校验 URL 后新开 H5 WebView，根 Tab WebView 保持缓存。 |
+| `tab` | 二级页需要回到首页、推广首页或我的 Tab 根页面。 | 切换目标 Tab；若 `closeCurrentWebView=true`，关闭当前二级 WebView。 |
+| `back` | H5 顶部导航返回或 H5 请求原生返回。 | 当前 WebView 可回退则 `goBack()`；否则关闭当前二级 WebView。 |
+| `close_webview` | H5 明确要求关闭当前二级容器。 | 关闭当前栈顶 H5 WebView。 |
+| `native_page` | H5 打开设置等原生页面。 | 打开对应原生页面；当前调试壳先显示占位页。 |
+| `product_detail` | 兼容商品详情语义跳转。 | 根据商品 id 拼接 H5 商品详情 URL 并新开 WebView。 |
+
+`event/route_changed` payload：
+
+```ts
+type RouteChangedPayload = {
+  path: string;
+  title?: string;
+  canGoBack?: boolean;
+  fallbackTab?: "home" | "promotion" | "mine";
+};
+```
+
+原生可用它记录当前 H5 页面信息，辅助调试、导航标题、手势返回和异常恢复。
 
 ## 首批方法
 

@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import "@/styles/globals.css";
+import { HybridRouteReporter } from "@/lib/navigation";
 import { formatStatusBarCssVars } from "@/lib/runtime/status-bar";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +40,7 @@ export default async function RootLayout({
         style={formatStatusBarCssVars(statusHeight) as CSSProperties}
       >
         {children}
+        <HybridRouteReporter />
         {showVersionBadge ? (
           <div className="h5-version-badge" aria-label={`当前 H5 版本：${releaseLabel}`}>
             {releaseLabel}

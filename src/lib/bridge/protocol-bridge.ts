@@ -1,6 +1,6 @@
 export type BridgeModule = "router" | "event" | "rpc";
 
-export type BridgeRoute = "home" | "back" | "product_detail" | "webview";
+export type BridgeRoute = "home" | "back" | "product_detail" | "webview" | "tab" | "close_webview" | "native_page";
 export type PresentationStyle = "push" | "present" | "sheet" | "fullscreen";
 
 export type NavigatePayload = {
@@ -15,6 +15,12 @@ export type NavigatePayload = {
 export type NativeEventMap = {
   token_expired: { reason?: string };
   share: { productId: string };
+  route_changed: {
+    path: string;
+    title?: string;
+    canGoBack?: boolean;
+    fallbackTab?: "home" | "promotion" | "mine";
+  };
 };
 
 export type NativeEventName = keyof NativeEventMap;

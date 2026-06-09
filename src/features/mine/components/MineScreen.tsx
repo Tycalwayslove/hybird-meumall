@@ -1,10 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
-import Link from "next/link";
-
 import { AppScreen, cn } from "@/design-system";
 import { localAssetUrl } from "@/lib/assets";
+import { HybridLink } from "@/lib/navigation";
 
-import type { MineMetric, MinePageData } from "../types";
+import type { MineMetric, MinePageData, MineToolEntry } from "../types";
 import styles from "./MineScreen.module.css";
 
 type MineScreenProps = {
@@ -49,9 +48,16 @@ function ProfileHeader({ data }: MineScreenProps) {
         </div>
         <p className={styles.phone}>{data.profile.phone}</p>
       </div>
-      <Link className={styles.notificationLink} href={data.notificationHref} aria-label="进入消息中心，当前 22 条未读">
+      <HybridLink
+        className={styles.notificationLink}
+        href={data.notificationHref}
+        source="mine"
+        strategy="new-webview"
+        title="消息中心"
+        aria-label="进入消息中心，当前 22 条未读"
+      >
         <img className={styles.notificationIcon} src={notificationIcon} alt="" />
-      </Link>
+      </HybridLink>
       <img className={styles.roleImage} src={roleImage} alt="" aria-hidden="true" />
     </section>
   );
@@ -63,10 +69,10 @@ function BenefitCard({ data }: MineScreenProps) {
       <div className={styles.benefitPattern} />
       <div className={styles.benefitTop}>
         <span className={styles.validText}>喵呜达人有效期至{data.profile.membershipValidUntil}</span>
-        <Link className={styles.benefitButton} href={data.benefitsHref}>
+        <HybridLink className={styles.benefitButton} href={data.benefitsHref} source="mine" strategy="new-webview" title="权益中心">
           权益中心
           <span aria-hidden="true">›</span>
-        </Link>
+        </HybridLink>
       </div>
       <div className={styles.metricPanel}>
         {data.metrics.map((metric) => (
@@ -94,17 +100,17 @@ function OrderCard({ data }: MineScreenProps) {
     <section className={cn(styles.card, styles.sectionCard)} aria-label="我的订单">
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>我的订单</h2>
-        <Link className={styles.sectionLink} href={data.ordersHref}>
+        <HybridLink className={styles.sectionLink} href={data.ordersHref} source="mine" strategy="new-webview" title="我的订单">
           全部订单
           <span aria-hidden="true">›</span>
-        </Link>
+        </HybridLink>
       </div>
       <div className={styles.orderGrid}>
         {data.orders.map((order) => (
-          <Link className={styles.orderItem} href={order.href} key={order.label}>
+          <HybridLink className={styles.orderItem} href={order.href} key={order.label} source="mine" strategy="new-webview" title="我的订单">
             <img className={styles.orderIcon} src={localAssetUrl(order.assetKey)} alt="" />
             <span className={styles.itemLabel}>{order.label}</span>
-          </Link>
+          </HybridLink>
         ))}
       </div>
     </section>
@@ -114,9 +120,9 @@ function OrderCard({ data }: MineScreenProps) {
 function SpringPlanBanner({ data }: MineScreenProps) {
   return (
     <div className={styles.bannerWrap}>
-      <Link className={styles.bannerLink} href={data.banner.href} aria-label={data.banner.alt}>
+      <div className={styles.bannerLink} aria-label={data.banner.alt}>
         <img className={styles.bannerImage} src={localAssetUrl(data.banner.assetKey)} alt={data.banner.alt} />
-      </Link>
+      </div>
     </div>
   );
 }
@@ -127,12 +133,40 @@ function ToolCard({ data }: MineScreenProps) {
       <h2 className={styles.sectionTitle}>服务与工具</h2>
       <div className={styles.toolGrid}>
         {data.tools.map((tool) => (
-          <Link className={styles.toolItem} href={tool.href} key={tool.label}>
-            <img className={styles.toolIcon} src={localAssetUrl(tool.assetKey)} alt="" />
-            <span className={styles.itemLabel}>{tool.label}</span>
-          </Link>
+          <MineToolLink key={tool.label} tool={tool} />
         ))}
       </div>
     </section>
+  );
+}
+
+function MineToolLink({ tool }: { tool: MineToolEntry }) {
+  const content = (
+    <>
+      <img className={styles.toolIcon} src={localAssetUrl(tool.assetKey)} alt="" />
+      <span className={styles.itemLabel}>{tool.label}</span>
+    </>
+  );
+
+  if (tool.navigation === "native-page" && tool.nativePage) {
+    return (
+      <HybridLink className={styles.toolItem} href="/mine" nativePage={tool.nativePage} strategy="native-page">
+        {content}
+      </HybridLink>
+    );
+  }
+
+  if (tool.navigation === "new-webview" && tool.href) {
+    return (
+      <HybridLink className={styles.toolItem} href={tool.href} source="mine" strategy="new-webview" title={tool.label}>
+        {content}
+      </HybridLink>
+    );
+  }
+
+  return (
+    <button className={styles.toolItem} type="button" aria-disabled="true">
+      {content}
+    </button>
   );
 }

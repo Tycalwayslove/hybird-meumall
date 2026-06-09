@@ -641,3 +641,35 @@ Next.js 配置启用 `output: "export"` 和 `trailingSlash: true`。构建发布
 
 - 继续让每个业务页面手写导航：拒绝，因为状态栏和滚动容器会持续漂移。
 - 只做一个万能导航组件，不提供页面预设：拒绝，因为透明导航是否占据文档流属于页面布局决策，仅靠视觉组件容易误用。
+
+## ADR-0021 - H5 与原生跳转统一通过 Hybrid Navigation 层
+
+日期：2026-06-09
+
+状态：Accepted
+
+### 背景
+
+MeuMall 的首页、推广首页和我的页是原生 Tab 下的 H5 根页面，需要常驻缓存。若业务页面直接使用 `router.push("/")`、直接拼 `window.location.href` 或自行调用 Bridge，会导致二级页面覆盖根 WebView、返回后滚动位置丢失、原生滑动返回语义不一致。
+
+### 决策
+
+- H5 页面跳转统一从 `src/lib/navigation` 进入。
+- JSX 中优先使用 `HybridLink`；命令式场景使用 `createHybridNavigator()`。
+- Tab 根页面进入 H5 二级页面默认使用 `strategy="new-webview"`，由原生新开 H5 WebView。
+- 二级页面内部继续下钻默认使用当前 WebView 内 H5 push。
+- 返回 Tab 根页面使用 `router/navigate route=tab`，由原生切 Tab 并可关闭当前二级 WebView。
+- 顶部导航返回统一发送 `route=back`：原生先尝试当前 WebView history back，退不动再关闭当前二级 WebView。
+- 根 layout 挂载 `HybridRouteReporter`，通过 `event/route_changed` 上报当前 path、title、canGoBack 和 fallbackTab。
+
+### 影响
+
+- 业务页面不用理解 WebView 栈细节，只选择 `push`、`new-webview`、`switch-tab`、`native-page` 或 `close-webview`。
+- H5 与 iOS / Android 可以围绕同一份 route 信封联调。
+- Web 浏览器本地开发保留 fallback：Bridge 不可用时走普通链接、浏览器 history 或 fallback 路由。
+
+### 备选方案
+
+- 所有 H5 页面都用 Next Router push：拒绝，因为 Tab 根 WebView 无法常驻缓存。
+- 所有跳转都新开 WebView：拒绝，因为二级页内部下钻会产生过多容器，返回链路变差。
+- 各业务页面自行判断 App/Web 环境：拒绝，因为会把容器策略散落到页面代码中，后续难维护。

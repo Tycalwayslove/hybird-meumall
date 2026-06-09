@@ -1,5 +1,22 @@
 # 变更摘要
 
+## 2026-06-09 - H5 与原生路由跳转基础闭环
+
+### 变更
+
+- 扩展统一 Bridge route：`tab`、`close_webview`、`native_page`，并新增 `event/route_changed` 路由变化上报。
+- 新增 `src/lib/navigation`：`HybridLink`、`createHybridNavigator()`、`HybridRouteReporter`，业务页不再直接拼 Bridge 信封。
+- `TopNavigation` 的返回按钮改为调用 H5/Native 统一返回策略：原生容器优先回退 WebView history，退不动再关闭当前二级 WebView；Web 环境 fallback 到浏览器 history 或指定 fallback 路由。
+- 首页入口接入容器策略：搜索、消息、分类、秒杀、商品详情默认新开 H5 WebView；首页切推广 Tab 使用 `tab` route。
+- 我的页入口接入容器策略：权益中心、订单、收藏、客服等新开 H5 WebView；设置入口走 `native_page=settings`；未实现入口暂不跳转。
+- 推广首页入口接入容器策略：活动中心、榜单中心、佣金收益、推广商品等新开 H5 WebView；头像、昵称、徽章不再跳权益中心。
+- 搜索页商品卡片保持当前 WebView 内 H5 push，符合“二级页内部下钻不再新开 WebView”的原则。
+
+### 验证
+
+- `pnpm exec vitest run src/lib/navigation/hybrid-navigation.test.ts src/lib/bridge/protocol-bridge.test.ts src/design-system/components/navigation.test.tsx src/features/home/home.test.tsx src/features/search/search.test.tsx src/features/product/product-detail.test.tsx`：通过，6 files / 31 tests。
+- `pnpm typecheck`：通过。
+
 ## 2026-06-05 - 修复本地 dev 权益中心图片丢失
 
 ### 根因

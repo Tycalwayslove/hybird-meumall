@@ -13,6 +13,7 @@ export type SearchProductImageTone = "charcoal" | "linen" | "mint";
 
 export type SearchProduct = {
   id: string;
+  href: string;
   title: string;
   feature: string;
   price: number;

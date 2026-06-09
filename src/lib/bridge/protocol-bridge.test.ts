@@ -13,6 +13,9 @@ describe("protocol bridge", () => {
 
     bridge.navigate({ route: "product_detail", params: { id: "p-1001" } });
     bridge.emit("token_expired", { reason: "401" });
+    bridge.navigate({ route: "tab", params: { tab: "promotion", closeCurrentWebView: true } });
+    bridge.navigate({ route: "close_webview" });
+    bridge.emit("route_changed", { path: "/promotion/rank-center", fallbackTab: "promotion", canGoBack: false });
 
     expect(messages).toEqual([
       {
@@ -27,6 +30,26 @@ describe("protocol bridge", () => {
         module: "event",
         action: "token_expired",
         payload: { reason: "401" }
+      },
+      {
+        module: "router",
+        action: "navigate",
+        payload: {
+          route: "tab",
+          params: { tab: "promotion", closeCurrentWebView: true }
+        }
+      },
+      {
+        module: "router",
+        action: "navigate",
+        payload: {
+          route: "close_webview"
+        }
+      },
+      {
+        module: "event",
+        action: "route_changed",
+        payload: { path: "/promotion/rank-center", fallbackTab: "promotion", canGoBack: false }
       }
     ]);
   });
