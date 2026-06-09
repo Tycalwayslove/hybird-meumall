@@ -1,0 +1,184 @@
+{
+  "id": "21f40cdf-6e6e-4a96-a261-c0a9e9a6d3e5",
+  "version": "v1.0.11",
+  "environment": "prod",
+  "status": "active",
+  "manifest": {
+    "schemaVersion": "1.0.0",
+    "appId": "hybrid-h5",
+    "configVersion": "config-v1.0.11",
+    "environment": "prod",
+    "stableVersion": "v1.0.11",
+    "rollbackVersion": "v1.0.10",
+    "blacklistVersions": [],
+    "grayRules": {
+      "percentage": 0,
+      "salt": "prod",
+      "includeUserIds": [],
+      "excludeUserIds": []
+    },
+    "assets": {
+      "serviceBaseUrl": "https://hybird.aigcpop.com",
+      "basePath": "/h5-v/v1.0.11",
+      "staticAssetPath": "/_next/static",
+      "healthCheckPath": "/api/health"
+    },
+    "routes": {
+      "/": {
+        "delivery": "remote",
+        "path": "/",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion": {
+        "delivery": "remote",
+        "path": "/promotion",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/mine": {
+        "delivery": "remote",
+        "path": "/mine",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/category": {
+        "delivery": "remote",
+        "path": "/category",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/messages": {
+        "delivery": "remote",
+        "path": "/messages",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/seckill": {
+        "delivery": "remote",
+        "path": "/seckill",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/product/p-1001": {
+        "delivery": "remote",
+        "path": "/product/p-1001",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/consult": {
+        "delivery": "remote",
+        "path": "/consult",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/order-confirm": {
+        "delivery": "remote",
+        "path": "/order-confirm",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/orders": {
+        "delivery": "remote",
+        "path": "/orders",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/favorites/products": {
+        "delivery": "remote",
+        "path": "/favorites/products",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/favorites/shops": {
+        "delivery": "remote",
+        "path": "/favorites/shops",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/products": {
+        "delivery": "remote",
+        "path": "/promotion/products",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/commission": {
+        "delivery": "remote",
+        "path": "/promotion/commission",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/card": {
+        "delivery": "remote",
+        "path": "/promotion/card",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/level": {
+        "delivery": "remote",
+        "path": "/promotion/level",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/benefits": {
+        "delivery": "remote",
+        "path": "/promotion/benefits",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/activities": {
+        "delivery": "remote",
+        "path": "/promotion/activities",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/rank-center": {
+        "delivery": "remote",
+        "path": "/promotion/rank-center",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/ranking": {
+        "delivery": "remote",
+        "path": "/promotion/ranking",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/ranking/sales": {
+        "delivery": "remote",
+        "path": "/promotion/ranking/sales",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      },
+      "/promotion/ranking/amount": {
+        "delivery": "remote",
+        "path": "/promotion/ranking/amount",
+        "minAppVersion": "0.0.0",
+        "requiredBridgeMethods": []
+      }
+    },
+    "remoteConfig": {
+      "appConfigUrl": "/config/app-config.json"
+    }
+  },
+  "gray_percentage": 0,
+  "source": null,
+  "build_meta": {
+    "renderMode": "ssr",
+    "runtime": "next-standalone",
+    "gitCommit": "8d9073ae447e73aea3f4f01a4e6b091709d00360",
+    "gitBranch": "codex/h5-top-navigation",
+    "gitRef": "h5/v1.0.11",
+    "gitTag": "h5/v1.0.11",
+    "packageVersion": "1.0.11",
+    "commitSubject": "feat(bridge): 完成H5原生跳转闭环",
+    "dockerImage": "meu-mall/h5:v1.0.11",
+    "container": "meu-mall-h5-v1.0.11",
+    "buildTime": "2026-06-09T03:33:47.234Z"
+  },
+  "created_by": null,
+  "notes": null,
+  "created_at": "2026-06-09T03:33:48.022978+00:00",
+  "updated_at": "2026-06-09T03:33:49.086036+00:00",
+  "published_at": "2026-06-09T03:33:49.086036+00:00"
+}

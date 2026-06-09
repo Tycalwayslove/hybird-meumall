@@ -1,5 +1,24 @@
 # 变更摘要
 
+## 2026-06-09 - 发布 H5 v1.0.11
+
+### 变更
+
+- 将 `package.json` 版本升级为 `1.0.11`，创建并推送 `h5/v1.0.11` tag。
+- 使用根目录正式多版本发布脚本部署 `meu-mall/h5:v1.0.11`。
+- 注册 release `21f40cdf-6e6e-4a96-a261-c0a9e9a6d3e5`，并 promote 为 prod active。
+- active manifest 从 `v1.0.10` 切换到 `v1.0.11`，rollbackVersion 为 `v1.0.10`。
+- 删除旧 `/member` 页面，并从 manifest 路由清单中移除 `/member`。
+
+### 验证
+
+- 发布前：`pnpm test` 通过，27 files / 133 tests。
+- 发布前：`pnpm typecheck` 通过。
+- 发布前：`pnpm lint` 通过，存在 4 条历史 `<img>` warning，无 error。
+- 发布前：`H5_BASE_PATH=/h5-v/v1.0.11 NEXT_PUBLIC_H5_BASE_PATH=/h5-v/v1.0.11 H5_RELEASE_LABEL=v1.0.11 H5_RELEASE_VARIANT=green pnpm build` 通过。
+- 线上发布脚本 remote smoke 通过：HTTP/HTTPS `/h5-v/v1.0.11/api/health` 与 `/h5-v/v1.0.11/` 可访问。
+- 公网复核：active manifest `stableVersion=v1.0.11`，`rollbackVersion=v1.0.10`，`/h5-v/v1.0.11/promotion`、`/mine`、`/search` 返回 200，`/h5-v/v1.0.11/member` 返回 404。
+
 ## 2026-06-09 - H5 与原生路由跳转基础闭环
 
 ### 变更
