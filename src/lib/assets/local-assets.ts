@@ -2,6 +2,10 @@ import { assetUrl, type AssetUrlOptions } from "./asset-url";
 
 export const localAssetPaths = {
   "shared.greenHeroBg": "/assets/shared/green-hero-bg.png",
+  "common.icon.search": "/assets/common/icons/search.png",
+  "common.icon.close": "/assets/common/icons/close.png",
+  "common.icon.delete": "/assets/common/icons/delete.png",
+  "seckill.heroBg": "/assets/seckill/seckill-hero-bg.png",
   "promotion.talentBadge.v1": "/assets/promotion/talent-badges/talent-badge-v1.png",
   "promotion.talentBadge.v2": "/assets/promotion/talent-badges/talent-badge-v2.png",
   "promotion.talentBadge.v3": "/assets/promotion/talent-badges/talent-badge-v3.png",
@@ -47,6 +51,8 @@ export const localAssetPaths = {
   "promotion.rankingCrown.first": "/assets/promotion/ranking/ranking-crown-first.png",
   "promotion.rankingCrown.second": "/assets/promotion/ranking/ranking-crown-second.png",
   "promotion.rankingCrown.third": "/assets/promotion/ranking/ranking-crown-third.png",
+  "promotion.icon.share": "/assets/promotion/icons/share.png",
+  "promotion.icon.collect": "/assets/promotion/icons/collect.png",
   "home.logo": "/assets/home/logo.png",
   "home.message": "/assets/home/message.png",
   "home.banner.springPlan": "/assets/home/spring-plan-banner.png",

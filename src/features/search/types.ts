@@ -23,6 +23,12 @@ export type SearchProduct = {
   imageTone: SearchProductImageTone;
 };
 
+export type SearchResultProduct = SearchProduct & {
+  tag: "热卖" | "推荐";
+};
+
+export type SearchFilterState = "none" | "sales" | "category" | "price";
+
 export type SearchPageData = {
   hotKeywords: string[];
   historyKeywords: string[];
@@ -30,4 +36,6 @@ export type SearchPageData = {
   activeRankingTab: string;
   rankingNotice: string;
   products: SearchProduct[];
+  resultProducts: SearchResultProduct[];
+  categories: string[];
 };

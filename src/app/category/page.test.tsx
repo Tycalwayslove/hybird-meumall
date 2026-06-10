@@ -14,6 +14,7 @@ describe("CategoryPage", () => {
     expect(html).toContain("三级分类");
     expect(html).toContain("bg-brand-action");
     expect(html).toContain("aspect-square");
+    expect(html).not.toContain('href="#level-');
     expect(html).not.toContain("分类结果骨架");
     expect(html).not.toContain("CATEGORY");
     expect(html).not.toContain('src="/assets/');

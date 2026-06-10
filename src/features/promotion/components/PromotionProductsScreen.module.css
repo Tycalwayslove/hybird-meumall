@@ -1,0 +1,223 @@
+.screen {
+  background: rgb(var(--mm-color-fill-page));
+}
+
+.content {
+  background: rgb(var(--mm-color-fill-page));
+}
+
+.notice {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  background: #fff6dd;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  padding: 0 12px 0 0;
+  white-space: nowrap;
+}
+
+.notice span span {
+  color: #fb912c;
+}
+
+.noticeBadge {
+  display: inline-flex;
+  width: 53px;
+  height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 80%, #ffe6a5 0 28%, transparent 29%), linear-gradient(135deg, #ffcf61, #fff8c7);
+  color: #fb912c;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.searchBox {
+  position: relative;
+  display: flex;
+  height: 48px;
+  align-items: center;
+  gap: 4px;
+  background: rgb(var(--mm-color-fill-white));
+  padding: 4px 14px;
+}
+
+.searchIcon {
+  width: 18px;
+  height: 18px;
+  position: absolute;
+  margin-left: 13px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.searchBox input {
+  width: 100%;
+  height: 40px;
+  min-width: 0;
+  border: 1.4px solid rgb(var(--mm-color-brand-normal));
+  border-radius: 26px;
+  outline: 0;
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 15px;
+  font-weight: 500;
+  padding: 0 76px 0 38px;
+}
+
+.searchBox input::placeholder {
+  color: rgb(var(--mm-color-text-subtle));
+}
+
+.searchBox button {
+  position: absolute;
+  right: 18px;
+  width: 56px;
+  height: 32px;
+  border: 0;
+  border-radius: 26px;
+  background: rgb(var(--mm-color-brand-hover));
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.filterBar {
+  --dropdown-overlay-top: calc(var(--meu-status-bar-height) + 178px);
+  position: sticky;
+  top: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 12px calc(env(safe-area-inset-bottom) + 24px);
+  animation: promotionProductsFadeUp 240ms ease both;
+}
+
+.card {
+  display: grid;
+  min-height: 144px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 10px;
+  border-radius: 10px;
+  background: rgb(var(--mm-color-fill-white));
+  padding: 6px 10px 8px 6px;
+}
+
+.productImage {
+  width: 88px;
+  height: 88px;
+  border-radius: 6px;
+}
+
+.cardInfo {
+  min-width: 0;
+}
+
+.card h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sales {
+  margin: 2px 0 0;
+  color: rgb(var(--mm-color-text-disabled));
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.pricePanel {
+  display: flex;
+  height: 26px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 8px;
+  background: #fff4f4;
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.pricePanel p {
+  display: flex;
+  align-items: baseline;
+  margin: 0;
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.pricePanel strong {
+  color: rgb(var(--mm-color-price-default));
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.pricePanel span {
+  margin-left: 3px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 8px;
+}
+
+.actions button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid rgb(var(--mm-color-brand-normal));
+  border-radius: 8px;
+  background: rgb(var(--mm-color-fill-white));
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.actionIcon {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+@keyframes promotionProductsFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.actions button:last-child {
+  border-color: rgb(var(--mm-color-brand-hover));
+  background: rgb(var(--mm-color-brand-hover));
+}

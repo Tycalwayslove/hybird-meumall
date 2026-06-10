@@ -53,36 +53,13 @@
 }
 
 .searchIcon {
-  position: relative;
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
   margin-right: 4px;
-  color: rgb(var(--mm-color-text-secondary));
-}
-
-.searchIcon::before {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid currentColor;
-  border-radius: 999px;
-  content: "";
-}
-
-.searchIcon::after {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  width: 7px;
-  height: 2px;
-  border-radius: 999px;
-  background: currentColor;
-  content: "";
-  transform: rotate(45deg);
-  transform-origin: center;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
 }
 
 .searchInput {
@@ -116,6 +93,19 @@
   font-weight: 600;
   line-height: 18px;
   padding: 0 12px;
+}
+
+.closeSearchButton {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 auto;
+  border: 0;
+  background-color: transparent;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 18px 18px;
+  cursor: pointer;
+  margin-right: 2px;
 }
 
 .aiGuide {
@@ -191,37 +181,14 @@
 }
 
 .clearButton {
-  position: relative;
   width: 28px;
   height: 28px;
   border: 0;
   background: transparent;
-  color: rgb(var(--mm-color-text-secondary));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 14px 15px;
   cursor: pointer;
-}
-
-.clearButton::before {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 12px;
-  height: 14px;
-  border: 1.5px solid currentColor;
-  border-top: 0;
-  border-radius: 0 0 3px 3px;
-  content: "";
-}
-
-.clearButton::after {
-  position: absolute;
-  top: 6px;
-  left: 7px;
-  width: 14px;
-  height: 2px;
-  border-radius: 999px;
-  background: currentColor;
-  box-shadow: 4px -3px 0 -1px currentColor;
-  content: "";
 }
 
 .chips {
@@ -272,12 +239,16 @@
   flex: 0 0 auto;
   align-items: flex-start;
   justify-content: center;
+  border: 0;
+  background: transparent;
   color: rgb(var(--mm-color-text-tertiary));
+  cursor: pointer;
   font-size: 15px;
   font-weight: 600;
   line-height: 22px;
   padding: 0 6px;
   text-decoration: none;
+  transition: color 180ms ease, transform 180ms ease, font-weight 180ms ease;
   white-space: nowrap;
 }
 
@@ -285,6 +256,7 @@
   color: rgb(var(--mm-color-text-primary));
   font-size: 16px;
   font-weight: 700;
+  transform: translateY(-1px);
 }
 
 .tabActive::after {
@@ -340,6 +312,7 @@
   width: 100%;
   flex-direction: column;
   gap: 14px;
+  animation: searchFadeUp 240ms ease both;
 }
 
 .productCard {
@@ -369,35 +342,35 @@
   width: 88px;
   height: 88px;
   border-radius: 6px;
-  background: linear-gradient(135deg, #d9dde3 0%, #f2f4f7 100%);
 }
 
-.productVisual::before {
+.rankFlag {
   position: absolute;
-  inset: 8px 18px auto;
-  height: 32px;
-  border-radius: 18px 18px 13px 13px;
-  background: linear-gradient(135deg, #1a1513 0%, #614736 100%);
-  content: "";
+  top: 0;
+  left: 0;
+  display: inline-flex;
+  width: 26px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px 0 4px 0;
+  color: rgb(var(--mm-color-text-inverse));
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 10px;
+  text-align: center;
 }
 
-.productVisual::after {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: -8px;
-  height: 46px;
-  border-radius: 18px 18px 8px 8px;
-  background: linear-gradient(145deg, #171717 0%, #323236 100%);
-  content: "";
+.rankFlag1 {
+  background: #ff5475;
 }
 
-.imageToneLinen {
-  background: linear-gradient(135deg, #eee3d8 0%, #f6f8f8 100%);
+.rankFlag2 {
+  background: #ff9b3d;
 }
 
-.imageToneMint {
-  background: linear-gradient(135deg, #e4f8ef 0%, #f5f6f7 100%);
+.rankFlag3 {
+  background: #42b8ff;
 }
 
 .productInfo {
@@ -525,6 +498,222 @@
   white-space: nowrap;
 }
 
+.moreRankingButton {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(var(--mm-color-brand-action));
+  border-radius: 99px;
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  padding: 6px 12px;
+  text-decoration: none;
+}
+
+.dialogMask {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 55%);
+}
+
+.dialog {
+  width: 270px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgb(var(--mm-color-fill-white));
+}
+
+.dialogTitle {
+  margin: 0;
+  border-bottom: 1px solid rgb(var(--mm-color-fill-strong));
+  color: #1d2129;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 24px;
+  padding: 21px 16px 20px;
+  text-align: center;
+}
+
+.dialogActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialogActions button {
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: rgb(var(--mm-color-success-default));
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.dialogActions button + button {
+  border-left: 1px solid rgb(var(--mm-color-fill-strong));
+}
+
+.resultScreen {
+  min-height: 100vh;
+  background: rgb(var(--mm-color-fill-page));
+}
+
+.resultViewport {
+  min-height: 100vh;
+  background: rgb(var(--mm-color-fill-page));
+}
+
+.resultFixedControls {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  right: 0;
+  left: 0;
+  width: 100%;
+  max-width: 430px;
+  background: rgb(var(--mm-color-fill-white));
+  margin: 0 auto;
+}
+
+.resultFilterBar {
+  --dropdown-overlay-top: calc(var(--meu-status-bar-height) + 100px);
+}
+
+.resultGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 8px;
+  padding: calc(var(--meu-status-bar-height) + 110px) 10px calc(env(safe-area-inset-bottom) + 24px);
+  animation: searchFadeUp 240ms ease both;
+}
+
+.resultCard {
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgb(var(--mm-color-fill-white));
+  color: inherit;
+  text-decoration: none;
+}
+
+.resultVisual {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+.cornerTag {
+  position: absolute;
+  z-index: 1;
+  top: 4px;
+  left: 4px;
+  display: inline-flex;
+  min-width: 28px;
+  height: 17px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px 0 4px 0;
+  background: rgb(0 0 0 / 55%);
+  color: #ffbc6a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.resultCardBody {
+  padding: 7px 8px 8px;
+}
+
+.resultTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 18px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.resultFeature {
+  display: inline-flex;
+  max-width: 100%;
+  height: 20px;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 4px;
+  background: rgb(var(--mm-color-brand-subtle));
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 12px;
+  line-height: 18px;
+  margin: 5px 0 0;
+  padding: 1px 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+  color: rgb(var(--mm-color-text-disabled));
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.resultPrice {
+  margin: 5px 0 0;
+  color: rgb(var(--mm-color-price-default));
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 24px;
+}
+
+.resultPrice > span:last-child {
+  margin-left: 3px;
+  color: rgb(var(--mm-color-text-placeholder));
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+.rankingPage {
+  background: rgb(var(--mm-color-fill-page));
+}
+
+.rankingTabsSticky {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  background: rgb(var(--mm-color-fill-page));
+}
+
+.fullRankingList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0 calc(env(safe-area-inset-bottom) + 18px);
+  animation: searchFadeUp 240ms ease both;
+}
+
+@keyframes searchFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 340px) {
   .header {
     gap: 8px;
@@ -534,10 +723,6 @@
 
   .searchButton {
     padding: 0 10px;
-  }
-
-  .aiGuide {
-    width: 34px;
   }
 
   .keywordPanel {

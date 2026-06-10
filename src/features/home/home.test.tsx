@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
 import { buildHomeConfigUrl, fetchActiveHomeConfig, HomeConfigError, parseHomeConfig } from "./api";
 import { defaultHomeConfig } from "./default-config";
+import { HomeExperience } from "./components/HomeExperience";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { getVisibleHomeModules, HomeModules } from "./HomeModules";
 import { resolveHomeConfigState } from "./HomeScreen";
@@ -84,6 +85,12 @@ describe("home module rendering", () => {
     const html = renderToStaticMarkup(<HomeSkeleton />);
 
     expect(html).toContain("首页加载中");
+  });
+
+  test("renders the header search icon through local asset registry", () => {
+    const html = renderToStaticMarkup(<HomeExperience data={homeExperienceData} />);
+
+    expect(html).toContain("/assets/common/icons/search.png");
   });
 
   test("skips disabled, unknown, cart, and out-of-window modules", () => {

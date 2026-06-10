@@ -40,7 +40,7 @@ function HomeHeader({ data }: { data: HomeExperienceData }) {
         </HybridLink>
         <div className={styles.headerActions}>
           <HybridLink className={styles.searchLink} href="/search" source="home" strategy="new-webview" title="搜索" aria-label="搜索商品">
-            <span className={styles.searchIcon} aria-hidden="true" />
+            <span className={styles.searchIcon} style={{ backgroundImage: `url(${localAssetUrl("common.icon.search")})` }} aria-hidden="true" />
             <span className={styles.searchText}>请输入关键词</span>
           </HybridLink>
           <HybridLink className={styles.messageLink} href="/messages" source="home" strategy="new-webview" title="消息中心" aria-label="进入消息中心，当前 22 条未读">

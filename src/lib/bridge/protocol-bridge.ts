@@ -14,7 +14,7 @@ export type NavigatePayload = {
 
 export type NativeEventMap = {
   token_expired: { reason?: string };
-  share: { productId: string };
+  share: { productId: string; title?: string; source?: string };
   route_changed: {
     path: string;
     title?: string;

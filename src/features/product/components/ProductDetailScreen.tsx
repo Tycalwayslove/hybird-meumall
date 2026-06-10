@@ -1,24 +1,31 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 import { StandardNavPage } from "@/design-system";
 
 import type { ProductDetailData, ProductReview, ProductSelectionItem, ProductServiceItem } from "../types";
 import styles from "./ProductDetailScreen.module.css";
+import { ProductPurchaseSheet } from "./ProductPurchaseSheet";
 
 type ProductDetailScreenProps = {
   data: ProductDetailData;
 };
 
 export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
+  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+
   return (
     <StandardNavPage backHref="/" title="商品详情" contentClassName={styles.scrollBody}>
       <article className={styles.page}>
         <ProductHero data={data} />
-        <ProductInfoCard data={data} />
+        <ProductInfoCard data={data} onOpenPurchaseSheet={() => setShowPurchaseSheet(true)} />
         <ReviewSection data={data} />
         <DetailSection data={data} />
       </article>
-      <BottomActionBar data={data} />
+      <BottomActionBar data={data} onBuy={() => setShowPurchaseSheet(true)} />
+      {showPurchaseSheet ? <ProductPurchaseSheet data={data} onClose={() => setShowPurchaseSheet(false)} /> : null}
     </StandardNavPage>
   );
 }
@@ -74,7 +81,7 @@ function ProductHero({ data }: ProductDetailScreenProps) {
   );
 }
 
-function ProductInfoCard({ data }: ProductDetailScreenProps) {
+function ProductInfoCard({ data, onOpenPurchaseSheet }: ProductDetailScreenProps & { onOpenPurchaseSheet: () => void }) {
   return (
     <section className={styles.infoCard} aria-label="商品基础信息">
       <div className={styles.titleBlock}>
@@ -91,7 +98,7 @@ function ProductInfoCard({ data }: ProductDetailScreenProps) {
 
       <div className={styles.selectionList}>
         {data.selectionRows.map((item) => (
-          <SelectionRow item={item} key={item.label} />
+          <SelectionRow item={item} key={item.label} onOpenPurchaseSheet={onOpenPurchaseSheet} />
         ))}
       </div>
 
@@ -116,8 +123,9 @@ function ServicePill({ service }: { service: ProductServiceItem }) {
   );
 }
 
-function SelectionRow({ item }: { item: ProductSelectionItem }) {
+function SelectionRow({ item, onOpenPurchaseSheet }: { item: ProductSelectionItem; onOpenPurchaseSheet: () => void }) {
   const suffix = item.accentPrefix && item.value.startsWith(item.accentPrefix) ? item.value.slice(item.accentPrefix.length) : item.value;
+  const isInteractive = Boolean(item.href || item.action);
   const content = (
     <>
       <span className={styles.selectionLabel}>{item.label}</span>
@@ -125,9 +133,25 @@ function SelectionRow({ item }: { item: ProductSelectionItem }) {
         {item.accentPrefix ? <strong>{item.accentPrefix}</strong> : null}
         {suffix}
       </span>
-      {item.href ? <span className={styles.rowArrow} aria-hidden="true" /> : null}
+      {isInteractive ? <span className={styles.rowArrow} aria-hidden="true" /> : null}
     </>
   );
+
+  if (item.action === "purchase") {
+    return (
+      <button className={styles.selectionRow} type="button" onClick={onOpenPurchaseSheet}>
+        {content}
+      </button>
+    );
+  }
+
+  if (item.action === "address") {
+    return (
+      <button className={styles.selectionRow} type="button" aria-label="地址列表暂未开发">
+        {content}
+      </button>
+    );
+  }
 
   if (item.href) {
     return (
@@ -192,7 +216,7 @@ function DetailSection({ data }: ProductDetailScreenProps) {
   );
 }
 
-function BottomActionBar({ data }: ProductDetailScreenProps) {
+function BottomActionBar({ data, onBuy }: ProductDetailScreenProps & { onBuy: () => void }) {
   return (
     <div className={styles.actionBar}>
       <div className={styles.actionInner}>
@@ -202,9 +226,9 @@ function BottomActionBar({ data }: ProductDetailScreenProps) {
           </span>
           <span>{data.consultPlaceholder}</span>
         </Link>
-        <Link href={data.buyHref} className={styles.buyButton}>
+        <button className={styles.buyButton} type="button" onClick={onBuy}>
           立即购买
-        </Link>
+        </button>
       </div>
     </div>
   );

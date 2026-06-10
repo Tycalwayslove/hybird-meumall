@@ -87,7 +87,7 @@ export const defaultHomeConfig: HomeConfig = {
           subtitle: "佣金至高50%!",
           imageUrl: "fallback://activity-promotion",
           badge: "免费",
-          event: { type: "h5_route", target: "/promotion" },
+          event: { type: "h5_route", target: "/promotion/products" },
           enabled: true,
           sortOrder: 20
         }

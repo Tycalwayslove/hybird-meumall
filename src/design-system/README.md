@@ -6,7 +6,7 @@
 
 - 颜色、圆角、阴影、字号和常用间距从 token 读取。
 - 页面 JSX 不直接写 `bg-[#...]`、`text-[#...]`、`border-[#...]` 这类颜色 class。
-- 业务页面优先组合 `AppScreen`、`Section`、`Surface`、`Metric`、`StateView`、`Skeleton`、`AssetPlaceholder` 等基础组件。
+- 业务页面优先组合 `AppScreen`、`Section`、`Surface`、`Metric`、`StateView`、`Skeleton`、`AssetPlaceholder`、`ProductImagePlaceholder` 等基础组件。
 - 业务特有的等级色、活动色、榜单色可以集中放在 feature 内的 `theme/` 目录，不散落到页面结构中。
 
 ## Token 来源
@@ -37,7 +37,7 @@ src/design-system/
 - 新页面最外层优先使用 `AppScreen`，保持 WebView 宽度、页面底色和文字色一致。
 - 页面区块优先使用 `Section` 或 `Surface`，不要在业务页面重复造卡片外观。
 - 空状态、错误状态和加载骨架优先用 `StateView`、`Skeleton`，保证兜底体验一致。
-- 图片和 icon 未切正式资源前，用 `AssetPlaceholder` 或 feature 内封装的占位组件。
+- 商品卡片、订单商品行、购买弹窗等商品缩略图未接真实图片前，统一使用 `ProductImagePlaceholder`；普通 icon 或运营位占位再用 `AssetPlaceholder` 或 feature 内封装的占位组件。
 - 视觉参数如果跟业务状态绑定，例如达人等级 V1-V5，应放在 `src/features/<feature>/theme/`。
 - 本地稳定图片通过 `src/lib/assets/local-assets.ts` 注册，再用 `localAssetUrl(key)` 引用；页面组件不要直接拼 `/assets/...`。
 

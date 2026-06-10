@@ -6,6 +6,7 @@ export const searchPageData: SearchPageData = {
   rankingTabs: ["喵呜热榜", "生鲜", "饮料", "火锅食材", "服饰", "药品", "电器"],
   activeRankingTab: "喵呜热榜",
   rankingNotice: "官方榜单 · 真实数据 · 每周更新",
+  categories: ["零食饮料", "生鲜熟食", "保健品", "家用电器", "书籍"],
   products: [
     {
       id: "summer-cotton-tee-seckill",
@@ -40,5 +41,17 @@ export const searchPageData: SearchPageData = {
       badge: { type: "talent", label: "喵呜达人", level: "V2" },
       imageTone: "mint"
     }
-  ]
+  ],
+  resultProducts: Array.from({ length: 8 }).map((_, index) => ({
+    id: `search-result-${index + 1}`,
+    href: "/product/p-1001",
+    title: "夏季纯棉短袖的恤男女同款宽松百搭休闲圆领上衣",
+    feature: "精选优质姜根提取物",
+    price: index === 5 ? 928 : 368,
+    originalPrice: 998,
+    soldText: "已售 2300",
+    badge: { type: "talent", label: "喵呜达人", level: "V2" },
+    imageTone: index % 3 === 0 ? "charcoal" : index % 3 === 1 ? "linen" : "mint",
+    tag: index === 5 ? "推荐" : "热卖"
+  }))
 };

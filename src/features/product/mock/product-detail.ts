@@ -16,7 +16,7 @@ export const mockProductDetails: ProductDetailData[] = [
       {
         label: "选择",
         value: "已选：海参唤醒金装送人礼盒1盒(50ml*8)...",
-        href: "#selection"
+        action: "purchase"
       },
       {
         label: "配送",
@@ -26,7 +26,7 @@ export const mockProductDetails: ProductDetailData[] = [
       {
         label: "地址",
         value: "广东省 深圳市 南山区科兴科学园...",
-        href: "#address"
+        action: "address"
       }
     ],
     licenseTags: ["营业执照", "品牌授权"],
@@ -53,6 +53,41 @@ export const mockProductDetails: ProductDetailData[] = [
     },
     consultPlaceholder: "衣服质量如何？",
     consultHref: "/consult",
-    buyHref: "/order-confirm"
+    buyHref: "/order-confirm",
+    purchase: {
+      imageLabel: "夏季纯棉短袖商品图",
+      defaultSkuId: "shirt-m",
+      defaultQuantity: 1,
+      specsTitle: "夏季纯棉短袖T恤(2)",
+      skus: [
+        {
+          id: "shirt-m",
+          label: "夏季纯棉短袖T恤(m码)",
+          selectedLabel: "夏季纯棉短袖 T 恤男女同款宽松百搭...",
+          specsText: "黑色，M",
+          price: 628,
+          stock: 1000
+        },
+        {
+          id: "shirt-relaxed-m",
+          label: "夏季纯棉短袖T恤男女同款(m码)",
+          selectedLabel: "夏季纯棉短袖 T 恤男女同款宽松百搭...",
+          specsText: "黑色，L",
+          price: 828,
+          stock: 1000
+        },
+        {
+          id: "shirt-relaxed-l",
+          label: "夏季纯棉短袖T恤男女同款(m码)",
+          selectedLabel: "夏季纯棉短袖 T 恤男女同款宽松百搭...",
+          specsText: "黑色，XL",
+          price: 928,
+          stock: 1000
+        }
+      ],
+      deliveryTitle: "配送方式",
+      defaultDeliveryId: "express",
+      deliveryOptions: [{ id: "express", label: "快递配送" }]
+    }
   }
 ];

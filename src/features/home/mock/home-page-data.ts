@@ -30,7 +30,7 @@ export const homeExperienceData = {
     {
       title: "推广带货",
       subtitle: "佣金至高50%!",
-      href: "/promotion",
+      href: "/promotion/products",
       backgroundAssetKey: "home.activity.promotionBg"
     }
   ],

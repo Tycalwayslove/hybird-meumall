@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import ProductDetailPage from "@/app/product/[id]/page";
+import { ProductPurchaseSheet } from "./components/ProductPurchaseSheet";
+import { mockProductDetails } from "./mock/product-detail";
 
 function expectNoBareLocalAssetUrls(html: string) {
   expect(html).not.toContain('src="/assets/');
@@ -27,7 +29,26 @@ describe("product detail page", () => {
     expect(html).toContain("商品详情");
     expect(html).toContain("衣服质量如何？");
     expect(html).toContain('href="/consult"');
-    expect(html).toContain('href="/order-confirm"');
+    expect(html).toContain("立即购买");
+    expect(html).not.toContain('href="#selection"');
+    expect(html).not.toContain('href="#address"');
+    expectNoBareLocalAssetUrls(html);
+  });
+
+  it("renders the Figma-aligned purchase sheet with sku, quantity and confirm href", () => {
+    const html = renderToStaticMarkup(<ProductPurchaseSheet data={mockProductDetails[0]} onClose={() => undefined} />);
+
+    expect(html).toContain("购买规格选择");
+    expect(html).toContain("夏季纯棉短袖T恤(2)");
+    expect(html).toContain("库存");
+    expect(html).toContain("1000件");
+    expect(html).toContain("<span>￥</span>628.");
+    expect(html).toContain("快递配送");
+    expect(html).toContain("确认");
+    expect(html).toContain("productId=p-1001");
+    expect(html).toContain("skuId=shirt-m");
+    expect(html).toContain("quantity=1");
+    expect(html).toContain('data-product-image-placeholder="true"');
     expectNoBareLocalAssetUrls(html);
   });
 

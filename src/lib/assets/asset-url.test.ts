@@ -67,6 +67,24 @@ describe("assetUrl", () => {
     expect(localAssetPaths["promotion.rankingCrown.third"]).toBe(
       "/assets/promotion/ranking/ranking-crown-third.png"
     );
+    expect(localAssetPaths["common.icon.search"]).toBe(
+      "/assets/common/icons/search.png"
+    );
+    expect(localAssetPaths["common.icon.close"]).toBe(
+      "/assets/common/icons/close.png"
+    );
+    expect(localAssetPaths["common.icon.delete"]).toBe(
+      "/assets/common/icons/delete.png"
+    );
+    expect(localAssetPaths["promotion.icon.share"]).toBe(
+      "/assets/promotion/icons/share.png"
+    );
+    expect(localAssetPaths["promotion.icon.collect"]).toBe(
+      "/assets/promotion/icons/collect.png"
+    );
+    expect(localAssetPaths["seckill.heroBg"]).toBe(
+      "/assets/seckill/seckill-hero-bg.png"
+    );
     expect(localAssetUrl("promotion.talentBadge.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-badge-v5.png"
     );
@@ -84,6 +102,9 @@ describe("assetUrl", () => {
     );
     expect(localAssetUrl("promotion.rankingPodium.first", { basePath: "/h5-v/v1.0.9" })).toBe(
       "/h5-v/v1.0.9/assets/promotion/ranking/ranking-podium-card-first.png"
+    );
+    expect(localAssetUrl("seckill.heroBg", { basePath: "/h5-v/v1.2.0" })).toBe(
+      "/h5-v/v1.2.0/assets/seckill/seckill-hero-bg.png"
     );
   });
 
