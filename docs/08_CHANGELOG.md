@@ -26,6 +26,9 @@
 
 ### 新增
 
+- 新增 `ProductImagePlaceholder` 公共商品缩略图缺省组件，统一搜索、推广商品、秒杀、购买弹窗和提交订单商品行的灰色占位图。
+- 新增商品详情购买弹窗静态高保真实现，包含规格、配送方式、数量步进器和确认入口。
+- 新增提交订单高保真静态页，支持默认地址态和未填写收货信息态。
 - 初始化 Hybrid App H5 AI 工程化工作流文档结构。
 - 添加项目级 Codex Skills：任务创建、规划、实现、测试、审查、归档、发布准备和回滚。
 - 添加 `scripts/ai/` 下的最小可运行 AI 辅助脚本，以及 `package.json` 的 `ai:*` 命令。
@@ -77,6 +80,7 @@
 - 添加共享浅绿顶部背景 `shared.greenHeroBg`，供我的页、奖励记录和排行榜复用。
 - 添加 H5 统一导航封装 `src/lib/navigation`，提供 `HybridLink`、`createHybridNavigator()` 和 `HybridRouteReporter`。
 - 扩展 Bridge 路由信封，新增 `tab`、`close_webview`、`native_page` 和 `event/route_changed`，用于 H5 与原生 App 的 WebView 容器跳转、返回和路由变化上报。
+- 注册限时秒杀页头图背景 `seckill.heroBg`，随 H5 发版并通过 `localAssetUrl()` 解析版本 basePath。
 
 ### 变更
 
@@ -86,6 +90,8 @@
 - H5 顶部导航返回统一交给 `createHybridNavigator().back()`，原生容器优先 WebView history back，退不动再关闭当前二级 WebView。
 - 首页、推广首页、我的页按容器策略改造跳转入口：Tab 根页进入二级页默认新开 H5 WebView，二级页内部下钻默认当前 WebView push。
 - 推广首页头像、昵称和徽章不再跳权益中心；权益中心入口收敛到我的页。
+- 限时秒杀页头部从 CSS 手绘渐变改为设计图背景图片。
+- 推广商品页“推广”按钮接入 `event/share` Bridge 事件，payload 包含 `productId`、`title` 和 `source`。
 
 ### 移除
 

@@ -1,5 +1,151 @@
 # 变更摘要
 
+## 2026-06-10 - 分类页切换与分享联调修正
+
+### 变更
+
+- 商品分类页一级分类从 hash 链接切换为页面内 state 切换，点击 tab 不再向地址栏写入 `#level-*`。
+- 商品分类页点击不同一级分类时会刷新右侧分类内容，避免“点击没有动静”的体验。
+- 推广商品分享 Bridge payload 的 `productId` 临时固定为 `1001`，用于原生 App 联调测试。
+- `ProductImagePlaceholder` 移除内部白色圆点，只保留灰色缺省底图。
+
+### 验证
+
+- `pnpm exec vitest run src/app/category/page.test.tsx src/features/promotion/promotion-products.test.tsx src/design-system/components/product-image-placeholder.test.tsx`：通过，3 files / 8 tests。
+- `pnpm exec vitest run src/app/category/page.test.tsx src/features/promotion/promotion-products.test.tsx src/features/search/search.test.tsx src/features/seckill/seckill.test.tsx src/features/product/product-detail.test.tsx src/features/product/order-confirm.test.tsx src/design-system/components/product-image-placeholder.test.tsx`：通过，7 files / 23 tests。
+- `pnpm run typecheck`：通过。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm run build`：通过。
+
+## 2026-06-10 - 统一商品卡片缺省图组件
+
+### 变更
+
+- 新增 design-system 公共组件 `ProductImagePlaceholder`，用于商品卡片、订单商品行和购买弹窗的灰色商品图占位。
+- 推广商品列表、搜索热榜商品、搜索结果商品、限时秒杀商品、商品购买弹窗和提交订单商品行已统一替换为该组件。
+- 清理上述页面旧的手写渐变/伪元素商品图占位，业务 CSS 只保留尺寸、圆角和布局。
+- 更新 design-system 使用说明，后续未接真实商品图片前统一使用 `ProductImagePlaceholder`。
+
+### 验证
+
+- `pnpm exec vitest run src/design-system/components/product-image-placeholder.test.tsx src/features/promotion/promotion-products.test.tsx src/features/search/search.test.tsx src/features/seckill/seckill.test.tsx src/features/product/product-detail.test.tsx src/features/product/order-confirm.test.tsx`：通过，6 files / 22 tests。
+- `pnpm run typecheck`：通过。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm test -- --runInBand`：通过，32 files / 154 tests。
+- `pnpm run build`：通过。
+
+## 2026-06-10 - 商品详情购买弹窗与提交订单静态页
+
+### 变更
+
+- 商品详情页“立即购买”改为打开底部购买弹窗，不再直接跳转低保真订单页。
+- 新增 `ProductPurchaseSheet`，按 Figma 实现遮罩、底部圆角弹层、商品摘要、规格选项、配送方式、数量步进器和确认按钮。
+- 商品详情 mock 补充规格、库存、默认数量和配送方式数据，购买确认链接会携带 `productId`、`skuId` 和 `quantity`。
+- `/order-confirm` 已替换为高保真提交订单页，支持默认地址态和未填写收货信息态。
+- 新增订单确认 mock service，统一生成地址、商品行、配送/优惠/实付款明细和底部结算栏；当前仍为 H5 静态 mock 阶段，真实价格、库存、地址、优惠券和提交接口待后端联调。
+
+### 验证
+
+- `pnpm exec vitest run src/features/product/product-detail.test.tsx src/features/product/order-confirm.test.tsx`：通过，2 files / 5 tests。
+- `pnpm run typecheck`：通过。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm test -- --runInBand`：通过，31 files / 150 tests。
+- `pnpm run build`：通过。
+
+## 2026-06-10 - 统一 DropdownFilterBar 筛选交互
+
+### 变更
+
+- `DropdownFilterBar` 新增公共状态 hook `useDropdownFilterBarState()`，统一管理激活筛选、展开项、选中项和关闭行为。
+- `DropdownFilterBar` 支持根据当前激活项的 `selectedOptionKey` 自动展示已选选项文案，例如“商品分类”选中后展示“保健品”，“分类”选中后展示“生鲜熟食”。
+- `/search` 搜索结果页和 `/promotion/products` 推广商品页已迁移到同一套筛选状态逻辑。
+- 保留主流筛选交互：未展开时点击筛选项展开；点击具体选项后自动关闭；蒙层点击关闭；展开时底部列表不可滚动。
+
+### 验证
+
+- `pnpm exec vitest run src/design-system/components/dropdown-filter-bar.test.tsx src/features/search/search.test.tsx src/features/promotion/promotion-products.test.tsx`：通过，3 files / 14 tests。
+- `pnpm run typecheck`：通过。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+
+## 2026-06-10 - 限时秒杀背景与推广分享 Bridge
+
+### 变更
+
+- 新增限时秒杀背景资源 `seckill.heroBg`，文件位于 `public/assets/seckill/seckill-hero-bg.png`。
+- 限时秒杀页头部从 CSS 手绘渐变切换为设计图背景图片，并保留无障碍标题。
+- 推广商品页“推广”按钮接入 `event/share` Native Bridge 事件。
+- 分享 payload 包含 `productId`、`title` 和 `source: "promotion_products"`；Web 环境 Bridge 不可用时安全 no-op。
+- 更新 Native Bridge 文档，补充 `event/share` payload 和 H5 使用场景。
+
+### 验证
+
+- `pnpm exec vitest run src/lib/assets/asset-url.test.ts src/features/seckill/seckill.test.tsx src/features/promotion/promotion-products.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，4 files / 14 tests。
+- `pnpm run typecheck`：通过。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm test -- --runInBand`：通过，30 files / 143 tests。
+- `pnpm run build`：通过。
+- 本地浏览器验证：`/seckill` 已渲染 `seckill-hero-bg.png`，页面无横向溢出；推广商品分享 Bridge 通过单测验证事件发送。
+
+## 2026-06-10 - 搜索与推广商品图标切换为本地静态资源
+
+### 变更
+
+- 新增通用图标资源：`common.icon.search`、`common.icon.close`、`common.icon.delete`，文件位于 `public/assets/common/icons/`。
+- 新增推广商品图标资源：`promotion.icon.share`、`promotion.icon.collect`，文件位于 `public/assets/promotion/icons/`。
+- 搜索页搜索图标、清除历史图标和搜索结果清空词图标改为通过 `localAssetUrl()` 引用本地 PNG。
+- 首页搜索入口和推广商品页搜索栏复用同一个 `common.icon.search`。
+- 推广商品页“推广”和“收藏”按钮改为使用本地分享/收藏 PNG，去掉文字符号占位。
+
+### 验证
+
+- `pnpm exec vitest run src/lib/assets/asset-url.test.ts src/features/search/search.test.tsx src/features/promotion/promotion-products.test.tsx src/features/home/home.test.tsx`：通过，4 files / 24 tests。
+- `pnpm run typecheck`：通过。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm test -- --runInBand`：通过，29 files / 140 tests。
+- `pnpm run build`：通过。
+- 本地浏览器验证：`/search` 已渲染 search/delete PNG，`/search?q=短袖` 已渲染 search/close PNG，`/promotion/products` 已渲染 search/share/collect PNG，页面无横向溢出。
+
+## 2026-06-10 - 修复搜索与筛选交互污染路由历史
+
+### 变更
+
+- 搜索页热榜 tab 从 query 跳转改为页面内 state 切换，点击“喵呜热榜 / 生鲜 / 饮料”等 tab 不再改变 URL。
+- 搜索结果页筛选从 query 跳转改为页面内 state 切换，销量、价格、分类和下拉选项不再向 WebView history 追加记录。
+- 推广商品页筛选同步改为页面内 state 切换，商品分类、佣金属性、商品属性、销量和价格筛选不再污染路由栈。
+- 搜索提交改为替换式跳转，连续搜索不会堆积多条历史记录。
+- tab、筛选项和列表增加选中态、下划线、箭头旋转与 fade-up 列表切换反馈，点击后能看到当前筛选和数据变化。
+- 筛选组件拆分“选中态”和“展开态”，支持点击蒙层收起；选择下拉条件后自动收起，同时保留当前筛选选中态。
+- 新增回归测试，防止搜索热榜 tab、搜索筛选和推广商品筛选重新输出 `?ranking=` / `?filter=` 链接。
+
+### 验证
+
+- `pnpm exec vitest run src/features/search/search.test.tsx src/features/promotion/promotion-products.test.tsx`：通过，2 files / 5 tests。
+- `pnpm run typecheck`：通过。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm test -- --runInBand`：通过，28 files / 136 tests。
+- `pnpm run build`：通过。
+- 本地浏览器验证：`/search` 点击“生鲜”后 URL 保持 `/search`，选中态和榜单数据变化；`/search?q=短袖` 点击“分类”后 URL 保持不变，弹出分类选项并刷新列表；`/promotion/products` 点击“佣金属性”后 URL 保持不变，弹出佣金选项并刷新列表；搜索按钮提交进入结果页。
+- 本地浏览器验证：搜索结果页和推广商品页的筛选展开后，点击蒙层会关闭下拉；重新展开并选择某个条件后，下拉会自动关闭，URL 仍保持不变。
+
+## 2026-06-10 - v1.2.0 首批静态页面开发
+
+### 变更
+
+- 按 Figma v1.2.0 范围完成搜索首页、清除历史弹窗、搜索结果页、搜索筛选弹层和完整热榜页。
+- 新增 `DropdownFilterBar` 公共筛选组件，统一搜索结果和推广商品页的筛选行、激活态和下拉选项层。
+- 重做推广商品页静态高保真结构，补充顶部达人公告、搜索栏、商品分类/佣金属性/商品属性/销量/价格筛选和横向商品卡。
+- 首页“推广带货”活动入口改为 `/promotion/products`，符合 Tab 根页进入二级 H5 页面时新开 WebView 的容器策略。
+- 重做限时秒杀页静态高保真结构，补充透明导航、渐变头图、横向秒杀商品卡、倒计时、进度和秒杀按钮。
+- 新增 `/search/ranking` 完整热榜路由；商品图片按本阶段要求使用灰色色块占位，不引入正式商品图。
+
+### 验证
+
+- `pnpm run typecheck`：通过。
+- `pnpm test -- --runInBand`：通过，27 files / 133 tests。
+- `pnpm run lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- `pnpm run build`：通过。
+- 本地浏览器 smoke：`/hybird/search`、`/hybird/search?clear=1`、`/hybird/search?q=短袖&filter=category`、`/hybird/search/ranking`、`/hybird/promotion/products?filter=commission`、`/hybird/seckill` 均可访问，390px 视口未发现横向溢出。
+
 ## 2026-06-09 - 发布 H5 v1.0.11
 
 ### 变更

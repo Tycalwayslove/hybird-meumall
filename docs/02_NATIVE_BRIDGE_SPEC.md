@@ -174,6 +174,22 @@ type RouteChangedPayload = {
 
 原生可用它记录当前 H5 页面信息，辅助调试、导航标题、手势返回和异常恢复。
 
+`event/share` payload：
+
+```ts
+type SharePayload = {
+  productId: string;
+  title?: string;
+  source?: "promotion_products" | string;
+};
+```
+
+当前 H5 使用场景：
+
+- 推广商品页点击“推广”按钮时发出 `event/share`。
+- 原生 App 负责接收该事件并打开平台分享面板或内部推广分享流程。
+- Web 环境无 Bridge 时 H5 安全 no-op，不弹错误。
+
 ## 首批方法
 
 ### app.getVersion
