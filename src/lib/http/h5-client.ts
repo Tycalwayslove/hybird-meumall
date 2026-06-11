@@ -1,3 +1,7 @@
+import type { ClientRequestContext } from "./client-context";
+import { buildClientContextHeaders } from "./client-context";
+import { getBrowserClientContext, recordRequestDiagnostic } from "./request-diagnostics";
+
 export type H5BffResult<T> =
   | {
       success: true;
@@ -14,6 +18,7 @@ export type H5BffResult<T> =
 
 export type H5ClientConfig = {
   basePath?: string;
+  clientContext?: ClientRequestContext;
   fetcher?: (input: string, init?: RequestInit) => Promise<Response>;
   pathname?: string;
   requestIdFactory?: () => string;
@@ -21,6 +26,7 @@ export type H5ClientConfig = {
 
 export type H5RequestOptions = {
   body?: unknown;
+  clientContext?: ClientRequestContext;
   headers?: HeadersInit;
   method?: string;
 };
@@ -32,12 +38,15 @@ export function createH5Client(config: H5ClientConfig = {}) {
     async request<T>(path: string, options: H5RequestOptions = {}): Promise<H5BffResult<T>> {
       const requestId = config.requestIdFactory?.() ?? createRequestId();
       const headers = normalizeHeaders(options.headers);
+      const clientContext = mergeClientContext(getDefaultClientContext(), config.clientContext, options.clientContext);
+      const method = options.method ?? (options.body === undefined ? "GET" : "POST");
+      Object.assign(headers, buildClientContextHeaders(clientContext));
       headers["x-request-id"] = requestId;
 
       const init: RequestInit = {
         credentials: "include",
         headers,
-        method: options.method ?? (options.body === undefined ? "GET" : "POST")
+        method
       };
 
       if (options.body !== undefined) {
@@ -45,26 +54,41 @@ export function createH5Client(config: H5ClientConfig = {}) {
         init.body = JSON.stringify(options.body);
       }
 
-      const response = await fetcher(
-        buildH5ApiPath(path, {
-          basePath: config.basePath,
-          pathname: config.pathname
-        }),
-        init
-      );
-      const payload = (await response.json()) as H5BffResult<T>;
+      try {
+        const response = await fetcher(
+          buildH5ApiPath(path, {
+            basePath: config.basePath,
+            pathname: config.pathname
+          }),
+          init
+        );
+        const payload = (await response.json()) as H5BffResult<T>;
 
-      if (!response.ok && payload.success) {
-        return {
-          success: false,
-          code: "HTTP_ERROR",
-          message: "BFF request failed.",
-          requestId,
-          recoverable: true
-        };
+        if (!response.ok && payload.success) {
+          const result = {
+            success: false,
+            code: "HTTP_ERROR",
+            message: "BFF request failed.",
+            requestId,
+            recoverable: true
+          } as const;
+          recordH5Request(path, method, clientContext, result.requestId, "error", result.code);
+          return result;
+        }
+
+        recordH5Request(
+          path,
+          method,
+          clientContext,
+          payload.requestId ?? requestId,
+          payload.success ? "success" : "error",
+          payload.success ? undefined : payload.code
+        );
+        return payload;
+      } catch (error) {
+        recordH5Request(path, method, clientContext, requestId, "error", "NETWORK_ERROR");
+        throw error;
       }
-
-      return payload;
     }
   };
 }
@@ -103,6 +127,33 @@ function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
     normalized[key] = value;
   });
   return normalized;
+}
+
+function getDefaultClientContext(): ClientRequestContext {
+  return typeof window === "undefined" ? {} : getBrowserClientContext();
+}
+
+function mergeClientContext(...contexts: Array<ClientRequestContext | undefined>): ClientRequestContext {
+  return Object.assign({}, ...contexts.filter(Boolean));
+}
+
+function recordH5Request(
+  path: string,
+  method: string,
+  clientContext: ClientRequestContext,
+  requestId: string,
+  status: "error" | "success",
+  code?: string
+) {
+  recordRequestDiagnostic({
+    ...(code === undefined ? {} : { code }),
+    method,
+    path,
+    requestId,
+    route: clientContext.h5Route ?? "unknown",
+    status,
+    timestamp: Date.now()
+  });
 }
 
 function createRequestId() {

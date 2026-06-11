@@ -1,5 +1,54 @@
 # 变更摘要
 
+## 2026-06-11 - H5 HTTP 请求架构补齐
+
+### 变更
+
+- 新增 `src/lib/http/request-diagnostics.ts`，维护 `pageSessionId`、最近请求记录、最近失败 requestId 和诊断快照。
+- `createH5Client()` 在浏览器环境下合并默认客户端上下文，并在请求成功、业务失败和网络异常时记录请求诊断。
+- 新增 `src/server/http/bff-context.ts`，统一 BFF route 的 Cookie auth、客户端上下文、backend client 和安全 backend call logger。
+- `/api/bff/user/profile` 示例 route 迁移到 `createBffRequestContext()`。
+- 新增 `src/features/home/runtime-api.ts`，首页 Runtime 面板不再直接拼 BFF path。
+- 新增 `src/features/promotion/api.ts`，集中维护推广模块当前 BFF mock 接口路径，作为后续真实接口迁移样板。
+- 更新 API 规范、ADR、HTTP 架构宣讲文档和根级任务记录。
+
+### 验证
+
+- `pnpm test src/lib/http/h5-client.test.ts src/lib/http/request-diagnostics.test.ts src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/server/http/bff-response.test.ts src/features/home/runtime-api.test.ts src/features/home/home.test.tsx src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts`：通过，9 files / 44 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - H5 HTTP 请求观测第一阶段
+
+### 变更
+
+- 新增 `src/lib/http/client-context.ts`，统一定义 App / 设备 / 系统 / WebView 上下文，并映射为安全的 `x-*` header。
+- `createH5Client()` 支持传入客户端上下文，请求 BFF 时继续保留 `credentials: "include"` 和 `x-request-id`，并补充 `x-page-session-id`、`x-app-version`、`x-platform`、`x-os-version`、`x-device-model` 等可选 header。
+- H5 client 不手动设置浏览器禁止的 `User-Agent`；浏览器到 BFF 使用 WebView 自动 UA，BFF 到后端再透传。
+- `createBackendClient()` 支持透传原始 `user-agent` 和客户端上下文 header，并新增结构化 logger hook，用于记录 requestId、backend、path、status、duration、错误码和设备上下文。
+- `/api/bff/user/profile` 示例 route 已从浏览器请求头读取客户端上下文，并传给 backend client。
+- 更新 H5 API 文档、根级 BFF 鉴权契约、HTTP 架构宣讲文档和根级任务记录。
+
+### 验证
+
+- `pnpm test src/lib/http/h5-client.test.ts src/server/http/backend-client.test.ts src/server/http/bff-response.test.ts`：通过，3 files / 9 tests。
+- `pnpm typecheck`：通过。
+
+## 2026-06-10 - 禁止 H5 WebView 页面级缩放
+
+### 变更
+
+- 全局 viewport 增加 `minimumScale: 1`、`maximumScale: 1` 和 `userScalable: false`，禁止 App WebView 双指缩放页面。
+- 新增 `DisableViewportZoom` 客户端 runtime，拦截 iOS WebKit `gesturestart/gesturechange/gestureend` 和多指 `touchmove`。
+- 全局 CSS 增加移动端 `touch-action: pan-x pan-y` 与文本缩放约束，保留正常单指滚动。
+- 抽出 `appViewport` 和缩放判断纯函数，补充回归测试，避免后续改入口时误删缩放限制。
+
+### 验证
+
+- `pnpm exec vitest run src/lib/runtime/viewport-config.test.ts src/lib/runtime/viewport-zoom.test.ts`：通过，2 files / 4 tests。
+- `pnpm run typecheck`：通过。
+
 ## 2026-06-10 - 分类页切换与分享联调修正
 
 ### 变更

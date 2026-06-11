@@ -20,6 +20,108 @@
 ### 备选方案
 ```
 
+## ADR-0023 - H5 业务接口通过 Feature API Adapter 接入
+
+日期：2026-06-11
+
+状态：Accepted
+
+### 背景
+
+后续真实业务接口会持续补齐，如果页面组件直接拼 `/api/bff/**`，路径、query 参数、错误处理和请求诊断很容易散落在不同页面里。接口数量一多，联调时就会出现“页面到底调了哪个接口”“参数名是不是拼错了”“这个页面有没有带 requestId”的反复确认。
+
+### 决策
+
+H5 业务接口接入采用固定分层：
+
+- 页面组件只调用 feature API 方法。
+- feature API adapter 负责集中维护 BFF path、query 参数和返回类型。
+- `createH5Client()` 负责 requestId、客户端上下文和请求诊断。
+- BFF route 优先使用 `createBffRequestContext()` 读取 Cookie auth、客户端上下文和 backend client。
+- 后端真实接口转换逻辑放在 server service / mapper，不放进页面组件。
+
+当前样板包括：
+
+- `src/features/home/runtime-api.ts`
+- `src/features/promotion/api.ts`
+- `src/server/http/bff-context.ts`
+- `src/lib/http/request-diagnostics.ts`
+
+### 影响
+
+- 后续新增接口时，团队有稳定模板，不需要每次重新讨论请求怎么写。
+- 页面组件更薄，真实后端接口替换 BFF mock 时改动范围更小。
+- requestId、pageSessionId、User-Agent 和设备上下文由 HTTP 基础设施统一处理，减少漏传。
+- 线上错误反馈可以通过请求诊断快照拿到最近失败 requestId，提高定位效率。
+
+### 备选方案
+
+- 页面组件直接 `fetch("/api/bff/...")`：拒绝，因为接口路径和参数会散落，后续难维护。
+- 所有业务共用一个巨大 API 文件：拒绝，因为不同业务域会互相影响，类型和测试也会变重。
+- 先不做 adapter，等接口稳定后再整理：拒绝，因为现在正是接口不完整、联调要频繁补齐的时候，更需要先定好入口。
+
+## ADR-0022 - H5 HTTP 链路透传客户端上下文
+
+日期：2026-06-11
+
+状态：Accepted
+
+### 背景
+
+H5 后续会逐步接入 Java / Python 真实后端接口。线上问题不一定只由接口本身引起，也可能和 App 版本、系统版本、设备型号或 WebView 容器有关。如果请求链路只记录接口路径和状态码，团队很难判断问题是否集中在某类手机或某个 App 版本。
+
+### 决策
+
+H5 HTTP 链路第一阶段采用轻量请求观测方案：
+
+- H5 client 继续生成并传递 `x-request-id`。
+- 浏览器到 BFF 保留 WebView 自动 `User-Agent`，H5 不手动设置 `User-Agent`。
+- H5 client 通过 `x-page-session-id`、`x-app-version`、`x-platform`、`x-os-version`、`x-device-model` 等可选 header 补充客户端上下文。
+- BFF 调 Java / Python 后端时透传原始 `user-agent` 和客户端上下文。
+- backend client 提供结构化 logger hook，记录 requestId、backend、path、status、duration、错误码和客户端上下文，不记录 token、完整 Cookie 或敏感个人信息。
+
+### 影响
+
+- 用户反馈 requestId 后，研发可以从 H5 BFF 查到后端调用，并按 App 版本、系统版本和设备型号聚合问题。
+- Java / Python 后端需要后续适配 `x-request-id` 和客户端上下文日志，才能完成端到端链路检索。
+- 原生 App 需要确认设备型号、系统版本、App 版本和 WebView 版本的来源。
+
+### 备选方案
+
+- 只依赖 `User-Agent`：拒绝，因为 UA 字符串不稳定，且不适合承载 App build、H5 route 等业务排障信息。
+- 页面直接把所有上下文放进请求 body：拒绝，因为上下文是链路元信息，应由统一 HTTP 层处理。
+- 一开始接入 OpenTelemetry：暂不采用，当前接口和后端适配仍在早期，先用 `requestId` 和日志打通 60% 的排障场景。
+
+## ADR-0021 - H5 App WebView 禁止页面级缩放
+
+日期：2026-06-10
+
+状态：Accepted
+
+### 背景
+
+H5 页面运行在原生 App WebView 内，页面布局按 375/390 等移动端视口适配。当前 App 内双指滑动会放大 H5 页面，导致导航、筛选弹层、商品卡片和固定底栏的布局比例被破坏，用户返回页面后也可能保留异常缩放状态。
+
+### 决策
+
+H5 全局按 App 内嵌页口径禁止页面级缩放：
+
+- 根 layout 的 Next.js viewport 输出 `minimum-scale=1`、`maximum-scale=1` 和 `user-scalable=no`。
+- 客户端挂载 `DisableViewportZoom`，拦截 iOS WebKit `gesturestart/gesturechange/gestureend` 和多指 `touchmove`。
+- 全局 CSS 设置 `touch-action: pan-x pan-y`，保留正常单指滚动。
+
+### 影响
+
+- 用户在 App WebView 内不能通过双指放大 H5 页面，页面尺寸和原生容器更一致。
+- 字号可读性必须由设计系统和页面适配保证，不能依赖用户手动放大页面。
+- 后续新增第三方组件、地图、富文本或 iframe 时，需要验证不会重新开启局部缩放。
+
+### 备选方案
+
+- 只设置 viewport：暂不采用，因为部分 iOS WebView 仍可能响应 gesture 事件。
+- 只在原生 WebView 禁止缩放：暂不采用，因为 H5 自身仍应声明页面运行约束，并在 Web fallback 中保持一致。
+- 保留用户缩放：拒绝，因为当前业务页面是 App 内嵌操作页，缩放会破坏固定导航、弹层和列表交互。
+
 ## ADR-0020 - H5 本地静态资源必须通过资源 registry 解析
 
 日期：2026-06-05

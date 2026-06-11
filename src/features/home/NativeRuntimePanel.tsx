@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createH5Client } from "@/lib/http";
 import { formatStatusBarCssVars } from "@/lib/runtime/status-bar";
 import type { NativeRuntimeContext } from "@/server/runtime/native-context";
+import { createRuntimeApi } from "./runtime-api";
 
 type RuntimeState =
   | { status: "loading" }
@@ -15,15 +16,12 @@ export function NativeRuntimePanel() {
 
   useEffect(() => {
     let disposed = false;
-    const client = createH5Client();
+    const runtimeApi = createRuntimeApi(createH5Client());
     const sourceSearch = typeof window === "undefined" ? "" : window.location.search;
-    const path = sourceSearch
-      ? `/api/bff/runtime/context?sourceSearch=${encodeURIComponent(sourceSearch)}`
-      : "/api/bff/runtime/context";
 
     async function loadRuntimeContext() {
       try {
-        const result = await client.request<NativeRuntimeContext>(path);
+        const result = await runtimeApi.getNativeRuntimeContext(sourceSearch);
         if (disposed) {
           return;
         }

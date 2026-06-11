@@ -2,6 +2,8 @@
 
 ## Active
 
+- [ ] 与原生 App 确认 H5 可获取的 App 名称、App 版本、build 号、系统版本、设备型号和 WebView 版本来源。
+- [ ] 与 Java / Python 后端确认接收、记录、透传和返回 `x-request-id`，并在入口日志记录 App / 设备 / 系统上下文。
 - [ ] 确认推广模块真实后端接口、达人等级规则、活动状态和榜单刷新策略。
 - [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、`native_page`、`route_changed`、手势返回和 URL 白名单。
 - [ ] 确认 v1.2.0 搜索接口、热榜接口、推广商品接口、佣金字段、秒杀库存/资格/活动时间接口和原生入口跳转参数。
@@ -70,3 +72,6 @@
 - [x] 将我的页、奖励记录和排行榜的浅绿顶部背景收敛为共享资源，并修正排行榜皇冠和领奖台布局。
 - [x] 建立 H5 与原生路由跳转基础闭环，完成 H5 统一导航封装、入口改造和 route_changed 上报。
 - [x] 完成 v1.2.0 搜索、推广商品和限时秒杀首批静态高保真页面。
+- [x] 禁止 H5 WebView 页面级双指缩放，保留正常单指滚动。
+- [x] 完成 H5 HTTP 请求观测第一阶段：客户端上下文 header、BFF 到后端透传和 backend call logger hook。
+- [x] 补齐 H5 HTTP 请求架构：请求诊断、BFF request context、Runtime adapter 和 Promotion adapter 样板。

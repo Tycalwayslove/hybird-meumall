@@ -1,5 +1,7 @@
 import { createApiError } from "@/lib/api/errors";
 import type { ApiError, ApiFetch } from "@/lib/api/types";
+import type { ClientRequestContext } from "@/lib/http/client-context";
+import { buildClientContextHeaders } from "@/lib/http/client-context";
 import type { BackendName, BackendRegistry } from "./backend-registry";
 import { resolveBackend } from "./backend-registry";
 
@@ -13,11 +15,34 @@ type BackendRequestMeta = {
 
 export type BackendApiResult<T> = { ok: true; data: T; meta: BackendRequestMeta } | { ok: false; error: ApiError };
 
+export type BackendCallLogEntry = {
+  appBuild?: string;
+  appName?: string;
+  appVersion?: string;
+  backend: BackendName;
+  backendPath: string;
+  backendStatus?: number;
+  deviceModel?: string;
+  durationMs: number;
+  errorCode?: ApiError["code"];
+  method: string;
+  osVersion?: string;
+  pageSessionId?: string;
+  platform?: string;
+  requestId: string;
+  route: string;
+  timeoutMs: number;
+  webviewVersion?: string;
+};
+
+export type BackendCallLogger = (entry: BackendCallLogEntry) => void;
+
 export type BackendClientConfig = {
   registry: BackendRegistry;
   defaultHeaders?: HeadersInit;
   fetcher?: ApiFetch;
   h5Version?: string;
+  logger?: BackendCallLogger;
   requestIdFactory?: () => string;
   timeoutMs?: number;
 };
@@ -27,6 +52,7 @@ export type BackendRequestOptions = {
   authToken?: string | null;
   backend: BackendName;
   body?: unknown;
+  clientContext?: ClientRequestContext;
   headers?: HeadersInit;
   method?: string;
   path: string;
@@ -44,15 +70,26 @@ export function createBackendClient(config: BackendClientConfig) {
     async request<T>(options: BackendRequestOptions): Promise<BackendApiResult<T>> {
       const backend = resolveBackend(config.registry, options.backend);
       const requestId = config.requestIdFactory?.() ?? createRequestId();
+      const startedAt = Date.now();
 
       if (options.authRequired && !options.authToken) {
+        const error = createApiError("TOKEN_MISSING", { requestId });
+        logBackendCall(config.logger, {
+          errorCode: error.code,
+          options,
+          requestId,
+          startedAt,
+          timeoutMs: options.timeoutMs ?? timeoutMs
+        });
+
         return {
           ok: false,
-          error: createApiError("TOKEN_MISSING", { requestId })
+          error
         };
       }
 
       const headers = normalizeHeaders(config.defaultHeaders);
+      Object.assign(headers, buildClientContextHeaders(options.clientContext, { includeUserAgent: true }));
       Object.assign(headers, normalizeHeaders(options.headers));
       headers["x-request-id"] = requestId;
       headers["x-h5-version"] = config.h5Version ?? process.env.H5_VERSION ?? "unknown";
@@ -77,15 +114,33 @@ export function createBackendClient(config: BackendClientConfig) {
         const responseBody = await parseResponseBody(response);
 
         if (!response.ok) {
+          const error = createApiError(response.status === 401 || response.status === 403 ? "AUTH_FAILED" : "HTTP_ERROR", {
+            httpStatus: response.status,
+            requestId,
+            details: responseBody === undefined ? undefined : { response: responseBody }
+          });
+          logBackendCall(config.logger, {
+            backendStatus: response.status,
+            errorCode: error.code,
+            options,
+            requestId,
+            startedAt,
+            timeoutMs: options.timeoutMs ?? timeoutMs
+          });
+
           return {
             ok: false,
-            error: createApiError(response.status === 401 || response.status === 403 ? "AUTH_FAILED" : "HTTP_ERROR", {
-              httpStatus: response.status,
-              requestId,
-              details: responseBody === undefined ? undefined : { response: responseBody }
-            })
+            error
           };
         }
+
+        logBackendCall(config.logger, {
+          backendStatus: response.status,
+          options,
+          requestId,
+          startedAt,
+          timeoutMs: options.timeoutMs ?? timeoutMs
+        });
 
         return {
           ok: true,
@@ -100,21 +155,39 @@ export function createBackendClient(config: BackendClientConfig) {
         };
       } catch (error) {
         if (error instanceof BackendTimeoutError) {
+          const apiError = createApiError("TIMEOUT", {
+            requestId,
+            details: { timeoutMs: options.timeoutMs ?? timeoutMs }
+          });
+          logBackendCall(config.logger, {
+            errorCode: apiError.code,
+            options,
+            requestId,
+            startedAt,
+            timeoutMs: options.timeoutMs ?? timeoutMs
+          });
+
           return {
             ok: false,
-            error: createApiError("TIMEOUT", {
-              requestId,
-              details: { timeoutMs: options.timeoutMs ?? timeoutMs }
-            })
+            error: apiError
           };
         }
 
+        const apiError = createApiError("NETWORK_ERROR", {
+          requestId,
+          details: { message: error instanceof Error ? error.message : String(error) }
+        });
+        logBackendCall(config.logger, {
+          errorCode: apiError.code,
+          options,
+          requestId,
+          startedAt,
+          timeoutMs: options.timeoutMs ?? timeoutMs
+        });
+
         return {
           ok: false,
-          error: createApiError("NETWORK_ERROR", {
-            requestId,
-            details: { message: error instanceof Error ? error.message : String(error) }
-          })
+          error: apiError
         };
       }
     }
@@ -136,6 +209,43 @@ function normalizeHeaders(headers?: HeadersInit): Record<string, string> {
   });
 
   return normalized;
+}
+
+function logBackendCall(
+  logger: BackendCallLogger | undefined,
+  input: {
+    backendStatus?: number;
+    errorCode?: ApiError["code"];
+    options: BackendRequestOptions;
+    requestId: string;
+    startedAt: number;
+    timeoutMs: number;
+  }
+) {
+  if (!logger) {
+    return;
+  }
+
+  const context = input.options.clientContext;
+  logger({
+    ...(context?.appBuild === undefined ? {} : { appBuild: context.appBuild }),
+    ...(context?.appName === undefined ? {} : { appName: context.appName }),
+    ...(context?.appVersion === undefined ? {} : { appVersion: context.appVersion }),
+    backend: input.options.backend,
+    backendPath: input.options.path,
+    ...(input.backendStatus === undefined ? {} : { backendStatus: input.backendStatus }),
+    ...(context?.deviceModel === undefined ? {} : { deviceModel: context.deviceModel }),
+    durationMs: Math.max(0, Date.now() - input.startedAt),
+    ...(input.errorCode === undefined ? {} : { errorCode: input.errorCode }),
+    method: input.options.method ?? (input.options.body === undefined ? "GET" : "POST"),
+    ...(context?.osVersion === undefined ? {} : { osVersion: context.osVersion }),
+    ...(context?.pageSessionId === undefined ? {} : { pageSessionId: context.pageSessionId }),
+    ...(context?.platform === undefined ? {} : { platform: context.platform }),
+    requestId: input.requestId,
+    route: input.options.route ?? "unknown",
+    timeoutMs: input.timeoutMs,
+    ...(context?.webviewVersion === undefined ? {} : { webviewVersion: context.webviewVersion })
+  });
 }
 
 async function parseResponseBody(response: Response): Promise<unknown> {

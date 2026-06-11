@@ -1,20 +1,15 @@
-import { getBackendAuthToken, readCookieAuthFromRequest } from "@/server/auth/cookie-auth";
-import { createBackendClient } from "@/server/http/backend-client";
-import { createBackendRegistry } from "@/server/http/backend-registry";
+import { createBffRequestContext } from "@/server/http/bff-context";
 import { toBffResponse } from "@/server/http/bff-response";
 
 export async function GET(request: Request) {
-  const auth = readCookieAuthFromRequest(request);
-  const backendClient = createBackendClient({
-    registry: createBackendRegistry(),
-    h5Version: process.env.H5_VERSION
-  });
+  const context = createBffRequestContext(request);
 
-  const result = await backendClient.request({
+  const result = await context.backendClient.request({
     backend: "java",
     path: "/api/user/profile",
     authRequired: true,
-    authToken: getBackendAuthToken(auth, "java"),
+    authToken: context.getAuthToken("java"),
+    clientContext: context.clientContext,
     route: "/mine"
   });
 

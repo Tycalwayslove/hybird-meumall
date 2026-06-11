@@ -26,6 +26,9 @@
 
 ### 新增
 
+- 新增 H5 HTTP 请求观测第一阶段：客户端上下文 header、BFF 到后端透传和 backend call logger hook。
+- 新增 H5 请求诊断、BFF request context、首页 Runtime feature API adapter 和推广模块 API adapter，形成后续真实接口接入模板。
+- 新增 H5 WebView 缩放守卫 `DisableViewportZoom`，拦截 iOS WebKit gesture 和多指 touchmove。
 - 新增 `ProductImagePlaceholder` 公共商品缩略图缺省组件，统一搜索、推广商品、秒杀、购买弹窗和提交订单商品行的灰色占位图。
 - 新增商品详情购买弹窗静态高保真实现，包含规格、配送方式、数量步进器和确认入口。
 - 新增提交订单高保真静态页，支持默认地址态和未填写收货信息态。
@@ -84,6 +87,9 @@
 
 ### 变更
 
+- H5 BFF 鉴权和 API 规范补充 `User-Agent`、`x-request-id`、App 版本、系统版本、设备型号和 WebView 版本的透传约定。
+- 首页原生 Runtime 面板改为通过 `createRuntimeApi()` 请求 BFF，避免组件直接拼接口路径。
+- 根 layout viewport 固定为 `initial/minimum/maximum-scale=1`、`user-scalable=no`，按 App 内嵌 H5 口径禁止页面级缩放。
 - H5 route 清单移除旧兼容入口，智能体不再提供 H5 占位页面。
 - 排行榜顶部背景从手写渐变调整为共享图片背景，领奖台三卡改为 360px 贴合居中布局，皇冠固定到头像右上角。
 - `mine.hero.background`、`promotion.rewardRecordsBg` 和 `promotion.rankingHeroBg` 统一解析到共享背景资源，避免同图多份维护。
@@ -188,6 +194,7 @@
 - 已通过 `pnpm test -- src/config/manifest.test.ts`、`pnpm test`、`pnpm typecheck` 和 `pnpm lint`。
 - 已通过 Bridge adapter 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 Cookie auth、backend registry、backend client、BFF response 和 H5 client 目标测试验证 BFF 鉴权基础。
+- 已通过 H5 client、请求诊断、BFF context、Runtime adapter 和 Promotion adapter 目标测试验证 HTTP 请求架构补齐。
 - 已通过 native runtime context 目标测试验证原生传参调试信息。
 - 已通过推广模块 service 单测、类型检查、本地路由 smoke 和生产构建验证首批推广页面。
 - 已通过 design token 单测、推广模块 service 单测和直接颜色 class 检查验证设计体系基础。
