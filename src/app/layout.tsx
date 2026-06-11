@@ -1,9 +1,11 @@
 import type { CSSProperties } from "react";
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import "@/styles/globals.css";
 import { HybridRouteReporter } from "@/lib/navigation";
+import { DisableViewportZoom } from "@/lib/runtime/DisableViewportZoom";
 import { formatStatusBarCssVars } from "@/lib/runtime/status-bar";
+import { appViewport } from "@/lib/runtime/viewport-config";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +14,7 @@ export const metadata: Metadata = {
   description: "Hybrid App H5 runtime shell"
 };
 
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover"
-};
+export const viewport = appViewport;
 
 export default async function RootLayout({
   children
@@ -41,6 +39,7 @@ export default async function RootLayout({
       >
         {children}
         <HybridRouteReporter />
+        <DisableViewportZoom />
         {showVersionBadge ? (
           <div className="h5-version-badge" aria-label={`当前 H5 版本：${releaseLabel}`}>
             {releaseLabel}
