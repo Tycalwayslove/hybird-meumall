@@ -4,9 +4,16 @@
 
 - [ ] 与原生 App 确认 H5 可获取的 App 名称、App 版本、build 号、系统版本、设备型号和 WebView 版本来源。
 - [ ] 与 Java / Python 后端确认接收、记录、透传和返回 `x-request-id`，并在入口日志记录 App / 设备 / 系统上下文。
+- [ ] 用 App 注入的有效 `mallToken` 验证首页 `/api/bff/home`、首页推荐 `/api/bff/home/recommend-products`、相似推荐 `/api/bff/home/for-you-products` 均能返回真实数据，并确认 banner `jumpType` 最终跳转语义。
+- [ ] 接入正式线上日志平台后，将 `[h5-bff-backend-call]` 和 `[h5-bff-route-error]` 纳入可按 `requestId` 检索的日志索引。
 - [ ] 确认推广模块真实后端接口、达人等级规则、活动状态和榜单刷新策略。
-- [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、`native_page`、`route_changed`、手势返回和 URL 白名单。
+- [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`）、`route_changed`、手势返回和 URL 白名单。
 - [ ] 确认 v1.2.0 搜索接口、热榜接口、推广商品接口、佣金字段、秒杀库存/资格/活动时间接口和原生入口跳转参数。
+- [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054` 和订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1` 的真实数据链路。
+- [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
+- [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取、正式下单和支付接口。
+- [ ] 用 App 注入的有效 `mallToken` 验证真实商品 `content` 富文本中的详情图、表格和链接展示效果。
+- [ ] 正式服务器和域名完成后，将 `config/env/h5.prod.env` 从测试域名切换为正式 H5、Java 和 Python 域名。
 
 ## Backlog
 
@@ -16,10 +23,10 @@
 - [ ] stores、modules、features 业务开发目录规范。
 - [ ] 确认 design-system token 是否需要同步给原生 App 和管理后台。
 - [ ] 为后续实现任务补充 `.ai/test-reports/` 验证记录。
-- [ ] 确认 API 真实 base URL、token 刷新、重新登录和原生代理策略。
+- [ ] 确认 API token 刷新、重新登录和原生代理策略。
 - [ ] 确认 Telemetry 真实 Sentry/埋点平台、白屏采样点、采样率和隐私脱敏策略。
 - [ ] 将模拟页面中的色块占位替换为正式 icon 体系。
-- [ ] 确认商品详情真实商品接口、实时价格/库存/购买资格、评价数据、订单确认联动和咨询能力归属。
+- [ ] 确认商品详情评价详情、咨询能力归属和支付前正式下单接口。
 - [ ] 接入真实商品、分类、购物车、订单和用户接口。
 - [ ] 配置 GitHub Actions 所需 SSR secrets 和受保护发布环境。
 - [ ] 在真实 CI 环境配置 `H5_RELEASE_SERVER_URL`，验证 `register_release=true` 的 candidate release 注册链路。
@@ -75,3 +82,9 @@
 - [x] 禁止 H5 WebView 页面级双指缩放，保留正常单指滚动。
 - [x] 完成 H5 HTTP 请求观测第一阶段：客户端上下文 header、BFF 到后端透传和 backend call logger hook。
 - [x] 补齐 H5 HTTP 请求架构：请求诊断、BFF request context、Runtime adapter 和 Promotion adapter 样板。
+- [x] 接入首页首批真实接口 BFF、mapper 和客户端 fallback。
+- [x] 建立 H5 本地、测试、正式三套环境 profile，并统一当前 Java / Python 测试后端域名。
+- [x] 移除首页旧 active config 请求路径，补充正式迁移说明和 BFF 排错日志说明。
+- [x] 增加 H5 本地 token 兜底，支持 `.env.local` 配置 Java / Python 临时 token。
+- [x] 将我的页昵称后的 V1-V5 达人等级从文字胶囊替换为本地图片横条徽章。
+- [x] 完成个人中心二级页首批静态高保真：钱包、我的收藏、我的足迹、我的优惠券和订单列表。

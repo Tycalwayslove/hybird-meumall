@@ -329,6 +329,23 @@ H5 侧通过环境变量配置 active manifest URL：
 | `NEXT_PUBLIC_H5_MANIFEST_URL` | 浏览器/WebView 中可见的 active manifest URL，适用于 App Shell 客户端拉取。 |
 | `H5_MANIFEST_URL` | SSR 或服务端上下文使用的 active manifest URL，不应暴露敏感服务内网信息到浏览器 bundle。 |
 
+当前本地联调和测试环境统一使用 tracked profile 管理：
+
+| profile | `APP_ENV` | `H5_SERVICE_BASE_URL` | 说明 |
+| --- | --- | --- | --- |
+| `config/env/h5.local.env` | `local` | `https://hybird.aigcpop.com` | 本地 H5 dev 使用测试 H5 配置和测试后端。 |
+| `config/env/h5.test.env` | `test` | `https://hybird.aigcpop.com` | 测试环境 profile。 |
+| `config/env/h5.prod.env` | `prod` | `https://hybird.aigcpop.com` | 正式环境占位，正式域名未完成前仍指向测试环境。 |
+
+这三份 profile 只解决本地调试和环境口径统一。正式版本容器发布时，`H5_BASE_PATH=/h5-v/<version>` 仍由发布脚本或 CI 按版本覆盖，不能直接用 profile 里的 `/hybird` 替代版本路径。
+
+正式环境迁移分两层：
+
+1. 配置层：修改 `config/env/h5.prod.env` 中的 H5、manifest、Java、Python 域名。
+2. 发布层：确认 CI / Docker / Jenkins 注入的 `H5_BASE_PATH=/h5-v/<version>`、`H5_SERVICE_BASE_URL`、active manifest URL、Cookie domain、nginx 代理和 smoke URL 都已切到正式环境。
+
+如果正式环境只换域名，且路径结构仍保持一致，代码通常不需要改；如果路径结构或 manifest schema 变化，就必须同步更新发布脚本、server-meumall manifest 记录、原生 App 打开 H5 的 URL 和回滚方案。
+
 `src/lib/manifest/server-fetcher.ts` 提供 `createHttpManifestFetcher(options)`：
 
 - `url` 可显式传入 server-meumall active manifest URL。

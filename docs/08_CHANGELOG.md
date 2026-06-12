@@ -28,10 +28,23 @@
 
 - 新增 H5 HTTP 请求观测第一阶段：客户端上下文 header、BFF 到后端透传和 backend call logger hook。
 - 新增 H5 请求诊断、BFF request context、首页 Runtime feature API adapter 和推广模块 API adapter，形成后续真实接口接入模板。
+- 新增首页真实接口首批接入：`/api/bff/home` 负责 Java 首页核心聚合接口，`/api/bff/home/recommend-products` 负责首页“为您推荐”商品分页，`/api/bff/home/for-you-products` 负责相似推荐商品更多页分页，并保留静态 fallback。
+- 首页“为您推荐”区支持下滑加载更多商品，加载到第 2 页后显示回到顶部按钮。
+- 新增 H5 页面 `/home/recommend-products`，从首页“为您推荐”右侧“更多”进入，标题为“相似推荐商品”，包含导航栏、搜索栏、筛选条件、商品列表和下拉加载更多。
+- 首页 BFF 成功响应调整为 `view/modules/debugRaw` 结构：当前页面渲染读取 `view`，后续字段扩展优先查看 `modules`，local/test 可用 `debugRaw` 对比 Java 原始 envelope。
+- 新增 H5 三套环境 profile：`config/env/h5.local.env`、`config/env/h5.test.env`、`config/env/h5.prod.env`，当前统一指向测试 H5 配置和测试后端域名。
+- 新增首页 BFF route 自身异常日志 `[h5-bff-route-error]`，用于区分 BFF 自身错误和后端调用错误。
+- 新增 H5 本地 token 兜底：仅 `APP_ENV=local` 且 Cookie 缺失时，从 `.env.local` 读取 `H5_LOCAL_JAVA_TOKEN` / `H5_LOCAL_PYTHON_TOKEN`。
+- 新增 BFF 后端业务码日志字段：`backendBusinessCode`、`backendBusinessMessage`、`backendBusinessSuccess`。
+- 新增商品详情真实接口 BFF：`/api/bff/product-detail?prodId=<prodId>`，请求 Java `/prod/prodInfo?prodId=<prodId>&addrId=0&dvyType=1`。
+- 新增订单确认实时校验 BFF：`/api/bff/order-confirm?productId=<prodId>&skuId=<skuId>&quantity=<n>`，订单确认页重新校验 SKU、库存和价格。
+- 新增商品详情富文本组件 `ProductRichContent`，通过 `sanitize-html` 清洗后端 `content`，再用 `html-react-parser` 渲染为 React 节点。
+- 商品详情 BFF 新增只读辅助聚合：`/shop/headInfo`、`/prod/prodCommData` 和 `/prod/prodCommPageByProd`；店铺头部仅保留在 modules，页面该位置展示评论概要。
 - 新增 H5 WebView 缩放守卫 `DisableViewportZoom`，拦截 iOS WebKit gesture 和多指 touchmove。
 - 新增 `ProductImagePlaceholder` 公共商品缩略图缺省组件，统一搜索、推广商品、秒杀、购买弹窗和提交订单商品行的灰色占位图。
 - 新增商品详情购买弹窗静态高保真实现，包含规格、配送方式、数量步进器和确认入口。
 - 新增提交订单高保真静态页，支持默认地址态和未填写收货信息态。
+- Java / mall 后端出站请求统一注入 `source: 1`，表示当前 H5 运行在 App WebView 内，按 App 来源上报；Python 请求不携带该 header。
 - 初始化 Hybrid App H5 AI 工程化工作流文档结构。
 - 添加项目级 Codex Skills：任务创建、规划、实现、测试、审查、归档、发布准备和回滚。
 - 添加 `scripts/ai/` 下的最小可运行 AI 辅助脚本，以及 `package.json` 的 `ai:*` 命令。
@@ -82,12 +95,22 @@
 - 添加 design-system `brand.normal` token，对应 Figma 品牌色常规 `#A8F156`。
 - 添加共享浅绿顶部背景 `shared.greenHeroBg`，供我的页、奖励记录和排行榜复用。
 - 添加 H5 统一导航封装 `src/lib/navigation`，提供 `HybridLink`、`createHybridNavigator()` 和 `HybridRouteReporter`。
-- 扩展 Bridge 路由信封，新增 `tab`、`close_webview`、`native_page` 和 `event/route_changed`，用于 H5 与原生 App 的 WebView 容器跳转、返回和路由变化上报。
+- 扩展 Bridge 路由信封，新增 `tab`、`close_webview` 和 `event/route_changed`；原生页跳转不再使用 `native_page` 包装，直接以页面名作为 `payload.route`。
 - 注册限时秒杀页头图背景 `seckill.heroBg`，随 H5 发版并通过 `localAssetUrl()` 解析版本 basePath。
 
 ### 变更
 
 - H5 BFF 鉴权和 API 规范补充 `User-Agent`、`x-request-id`、App 版本、系统版本、设备型号和 WebView 版本的透传约定。
+- 根目录 `dev:h5`、H5 项目环境启动命令和 `scripts/root/dev-all.sh` 改为读取 H5 environment profile；Java 后端统一为 `https://test.aigcpop.com/mini_h5`，Python 后端统一为 `https://test.aigcpop.com/api`。
+- 首页渲染数据源从纯静态 mock 调整为优先请求 H5 BFF，失败时回落到本地 `homeExperienceData`。
+- 首页停止请求旧 `GET /api/h5/home/config/active?environment=prod`；当前 active 版本通过 manifest active 获取，首页业务数据通过 `/api/bff/home` 获取。
+- 商品详情数字商品 ID 从静态 mock 改为远程商品加载壳，客户端通过 H5 BFF 拉取真实商品；本地 `p-1001` mock 仍保留为高保真验证入口。
+- 商品详情内容区从纯文本描述升级为优先渲染 `/prod/prodInfo.content` 富文本，支持段落、列表和详情图；富文本图片相对路径会拼接 `JAVA_OSS_ASSET_BASE_URL`。
+- 商品详情页按 Figma 修正评论概要展示；店铺卡片不在详情页主流程展示，评论接口失败时显示评价空态，不拖垮商品主详情。
+- 商品主图支持视频 + 图片混合轮播、触屏横滑、鼠标拖拽、横向滑动动画、预览和播放；售后保障和资质条按旧 uni-app 字段逻辑映射。
+- 订单确认页对真实商品参数重新请求商品详情校验，购买弹窗不再把价格作为 URL 可信数据。
+- Cookie 鉴权保持优先级：Cookie token 优先；本地 env token 只作为 local 开发兜底，测试和正式环境不生效。
+- BFF 日志排查口径补充：`backendStatus` 是 HTTP 状态，`backendBusinessCode` 才是后端业务码。
 - 首页原生 Runtime 面板改为通过 `createRuntimeApi()` 请求 BFF，避免组件直接拼接口路径。
 - 根 layout viewport 固定为 `initial/minimum/maximum-scale=1`、`user-scalable=no`，按 App 内嵌 H5 口径禁止页面级缩放。
 - H5 route 清单移除旧兼容入口，智能体不再提供 H5 占位页面。
@@ -195,6 +218,11 @@
 - 已通过 Bridge adapter 单测、全量测试、类型检查、lint 和 AI 工作流检查。
 - 已通过 Cookie auth、backend registry、backend client、BFF response 和 H5 client 目标测试验证 BFF 鉴权基础。
 - 已通过 H5 client、请求诊断、BFF context、Runtime adapter 和 Promotion adapter 目标测试验证 HTTP 请求架构补齐。
+- 已通过首页真实接口 mapper、BFF service、首页回归、HTTP client 和 BFF context 目标测试验证首页接口接入。
+- 已通过 H5 环境 profile 取值校验、`dev-all.sh` 语法检查、根目录 dev 脚本测试、H5 后端 registry / backend client / BFF context / 首页真实接口目标测试和类型检查。
+- 已通过首页旧配置接口移除回归、BFF 日志说明、类型检查、lint 和根级工作流检查验证本轮排错文档补齐。
+- 已通过 Cookie auth、BFF context、backend client 和首页真实接口目标测试验证本地 token 兜底。
+- 已通过 backend client、BFF context 和首页真实接口目标测试验证后端业务码日志增强。
 - 已通过 native runtime context 目标测试验证原生传参调试信息。
 - 已通过推广模块 service 单测、类型检查、本地路由 smoke 和生产构建验证首批推广页面。
 - 已通过 design token 单测、推广模块 service 单测和直接颜色 class 检查验证设计体系基础。
@@ -357,3 +385,25 @@
 
 - `pnpm exec vitest run src/design-system/components/navigation.test.tsx` 通过。
 - `pnpm typecheck` 通过。
+
+## 2026-06-11 - BFF 后端请求快照日志
+
+### 变更
+
+- 新增 `JAVA_OSS_ASSET_BASE_URL` 环境变量，当前指向 `https://awu-mall-file.oss-cn-guangzhou.aliyuncs.com/`。
+- 首页真实接口 mapper 会为 Java 返回的相对图片路径拼接 OSS base URL，完整 URL 原样保留。
+- `[h5-bff-backend-call]` 增加 `requestUrl`、`requestQuery`、`requestBody` 和 `requestHeaders`，用于联调核对 Java / Python 出站请求。
+- `[h5-bff-backend-call]` 增加可开关的 `responseBody` 响应快照，本地/测试默认打开，正式默认关闭。
+- `[h5-bff-backend-call]` 控制台输出改为格式化 JSON，嵌套数组和对象会完整展开，避免联调时只看到 `[Array]` / `[Object]`。
+- 请求头和请求体中的 `Authorization`、Cookie、token 和 secret 类敏感字段会掩码输出。
+- 响应快照中的 token、mobile、phone、address 等字段会掩码，并受日志长度上限控制。
+- 后端鉴权 header 按联调结果区分：Java / mall 使用裸 `Authorization: <mallToken>`，Python 使用 `Authorization: Bearer <pythonToken>`。
+- Java `ResponseEnum` 已整理为 H5 可复用码表，当前 `A00004` 映射为 `AUTH_FAILED`，`A00005` 映射为 `HTTP_ERROR`。
+- 首页聚合接口业务鉴权失败时，不再继续请求首页推荐商品接口。
+- 首页商品接口分工已修正：首页商品区使用 Java `/p/app/home/recommendProds`，相似推荐商品更多页使用 Java `/p/app/home/forYouProds`。
+
+### 验证
+
+- `pnpm test src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/server/http/java-response-codes.test.ts src/features/home/home-real-api.test.ts` 通过。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，存在 4 条历史 `<img>` warning，无 error。

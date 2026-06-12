@@ -1,5 +1,315 @@
 # 变更摘要
 
+## 2026-06-12 - 商品图片缺省组件中心图标
+
+### 变更
+
+- 新增商品图片缺省图标资源 `public/assets/placeholders/product-image-placeholder.png`，来源为本次提供的 `Vector.png`。
+- 注册 `placeholder.productImage` 本地资源 key，继续通过 `localAssetUrl()` 适配 `/hybird` basePath 和后续 CDN 前缀。
+- `ProductImagePlaceholder` 默认展示居中的缺省图标，图标尺寸使用 `clamp(28px, 52%, 60px)` 适配不同容器宽高；背景色仍可由调用方 CSS 覆盖。
+- 新增 `hideDefaultIcon` 选项，供订单空态等自绘插画场景关闭默认图标。
+- 个人中心二级页商品缩略图已从旧手绘衣服占位改为统一缺省图标。
+
+### 验证
+
+- `pnpm exec vitest run src/design-system/components/product-image-placeholder.test.tsx src/lib/assets/asset-url.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 14 tests。
+- `pnpm typecheck`：通过。
+- 本地 HTTP smoke：`/hybird/assets/placeholders/product-image-placeholder.png` 和 `/hybird/favorites/products` 均返回 200。
+- Chrome headless 截图 `/tmp/meumall-placeholder-update/favorites.png`：收藏页商品缩略图中缺省图标居中且尺寸合适。
+
+## 2026-06-12 - 原生页 Bridge Route 直出
+
+### 变更
+
+- `HybridLink strategy="native-page"` 仍作为 H5 侧容器策略入口。
+- `createHybridNavigator().openNativePage(name, params)` 改为发送 `{ module: "router", action: "navigate", payload: { route: name, params } }`。
+- `settings`、`address` 等原生页都不再走 `route: "native_page"` + `params.name` 包装。
+- 更新 Native Bridge 规范、根级 Bridge 契约、原生路由对接说明和验证记录。
+
+### 验证
+
+- 先按 TDD 新增 `hybrid-navigation` 测试并确认非 settings 原生页仍发送旧 `native_page` payload 时失败。
+- `pnpm exec vitest run src/lib/navigation/hybrid-navigation.test.ts src/lib/bridge/protocol-bridge.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 12 tests。
+- `pnpm test`：通过，44 files / 225 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+
+## 2026-06-12 - Java 后端来源 Header
+
+### 变更
+
+- `createBackendClient()` 对所有 Java / mall 后端出站请求统一注入 `source: "1"`。
+- 调用方传入其它 `source` 值时，backend client 会覆盖为 App 来源 `1`。
+- Python 后端请求不携带 `source` header。
+- 更新 H5 BFF HTTP 鉴权契约、API 规范、项目状态和变更记录。
+
+### 验证
+
+- `pnpm exec vitest run src/server/http/backend-client.test.ts`：先按 TDD 确认缺少 / 错误 `source` 时失败。
+- `pnpm exec vitest run src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/features/product/product-real-flow.test.tsx src/features/home/home-real-api.test.ts`：通过，4 files / 38 tests。
+- `pnpm test`：通过，44 files / 224 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+
+## 2026-06-12 - 个人中心二级页静态高保真
+
+### 变更
+
+- 新增 `mine-secondary` 功能模块，集中维护钱包、收藏/足迹、优惠券和订单的本地 mock 数据与页面组件。
+- 新增 `/wallet`、`/footprints`、`/coupons` 路由，重做 `/favorites/products` 和 `/orders` 页面。
+- 钱包页实现余额卡、提现入口、结算 tab、筛选条、月度汇总和流水列表。
+- 钱包页结算 tab 已改为页面内 state 切换，不再输出 `/wallet?tab=...` 链接；切换时 tab 横线和下方汇总/流水列表带过渡动画。
+- 钱包页顶部导航补回 Figma 中的“历史钱包”入口和钱包图标样式。
+- 订单页状态 tab 已改为页面内 state 切换，不再输出 `/orders?status=...` 链接；保留 URL query 作为首次进入页面的初始状态，页内点击不再触发路由事件。
+- 我的收藏/我的足迹复用横向商品卡，支持编辑态选择、全选、取消、删除和未选择删除提示。
+- 我的收藏/我的足迹编辑态删除已补确认框；有选中商品时先弹“确认删除”，取消关闭弹窗，确认后本地移除已选 mock 商品。
+- 我的优惠券页实现可使用数量和三张券卡；订单页实现搜索、五个状态 tab、订单卡和空状态。
+- `/mine` 钱包余额、优惠券和足迹入口已连接到对应二级页。
+- 本次未修改商品详情、订单确认、BFF、Native Bridge、manifest 或发布链路。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/mine-secondary-pages.test.tsx src/lib/assets/asset-url.test.ts`：通过，2 files / 12 tests。
+- `pnpm typecheck`：通过。
+- Node HTTP smoke：`/hybird/wallet`、`/hybird/favorites/products`、`/hybird/favorites/products?edit=1`、`/hybird/footprints`、`/hybird/coupons`、`/hybird/orders?status=all`、`/hybird/orders?status=pending-receipt`、`/hybird/orders?status=empty`、`/hybird/mine` 均返回 200。
+- Chrome headless 截图检查已覆盖 390px 和 430px 视口；430px 完整 WebView 容器下钱包、收藏和订单首屏正常，390px 截图存在本机 headless 容器裁切偏差。
+- Chrome DevTools 点击验证：点击钱包“待结算”后 URL 保持 `http://localhost:3109/hybird/wallet`，选中 tab 变为“待结算”，页面出现待结算数据。
+- Chrome DevTools 点击验证：点击订单“待收货”后 URL 保持 `http://localhost:3109/hybird/orders`，选中 tab 变为“待收货”，订单卡从 4 条切到 1 条。
+- Chrome DevTools 点击验证：`/hybird/favorites/products?edit=1` 点击底部“删除”后出现 `role="dialog"` 确认框，文案为“确定删除已选的 8 个商品吗？”。
+
+## 2026-06-12 - 我的页达人等级图片徽章
+
+### 变更
+
+- 新增 `/mine` 昵称旁 V1-V5 达人等级横条 PNG 资源，放入 `public/assets/mine/level-badges/`。
+- 注册 `mine.levelBadge.v1-v5` 本地资源 key，并补充 basePath 回归测试。
+- 我的页 profile mock 增加 `levelBadgeAssetKey`，页面从文字胶囊改为渲染等级图片，保留 `alt` 文本。
+- 更新本地资源说明和根级独立任务 `TASK-2026-0612-011-mine-level-badge-images`。
+
+### 验证
+
+- `pnpm exec vitest run src/lib/assets/asset-url.test.ts`：通过，1 file / 7 tests。
+- `pnpm typecheck`：通过。
+- 本地 HTTP smoke：`/hybird/mine` 返回 200，HTML 包含 `/hybird/assets/mine/level-badges/level-badge-v3.png`；该图片资源返回 200。
+- Chrome headless 390x844 截图已生成到 `/tmp/meumall-mine-level-badge.png`，昵称后的 V3 图片横条可见。
+- Playwright 不在当前 H5 项目依赖中，截图验证改用本机 Chrome headless。
+
+## 2026-06-12 - 商品详情店铺与评论概要
+
+### 变更
+
+- `/api/bff/product-detail` 在商品主数据成功后尽量聚合 Java `/shop/headInfo`、`/prod/prodCommData` 和 `/prod/prodCommPageByProd`。
+- 商品详情 mapper 新增 `view.shop`、`modules.shopInfo`、`modules.commentSummary` 和 `modules.commentPage`。
+- 商品详情页不再展示店铺卡片，该位置按 Figma 展示评价模块；店铺头部只保留在 modules。
+- 评论概要改为真实接口数据：展示评价数量、好评率、评价标签和最多前两条评论。
+- 评价模块无评论时也固定展示空态。
+- 商品主图迁移旧 `prod-imgs-video` 语义：支持视频首帧 + 图片混合轮播、切换、预览和播放。
+- 商品主图轮播新增触屏横滑和鼠标拖拽切换；横向位移超过阈值且大于纵向位移时才切换，避免误伤页面上下滚动。
+- 商品主图切换改为横向轨道 `translate3d` 动画，使用 280ms cubic-bezier 过渡。
+- 售后保障按 `afterSaleType`、`afterSaleContent` 映射，资质条按 `prodCertificateRecordDtoList` 映射；无字段时不展示静态兜底。
+- 评论图片相对路径按 `JAVA_OSS_ASSET_BASE_URL` 拼接，完整 URL 保持原样。
+- 店铺或评论辅助接口失败时对应模块隐藏，不影响商品主信息、SKU 和立即购买。
+- 更新商品详情 API 契约、API 规范、项目状态、TODO 和变更记录。
+
+### 验证
+
+- `pnpm exec vitest run src/features/product/product-real-flow.test.tsx src/features/product/product-detail.test.tsx`：通过，2 files / 13 tests。
+- `pnpm test`：通过，43 files / 218 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+- `pnpm run build`：通过。
+- 本地 BFF smoke：`/hybird/api/bff/product-detail?prodId=1000054&addrId=0&dvyType=1` 返回 200。
+- 本地浏览器 smoke：`/hybird/product/1000054` 渲染真实商品、评论概要和详情图；店铺卡片不可见；主图可切换。
+- 本地浏览器 drag smoke：在主图真实坐标内鼠标左滑后，角标从 `1/6` 切到 `2/6`。
+- 本地浏览器 animation smoke：媒体轨道存在 transform transition，切换后轨道平移到 `-430px`。
+
+## 2026-06-12 - 商品详情富文本内容渲染
+
+### 变更
+
+- 新增 `ProductRichContent` 组件，使用 `html-react-parser` 将清洗后的商品详情 HTML 渲染为 React 节点。
+- 新增 `src/features/product/rich-content.ts`，使用 `sanitize-html` 白名单清洗 `/prod/prodInfo.content`，移除 `script`、事件属性和危险协议。
+- 商品详情 mapper 将后端 `content` 转为 `view.detail.richContentHtml`；富文本图片相对路径按 `JAVA_OSS_ASSET_BASE_URL` 拼接。
+- 商品详情内容区优先渲染富文本，缺失时回退原有详情描述和占位图。
+- 更新商品详情 API 契约、API 规范、项目状态、TODO 和变更记录。
+
+### 验证
+
+- `pnpm exec vitest run src/features/product/product-rich-content.test.tsx src/features/product/product-real-flow.test.tsx`：通过，2 files / 11 tests。
+- `pnpm test`：通过，43 files / 214 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+- `pnpm run build`：通过。
+
+## 2026-06-11 - 商品详情真实接口与订单确认实时校验
+
+### 变更
+
+- 新增 `/api/bff/product-detail?prodId=<prodId>`，由 H5 BFF 调 Java `/prod/prodInfo?prodId=<prodId>&addrId=0&dvyType=1`，用于普通商品快递详情。
+- 新增 `/api/bff/order-confirm?productId=<prodId>&skuId=<skuId>&quantity=<n>`，订单确认页重新请求商品详情并校验 SKU、库存、价格和数量，不信任 URL 中的商品快照。
+- 新增 `src/features/product/server/product-real-service.ts`，集中维护 Java 商品详情 envelope、商品/SKU mapper、OSS 图片拼接、默认 SKU 选择和订单确认 view model。
+- 新增 `src/features/product/api.ts`，浏览器端只请求 H5 BFF endpoint，不直接请求 Java 后端或读取 token。
+- `/product/[id]` 对数字商品 ID 渲染远程商品加载壳，客户端通过 BFF 拉取真实商品；本地 mock `p-1001` 仍保持静态高保真验证入口。
+- `/order-confirm` 对真实 `productId + skuId` 参数渲染订单实时确认壳，客户端校验成功后展示订单，失败时禁用交易。
+- 订单确认成功态保留真实 `productId`，顶部返回使用对应商品详情页作为 fallback，避免真实链路返回静态样例商品。
+- 商品详情首图支持后端返回的真实图片 URL；相对图片路径按 `JAVA_OSS_ASSET_BASE_URL` 拼接，完整 URL 保持原样。
+- 购买弹窗增加空 SKU / 无库存兜底，避免真实接口尚未返回 SKU 时崩溃。
+- 新增根级工作项、对接说明和 API 契约：
+  - `.ai-workspace/tasks/TASK-2026-0611-008-h5-product-detail-real-flow.md`
+  - `.ai-workspace/integration-briefs/BRIEF-2026-0611-008-h5-product-detail-real-flow.md`
+  - `.ai-workspace/contracts/api/h5-product-detail-real-flow-contract.md`
+
+### 验证
+
+- `pnpm exec vitest run src/features/product/product-real-flow.test.tsx src/features/product/order-confirm.test.tsx`：通过，2 files / 11 tests。
+- `pnpm exec vitest run src/features/product/product-detail.test.tsx src/features/product/order-confirm.test.tsx`：通过，5 tests。
+- `pnpm test`：通过，42 files / 212 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+- `pnpm run build`：通过，构建产物包含 `/api/bff/product-detail`、`/api/bff/order-confirm`、`/product/[id]` 和 `/order-confirm`。
+- 本地已有 dev server `http://localhost:3109`；`/hybird/product/1000054` 和 `/hybird/order-confirm?productId=1000054&skuId=6001&quantity=1` 均返回 HTTP 200。
+
+## 2026-06-11 - 首页推荐商品与相似推荐商品页接口修正
+
+### 变更
+
+- `/api/bff/home` 从“首页核心 + 为您推荐分页”的顺序聚合，调整为只请求 Java `/p/app/home/index`，降低首屏被分页接口拖慢的风险。
+- 新增 `/api/bff/home/recommend-products?current=<current>&size=<size>`，独立请求 Java `/p/app/home/recommendProds`，用于首页“为您推荐”商品区。
+- 保留 `/api/bff/home/for-you-products?current=<current>&size=<size>`，独立请求 Java `/p/app/home/forYouProds`，用于新页面 `/home/recommend-products` 的“相似推荐商品”列表。
+- 首页“为您推荐”右侧“更多”现在跳转 `/home/recommend-products`；新页面包含顶部导航、搜索栏、筛选条件和商品列表，结构与 `/search` 的结果列表相似。
+- 相似推荐商品页新增底部自动加载更多：sentinel 进入视口后按 `current + 1` 请求下一页，成功后追加商品，失败时保留已加载商品。
+- 首页“为您推荐”区新增相同的底部自动加载更多能力，请求 `/api/bff/home/recommend-products` 下一页；加载到第 2 页后显示“顶部”按钮，点击平滑回到页面顶部。
+- 分页 BFF 原始模块字段按场景拆分：首页推荐返回 `recommendProducts/recommendPage`，相似推荐页返回 `forYouProducts/forYouPage`，避免后续联调误判字段来源。
+- 首页客户端并发请求首页核心和首页推荐商品分页；分页失败只影响推荐商品区，首页核心仍可展示。
+- 根据本地 Apifox OpenAPI 核对并补全首页字段保留策略：`modules` 保留 `hotCategory.top3`、`seckillModule.products`、优惠券、佣金、多规格和后续新增字段。
+- 更新首页 API 规范、根级 API 契约、页面盘点、任务、项目状态和测试报告。
+
+### 验证
+
+- `pnpm test src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/server/http/java-response-codes.test.ts src/features/home/home-real-api.test.ts src/features/home/home.test.tsx src/features/home/home-recommend-products.test.tsx`：通过，6 files / 42 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - 首页 BFF 响应结构扩展
+
+### 变更
+
+- `/api/bff/home` 成功响应从单一 `HomeExperienceData` 调整为 `HomeBffData`：`view` 用于当前首页渲染，`modules` 保留 Java 首页业务模块字段。
+- `/api/bff/home` 的 `modules` 常规返回 `banners`、`hotCategory`、`categoryTop8` 和 `seckillModule`；分页 BFF 按接口场景分别返回 `recommendProducts/recommendPage` 或 `forYouProducts/forYouPage`，避免联调阶段字段被过度裁剪。
+- 新增 `debugRaw`：仅 `GET /api/bff/home?debugRaw=1` 且 `APP_ENV=local/test` 时返回 Java 原始 envelope，正式环境不返回。
+- 首页客户端改为读取 `result.data.view`，现有页面渲染不直接依赖 Java VO。
+- 更新首页 API 规范、根级 API 契约和任务说明。
+
+### 验证
+
+- `pnpm test src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/server/http/java-response-codes.test.ts src/features/home/home-real-api.test.ts src/features/home/home.test.tsx`：通过，5 files / 35 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - BFF 后端响应日志完整展开
+
+### 变更
+
+- `[h5-bff-backend-call]` 控制台输出改为格式化 JSON，避免 Node 默认把嵌套响应折叠成 `[Array]` / `[Object]`。
+- 单测覆盖 `responseBody.data.banners` 和 `hotCategory` 的嵌套输出，确保联调时能看到 Java 原始响应明细。
+- API 规范补充说明：本地和测试环境查看后端原始数据时，以启动 H5 的终端日志为准。
+
+### 验证
+
+- `pnpm test src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/server/http/java-response-codes.test.ts src/features/home/home-real-api.test.ts`：通过，4 files / 23 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - BFF 后端业务码日志增强
+
+### 变更
+
+- `[h5-bff-backend-call]` 日志补充 `backendBusinessCode`、`backendBusinessMessage` 和 `backendBusinessSuccess`。
+- API 规范补充说明：`backendStatus=200` 只代表 HTTP 成功，不代表后端业务成功；Java 返回 `success:false/code:A00004` 时，BFF 会转换成 `AUTH_FAILED`。
+- 增加 HTTP 200 + 业务失败响应的日志回归测试。
+
+### 验证
+
+- `pnpm test src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/features/home/home-real-api.test.ts`：通过，3 files / 12 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - H5 本地 token 兜底
+
+### 变更
+
+- `cookie-auth` 增加 local-only token fallback：`APP_ENV=local` 且 Cookie 缺失时，Java 使用 `H5_LOCAL_JAVA_TOKEN`，Python 使用 `H5_LOCAL_PYTHON_TOKEN`。
+- Cookie 仍然优先于本地 env token；`APP_ENV=test/prod` 时忽略 `H5_LOCAL_*_TOKEN`。
+- `createBffRequestContext()` 增加 `authEnv` 注入点，便于测试 local fallback。
+- `.env.example`、API 规范和 BFF 鉴权契约补充本地 token 用法和安全边界。
+
+### 验证
+
+- `pnpm test src/server/auth/cookie-auth.test.ts src/server/http/bff-context.test.ts src/server/http/backend-client.test.ts src/features/home/home-real-api.test.ts`：通过，4 files / 19 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - H5 正式迁移说明与 BFF 排错补齐
+
+### 变更
+
+- 首页停止请求旧 `GET /api/h5/home/config/active?environment=prod`，避免线上 404 噪音。
+- 清理首页旧远程配置 fetch helper，首页模块配置改为使用本地默认配置或缓存；首页业务数据继续走 `/api/bff/home`。
+- 首页 BFF route 捕获自身异常时输出 `[h5-bff-route-error]`，与已有 `[h5-bff-backend-call]` 后端调用日志形成两层排查链路。
+- API 规范补充正式环境迁移清单、BFF 日志前缀、字段和 requestId 排查方式。
+- 发布规范补充正式迁移的配置层和发布层边界。
+
+### 验证
+
+- `pnpm test src/features/home/home.test.tsx src/features/home/home-real-api.test.ts src/server/http/bff-context.test.ts`：通过，3 files / 16 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - H5 三套环境配置收敛
+
+### 变更
+
+- 新增 `config/env/h5.local.env`、`config/env/h5.test.env`、`config/env/h5.prod.env`，本地、测试、正式占位三套 profile 均指向当前测试 H5 配置 `https://hybird.aigcpop.com`。
+- Java 后端统一配置为 `https://test.aigcpop.com/mini_h5`，Python 后端统一配置为 `https://test.aigcpop.com/api`。
+- 根目录 `dev:h5` 和 H5 项目 `dev:local` / `dev:test` / `dev:prod` 启动命令改为读取 tracked profile。
+- `scripts/root/dev-all.sh` 支持通过 `H5_ENV` / `H5_ENV_FILE` 加载 H5 环境文件，并把 Java / Python 后端地址注入 H5 dev server。
+- 更新 `.env.example`、API 规范、发布规范、BFF 鉴权契约、首页对接说明、项目状态和 TODO。
+
+### 验证
+
+- package JSON 解析：通过。
+- `bash -n scripts/root/dev-all.sh`：通过。
+- `pnpm run test:dev-script`：通过。
+- `pnpm test src/server/http/backend-registry.test.ts src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/features/home/home-real-api.test.ts`：通过，4 files / 12 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 根目录 `pnpm run check`：通过。
+
+## 2026-06-11 - 首页真实接口首批接入
+
+### 变更
+
+- 新增 `/api/bff/home`，由 H5 BFF 调 Java `/p/app/home/index` 和 `/p/app/home/forYouProds?current=1&size=10`。
+- 新增首页真实接口 mapper，将 Apifox 字段转换为 `HomeExperienceData`。
+- 首页客户端优先通过 `createHomeApi(createH5Client()).getHome()` 请求真实数据，失败时回落到本地 `homeExperienceData`。
+- 首页支持后端返回远程 banner、分类 icon 和商品图；缺图时保留本地资源/占位。
+- `.env.example` 补充 `JAVA_API_BASE_URL` 和 `PYTHON_API_BASE_URL`。
+- 更新首页 API 契约、对接说明、任务、API 规范和项目状态。
+
+### 验证
+
+- `pnpm test src/features/home/home-real-api.test.ts src/features/home/home.test.tsx src/lib/http/h5-client.test.ts src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts`：通过，5 files / 24 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，存在 4 条历史 `<img>` warning，无 error。
+- 直接请求 Java 测试环境无 token 返回 `A00004 Unauthorized`，已确认首页接口需要 `mallToken`。
+- 当前本地已有 3000 dev server 未带 `JAVA_API_BASE_URL`，`/api/bff/home` 返回 `JAVA_API_BASE_URL is required`，需要按 `.env.example` 重启并注入 `mallToken` 后看真实数据。
+
 ## 2026-06-11 - H5 HTTP 请求架构补齐
 
 ### 变更
@@ -218,11 +528,11 @@
 
 ### 变更
 
-- 扩展统一 Bridge route：`tab`、`close_webview`、`native_page`，并新增 `event/route_changed` 路由变化上报。
+- 扩展统一 Bridge route：`tab`、`close_webview`，并新增 `event/route_changed` 路由变化上报；原生页后续收敛为直接 route。
 - 新增 `src/lib/navigation`：`HybridLink`、`createHybridNavigator()`、`HybridRouteReporter`，业务页不再直接拼 Bridge 信封。
 - `TopNavigation` 的返回按钮改为调用 H5/Native 统一返回策略：原生容器优先回退 WebView history，退不动再关闭当前二级 WebView；Web 环境 fallback 到浏览器 history 或指定 fallback 路由。
 - 首页入口接入容器策略：搜索、消息、分类、秒杀、商品详情默认新开 H5 WebView；首页切推广 Tab 使用 `tab` route。
-- 我的页入口接入容器策略：权益中心、订单、收藏、客服等新开 H5 WebView；设置入口走 `native_page=settings`；未实现入口暂不跳转。
+- 我的页入口接入容器策略：权益中心、订单、收藏、客服等新开 H5 WebView；设置入口走原生页 route；未实现入口暂不跳转。
 - 推广首页入口接入容器策略：活动中心、榜单中心、佣金收益、推广商品等新开 H5 WebView；头像、昵称、徽章不再跳权益中心。
 - 搜索页商品卡片保持当前 WebView 内 H5 push，符合“二级页内部下钻不再新开 WebView”的原则。
 
@@ -1505,3 +1815,28 @@
 ### 后续
 
 - 后续新增 H5 页面优先复用页面导航预设；如出现滚动变色、搜索栏或多操作区，再在 design-system 中扩展导航变体。
+
+## 2026-06-11 - 补充 BFF 后端请求快照日志
+
+### 变更
+
+- 新增 `JAVA_OSS_ASSET_BASE_URL` 环境变量，三套 H5 profile 当前均配置为 `https://awu-mall-file.oss-cn-guangzhou.aliyuncs.com/`。
+- 首页真实接口 mapper 对 Java 返回的相对图片路径拼接 OSS base URL；完整 `http(s)` 图片 URL 原样保留。
+- `[h5-bff-backend-call]` 增加 `requestUrl`、`requestQuery`、`requestBody` 和 `requestHeaders`，用于联调查看 Java / Python 出站请求。
+- `[h5-bff-backend-call]` 增加可开关的 `responseBody`、`responseBodySize`、`responseBodyTruncated`，用于本地/测试查看 Java 原始响应。
+- `Authorization`、Cookie、token 和 secret 类字段统一掩码，只保留格式、首尾片段和长度。
+- response body 日志会对 token、mobile、phone、address 等字段掩码，并按 `H5_BFF_BACKEND_RESPONSE_LOG_LIMIT` 截断。
+- 按 Java 联调结果修正后端鉴权 header：Java / mall 使用裸 `Authorization: <mallToken>`，Python 继续使用 `Authorization: Bearer <pythonToken>`。
+- 整合 Java `ResponseEnum` 启用码表，新增 `java-response-codes` 映射；`A00004` 转 `AUTH_FAILED`，`A00005` 转 `HTTP_ERROR`。
+- 首页真实接口服务在首页聚合接口业务鉴权失败时停止后续推荐商品请求。
+- 更新 API 规范中的 BFF 日志排查说明。
+
+### 验证
+
+- `pnpm test src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/server/http/java-response-codes.test.ts src/features/home/home-real-api.test.ts` 通过，4 files / 23 tests。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，存在 4 条历史 `<img>` warning，无 error。
+
+### 后续
+
+- 用有效 `mallToken` 重新触发 `/api/bff/home`，根据 `requestHeaders.Authorization` 的格式和长度继续定位 Java 鉴权失败原因。

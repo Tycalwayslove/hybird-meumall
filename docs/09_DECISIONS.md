@@ -763,6 +763,7 @@ MeuMall 的首页、推广首页和我的页是原生 Tab 下的 H5 根页面，
 - 返回 Tab 根页面使用 `router/navigate route=tab`，由原生切 Tab 并可关闭当前二级 WebView。
 - 顶部导航返回统一发送 `route=back`：原生先尝试当前 WebView history back，退不动再关闭当前二级 WebView。
 - 根 layout 挂载 `HybridRouteReporter`，通过 `event/route_changed` 上报当前 path、title、canGoBack 和 fallbackTab。
+- 原生页跳转使用具体页面名作为 `router/navigate payload.route`，例如 `settings`；不再发送 `route=native_page` + `params.name`。
 
 ### 影响
 
