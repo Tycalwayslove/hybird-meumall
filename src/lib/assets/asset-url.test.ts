@@ -76,6 +76,9 @@ describe("assetUrl", () => {
     expect(localAssetPaths["common.icon.delete"]).toBe(
       "/assets/common/icons/delete.png"
     );
+    expect(localAssetPaths["placeholder.productImage"]).toBe(
+      "/assets/placeholders/product-image-placeholder.png"
+    );
     expect(localAssetPaths["promotion.icon.share"]).toBe(
       "/assets/promotion/icons/share.png"
     );
@@ -85,8 +88,17 @@ describe("assetUrl", () => {
     expect(localAssetPaths["seckill.heroBg"]).toBe(
       "/assets/seckill/seckill-hero-bg.png"
     );
+    expect(localAssetPaths["mine.levelBadge.v3"]).toBe(
+      "/assets/mine/level-badges/level-badge-v3.png"
+    );
     expect(localAssetUrl("promotion.talentBadge.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-badge-v5.png"
+    );
+    expect(localAssetUrl("mine.levelBadge.v5", { basePath: "/hybird" })).toBe(
+      "/hybird/assets/mine/level-badges/level-badge-v5.png"
+    );
+    expect(localAssetUrl("placeholder.productImage", { basePath: "/hybird" })).toBe(
+      "/hybird/assets/placeholders/product-image-placeholder.png"
     );
     expect(localAssetUrl("promotion.talentSummaryCard.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-summary-card-v5.png"

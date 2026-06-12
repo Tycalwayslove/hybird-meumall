@@ -1,0 +1,143 @@
+.screen {
+  background: #f7f9fb;
+}
+
+.content {
+  overflow-x: hidden;
+  padding: 14px 16px calc(env(safe-area-inset-bottom) + 24px);
+}
+
+.summary {
+  margin: 0;
+  color: #0f0f0f;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.summary span {
+  color: #00b42a;
+}
+
+.couponList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 13px;
+}
+
+.couponCard {
+  position: relative;
+  display: grid;
+  min-height: 78px;
+  grid-template-columns: 72px 1px minmax(0, 1fr) auto;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #fff4dc 0%, #ffdfdf 100%);
+  padding: 0 14px 0 8px;
+}
+
+.couponCard::before,
+.couponCard::after {
+  position: absolute;
+  left: 79px;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: #f7f9fb;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.couponCard::before {
+  top: -7px;
+}
+
+.couponCard::after {
+  bottom: -7px;
+}
+
+.amountBlock {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #f53f3f;
+}
+
+.amountBlock strong {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.amountBlock strong span {
+  margin-right: 2px;
+  font-size: 16px;
+}
+
+.amountBlock p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.couponDivider {
+  height: 78px;
+  border-left: 1px dashed #f4b8b8;
+}
+
+.couponInfo {
+  min-width: 0;
+  padding: 0 12px;
+}
+
+.couponInfo h2 {
+  overflow: hidden;
+  margin: 0;
+  color: #0f0f0f;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.couponInfo h2 span {
+  color: #f53f3f;
+  font-size: 14px;
+}
+
+.couponInfo p {
+  overflow: hidden;
+  margin: 7px 0 0;
+  color: #3f3f3f;
+  font-size: 12px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.useButton {
+  height: 31px;
+  border: 0;
+  border-radius: 999px;
+  background: #f53f3f;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+@media (max-width: 340px) {
+  .couponCard {
+    grid-template-columns: 64px 1px minmax(0, 1fr) auto;
+    padding-right: 8px;
+  }
+
+  .couponInfo {
+    padding: 0 8px;
+  }
+}

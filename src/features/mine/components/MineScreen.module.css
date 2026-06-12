@@ -126,15 +126,16 @@
 .levelBadge {
   display: inline-flex;
   align-items: center;
-  height: 20px;
+  height: 24px;
   flex: 0 0 auto;
-  border-radius: 12px;
-  background: linear-gradient(82deg, #ffebbd 2%, #fff3d7 50%, #ffe19a 98%);
-  color: #823400;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  padding: 2px 5px;
+  overflow: hidden;
+}
+
+.levelBadgeImage {
+  display: block;
+  width: auto;
+  height: 24px;
+  object-fit: contain;
 }
 
 .phone {
@@ -251,6 +252,7 @@
   justify-content: center;
   gap: 8px;
   text-align: center;
+  text-decoration: none;
 }
 
 .metricItem + .metricItem::before {

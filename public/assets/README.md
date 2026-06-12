@@ -12,6 +12,7 @@ public/assets/
   promotion/     推广页固定图形
     talent-badges/ 达人等级徽章，本地随 H5 发版
   mine/          我的页固定图形
+    level-badges/ 我的页昵称旁等级横条徽章
   placeholders/  默认头像、默认商品图、图片加载失败兜底图
 ```
 
@@ -81,4 +82,10 @@ const badge = localAssetUrl("promotion.talentBadge.v1");
 | `promotion.rankingCrown.third` | `/assets/promotion/ranking/ranking-crown-third.png` | 排行榜第 3 名皇冠 |
 | `promotion.rankingHeroBg` | `/assets/shared/green-hero-bg.png` | 排行榜顶部背景，复用共享浅绿背景 |
 | `promotion.rewardRecordsBg` | `/assets/shared/green-hero-bg.png` | 奖励记录顶部背景，复用共享浅绿背景 |
+| `placeholder.productImage` | `/assets/placeholders/product-image-placeholder.png` | 商品图片缺省组件中心图标 |
 | `mine.hero.background` | `/assets/shared/green-hero-bg.png` | 我的页顶部背景，复用共享浅绿背景 |
+| `mine.levelBadge.v1` | `/assets/mine/level-badges/level-badge-v1.png` | 我的页 V1 新锐达人横条徽章 |
+| `mine.levelBadge.v2` | `/assets/mine/level-badges/level-badge-v2.png` | 我的页 V2 白银达人横条徽章 |
+| `mine.levelBadge.v3` | `/assets/mine/level-badges/level-badge-v3.png` | 我的页 V3 黄金达人横条徽章 |
+| `mine.levelBadge.v4` | `/assets/mine/level-badges/level-badge-v4.png` | 我的页 V4 星钻达人横条徽章 |
+| `mine.levelBadge.v5` | `/assets/mine/level-badges/level-badge-v5.png` | 我的页 V5 至尊达人横条徽章 |

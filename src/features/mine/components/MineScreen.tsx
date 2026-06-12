@@ -30,6 +30,8 @@ export function MineScreen({ data }: MineScreenProps) {
 function ProfileHeader({ data }: MineScreenProps) {
   const notificationIcon = localAssetUrl(data.notificationAssetKey);
   const roleImage = localAssetUrl(data.heroRoleAssetKey);
+  const levelBadgeImage = localAssetUrl(data.profile.levelBadgeAssetKey);
+  const levelBadgeAlt = `${data.profile.levelCode}${data.profile.levelLabel}`;
 
   return (
     <section className={styles.profileRow} aria-label="用户信息">
@@ -42,8 +44,7 @@ function ProfileHeader({ data }: MineScreenProps) {
         <div className={styles.nameLine}>
           <h1 className={styles.nickname}>{data.profile.nickname}</h1>
           <span className={styles.levelBadge}>
-            {data.profile.levelCode}
-            {data.profile.levelLabel}
+            <img className={styles.levelBadgeImage} src={levelBadgeImage} alt={levelBadgeAlt} />
           </span>
         </div>
         <p className={styles.phone}>{data.profile.phone}</p>
@@ -84,13 +85,27 @@ function BenefitCard({ data }: MineScreenProps) {
 }
 
 function MineMetricItem({ metric }: { metric: MineMetric }) {
-  return (
-    <div className={styles.metricItem}>
+  const content = (
+    <>
       <span className={styles.metricLabel}>{metric.label}</span>
       <strong className={styles.metricValue}>
         {metric.prefix ? <span className={styles.metricPrefix}>{metric.prefix}</span> : null}
         {metric.value}
       </strong>
+    </>
+  );
+
+  if (metric.href) {
+    return (
+      <HybridLink className={styles.metricItem} href={metric.href} source="mine" strategy="new-webview" title={metric.label}>
+        {content}
+      </HybridLink>
+    );
+  }
+
+  return (
+    <div className={styles.metricItem}>
+      {content}
     </div>
   );
 }

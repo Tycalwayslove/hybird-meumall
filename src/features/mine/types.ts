@@ -4,6 +4,7 @@ export type MineMetric = {
   label: string;
   value: string;
   prefix?: string;
+  href?: string;
 };
 
 export type MineOrderEntry = {
@@ -25,6 +26,7 @@ export type MineProfile = {
   phone: string;
   levelLabel: string;
   levelCode: string;
+  levelBadgeAssetKey: LocalAssetKey;
   membershipValidUntil: string;
 };
 

@@ -17,10 +17,12 @@ describe("SearchScreen", () => {
     expect(html).toContain("喵呜达人");
   });
 
-  test("does not render product image elements in the static mock phase", () => {
+  test("renders only the shared placeholder icon in the static mock phase", () => {
     const html = renderToStaticMarkup(<SearchScreen data={searchPageData} />);
 
-    expect(html).not.toContain("<img");
+    expect(html).toContain('data-product-image-placeholder-icon="true"');
+    expect(html).toContain("/hybird/assets/placeholders/product-image-placeholder.png");
+    expect(html).not.toContain('src="/assets/');
   });
 
   test("uses the shared product image placeholder for product cards", () => {

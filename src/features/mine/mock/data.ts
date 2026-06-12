@@ -6,6 +6,7 @@ export const minePageData = {
     phone: "150****7196",
     levelCode: "V3",
     levelLabel: "黄金达人",
+    levelBadgeAssetKey: "mine.levelBadge.v3",
     membershipValidUntil: "2027-06-25"
   },
   heroBackgroundAssetKey: "mine.hero.background",
@@ -15,9 +16,9 @@ export const minePageData = {
   benefitsHref: "/promotion/benefits?level=v3",
   ordersHref: "/orders",
   metrics: [
-    { label: "钱包余额", prefix: "¥", value: "678" },
+    { label: "钱包余额", prefix: "¥", value: "678", href: "/wallet" },
     { label: "今年已省", prefix: "¥", value: "2383" },
-    { label: "优惠券", value: "8" }
+    { label: "优惠券", value: "8", href: "/coupons" }
   ],
   orders: [
     { label: "待付款", href: "/orders?status=pending-payment", assetKey: "mine.order.pendingPayment" },
@@ -31,7 +32,7 @@ export const minePageData = {
     alt: "续航春P计划"
   },
   tools: [
-    { label: "我的足迹", assetKey: "mine.tool.footprint", navigation: "none" },
+    { label: "我的足迹", href: "/footprints", assetKey: "mine.tool.footprint", navigation: "new-webview" },
     { label: "我的收藏", href: "/favorites/products", assetKey: "mine.tool.favorites", navigation: "new-webview" },
     { label: "地址管理", assetKey: "mine.tool.address", navigation: "none" },
     { label: "设置", assetKey: "mine.tool.settings", navigation: "native-page", nativePage: "settings" },
