@@ -30,6 +30,60 @@ describe("cookie auth", () => {
     expect(getBackendAuthToken(auth, "java")).toBe("mall-token");
   });
 
+  test("uses local env tokens only when local cookies are missing", () => {
+    const auth = readCookieAuthFromHeader("theme=dark", {
+      env: {
+        APP_ENV: "local",
+        H5_LOCAL_JAVA_TOKEN: " local-java-token ",
+        H5_LOCAL_PYTHON_TOKEN: "local-python-token"
+      }
+    });
+
+    expect(auth.mallToken).toBe("local-java-token");
+    expect(auth.pythonToken).toBe("local-python-token");
+    expect(getBackendAuthToken(auth, "java")).toBe("local-java-token");
+    expect(getBackendAuthToken(auth, "python")).toBe("local-python-token");
+  });
+
+  test("keeps cookie tokens ahead of local env token fallback", () => {
+    const auth = readCookieAuthFromHeader("mallToken=cookie-java; pythonToken=cookie-python", {
+      env: {
+        APP_ENV: "local",
+        H5_LOCAL_JAVA_TOKEN: "local-java-token",
+        H5_LOCAL_PYTHON_TOKEN: "local-python-token"
+      }
+    });
+
+    expect(auth.mallToken).toBe("cookie-java");
+    expect(auth.pythonToken).toBe("cookie-python");
+  });
+
+  test("treats empty cookie tokens as missing and uses local fallback", () => {
+    const auth = readCookieAuthFromHeader("mallToken=; pythonToken=", {
+      env: {
+        APP_ENV: "local",
+        H5_LOCAL_JAVA_TOKEN: "local-java-token",
+        H5_LOCAL_PYTHON_TOKEN: "local-python-token"
+      }
+    });
+
+    expect(auth.mallToken).toBe("local-java-token");
+    expect(auth.pythonToken).toBe("local-python-token");
+  });
+
+  test("ignores local token fallback outside local app env", () => {
+    const auth = readCookieAuthFromHeader("theme=dark", {
+      env: {
+        APP_ENV: "test",
+        H5_LOCAL_JAVA_TOKEN: "local-java-token",
+        H5_LOCAL_PYTHON_TOKEN: "local-python-token"
+      }
+    });
+
+    expect(auth.mallToken).toBeNull();
+    expect(auth.pythonToken).toBeNull();
+  });
+
   test("ignores invalid status height", () => {
     expect(readCookieAuthFromHeader("statusHeight=abc").statusHeight).toBeNull();
     expect(readCookieAuthFromHeader("statusHeight=-1").statusHeight).toBeNull();

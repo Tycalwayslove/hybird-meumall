@@ -85,7 +85,12 @@ describe("native runtime context", () => {
     });
     expect(context.environment).toEqual({
       appEnv: "test",
-      h5Version: "v1.0.3"
+      h5Version: "v1.0.3",
+      localTokenFallback: {
+        enabled: false,
+        javaTokenPresent: false,
+        pythonTokenPresent: false
+      }
     });
   });
 
@@ -99,5 +104,22 @@ describe("native runtime context", () => {
     expect(context.auth.mallToken.present).toBe(false);
     expect(context.statusBar.statusHeight).toBeNull();
     expect(context.pageConfig).toBeNull();
+  });
+
+  test("reports local token fallback presence without exposing token values", () => {
+    const context = buildNativeRuntimeContext({
+      env: {
+        APP_ENV: "local",
+        H5_LOCAL_JAVA_TOKEN: "java-secret",
+        H5_LOCAL_PYTHON_TOKEN: "python-secret"
+      }
+    });
+
+    expect(context.environment.localTokenFallback).toEqual({
+      enabled: true,
+      javaTokenPresent: true,
+      pythonTokenPresent: true
+    });
+    expect(JSON.stringify(context.environment.localTokenFallback)).not.toContain("secret");
   });
 });

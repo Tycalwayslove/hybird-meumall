@@ -74,6 +74,67 @@ describe("bff context", () => {
     expect(logger).toHaveBeenCalledWith(expect.objectContaining({ appVersion: "1.0.0", requestId: "req-bff" }));
   });
 
+  test("passes backend response body logging options to backend client", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ code: "00000", data: { text: "hello" }, success: true }), { headers: { "content-type": "application/json" } }));
+    const logger = vi.fn();
+    const request = new Request("https://m.example.com/api/bff/home", {
+      headers: {
+        cookie: "mallToken=mall-token"
+      }
+    });
+    const context = createBffRequestContext(request, {
+      fetcher,
+      logger,
+      logResponseBody: true,
+      registryEnv: {
+        APP_ENV: "test",
+        JAVA_API_BASE_URL: "https://java-test.example.com",
+        PYTHON_API_BASE_URL: "https://python-test.example.com"
+      },
+      requestIdFactory: () => "req-bff-response",
+      responseBodyLogLimit: 1000
+    });
+
+    await context.backendClient.request({
+      authRequired: true,
+      authToken: context.getAuthToken("java"),
+      backend: "java",
+      path: "/p/app/home/index",
+      route: "/"
+    });
+
+    expect(logger).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: "req-bff-response",
+        responseBody: {
+          code: "00000",
+          data: { text: "hello" },
+          success: true
+        },
+        responseBodyTruncated: false
+      })
+    );
+  });
+
+  test("uses local env token fallback when cookies are missing in local app env", () => {
+    const request = new Request("https://m.example.com/api/bff/user/profile");
+    const context = createBffRequestContext(request, {
+      authEnv: {
+        APP_ENV: "local",
+        H5_LOCAL_JAVA_TOKEN: "local-java-token",
+        H5_LOCAL_PYTHON_TOKEN: "local-python-token"
+      },
+      registryEnv: {
+        APP_ENV: "local",
+        JAVA_API_BASE_URL: "https://java-test.example.com",
+        PYTHON_API_BASE_URL: "https://python-test.example.com"
+      }
+    });
+
+    expect(context.getAuthToken("java")).toBe("local-java-token");
+    expect(context.getAuthToken("python")).toBe("local-python-token");
+  });
+
   test("console backend logger writes safe structured entry", () => {
     const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const logger = createConsoleBackendCallLogger();
@@ -86,20 +147,28 @@ describe("bff context", () => {
       durationMs: 12,
       method: "GET",
       requestId: "req-log",
+      responseBody: {
+        data: {
+          banners: [{ id: 1, imgUrl: "https://cdn.example.com/banner.png" }],
+          hotCategory: { name: "热销分类" }
+        }
+      },
       route: "/mine",
       timeoutMs: 10000
     });
 
-    expect(info).toHaveBeenCalledWith(
-      "[h5-bff-backend-call]",
-      expect.objectContaining({
-        appVersion: "1.0.0",
-        backend: "java",
-        backendPath: "/api/user/profile",
-        requestId: "req-log"
-      })
-    );
-    expect(info.mock.calls[0]?.[1]).not.toHaveProperty("authToken");
+    expect(info).toHaveBeenCalledWith("[h5-bff-backend-call]", expect.any(String));
+    const payload = String(info.mock.calls[0]?.[1]);
+    expect(payload).toContain('"appVersion": "1.0.0"');
+    expect(payload).toContain('"backend": "java"');
+    expect(payload).toContain('"backendPath": "/api/user/profile"');
+    expect(payload).toContain('"requestId": "req-log"');
+    expect(payload).toContain('"banners": [');
+    expect(payload).toContain('"imgUrl": "https://cdn.example.com/banner.png"');
+    expect(payload).toContain('"hotCategory": {');
+    expect(payload).not.toContain("[Array]");
+    expect(payload).not.toContain("[Object]");
+    expect(payload).not.toContain("authToken");
     info.mockRestore();
   });
 });

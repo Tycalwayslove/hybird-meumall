@@ -20,6 +20,11 @@ export type NativeRuntimeContext = {
   environment: {
     appEnv: string;
     h5Version: string;
+    localTokenFallback: {
+      enabled: boolean;
+      javaTokenPresent: boolean;
+      pythonTokenPresent: boolean;
+    };
   };
 };
 
@@ -64,7 +69,12 @@ export function buildNativeRuntimeContext({ cookieHeader, env = process.env, sou
     sourceParams: parseSearchParams(sourceSearch),
     environment: {
       appEnv: env.APP_ENV ?? "unknown",
-      h5Version: env.H5_VERSION ?? env.H5_RELEASE_LABEL ?? "unknown"
+      h5Version: env.H5_VERSION ?? env.H5_RELEASE_LABEL ?? "unknown",
+      localTokenFallback: {
+        enabled: env.APP_ENV === "local",
+        javaTokenPresent: Boolean(env.H5_LOCAL_JAVA_TOKEN?.trim()),
+        pythonTokenPresent: Boolean(env.H5_LOCAL_PYTHON_TOKEN?.trim())
+      }
     }
   };
 }

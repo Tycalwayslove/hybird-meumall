@@ -8,10 +8,18 @@ export type CookieAuth = {
 };
 
 export type CookieAuthOptions = {
+  env?: LocalDevTokenEnv;
   mallTokenCookieName?: string;
   pythonTokenCookieName?: string;
   statusHeightCookieName?: string;
 };
+
+export type LocalDevTokenEnv = Readonly<{
+  APP_ENV?: string;
+  H5_LOCAL_JAVA_TOKEN?: string;
+  H5_LOCAL_PYTHON_TOKEN?: string;
+  [key: string]: string | undefined;
+}>;
 
 const defaultPythonTokenCookieName = "pythonToken";
 const defaultMallTokenCookieName = "mallToken";
@@ -23,11 +31,14 @@ export function readCookieAuthFromHeader(cookieHeader: string | null | undefined
   const mallTokenCookieName = options.mallTokenCookieName ?? defaultMallTokenCookieName;
   const statusHeightCookieName = options.statusHeightCookieName ?? defaultStatusHeightCookieName;
   const cookies = parseCookieHeader(cookieHeader);
+  const localDevTokens = readLocalDevTokens(options.env ?? getRuntimeEnv());
+  const pythonCookieToken = normalizeOptionalToken(cookies.get(pythonTokenCookieName));
+  const mallCookieToken = normalizeOptionalToken(cookies.get(mallTokenCookieName));
 
   return {
-    pythonToken: cookies.get(pythonTokenCookieName) ?? null,
+    pythonToken: pythonCookieToken ?? localDevTokens.pythonToken,
     pythonTokenCookieName,
-    mallToken: cookies.get(mallTokenCookieName) ?? null,
+    mallToken: mallCookieToken ?? localDevTokens.mallToken,
     mallTokenCookieName,
     statusHeight: parseStatusHeight(cookies.get(statusHeightCookieName)),
     statusHeightCookieName
@@ -90,4 +101,27 @@ function parseStatusHeight(value: string | undefined) {
 
   const height = Number(value);
   return Number.isFinite(height) && height >= 0 ? height : null;
+}
+
+function readLocalDevTokens(env: LocalDevTokenEnv): Pick<CookieAuth, "mallToken" | "pythonToken"> {
+  if (env.APP_ENV !== "local") {
+    return {
+      mallToken: null,
+      pythonToken: null
+    };
+  }
+
+  return {
+    mallToken: normalizeOptionalToken(env.H5_LOCAL_JAVA_TOKEN),
+    pythonToken: normalizeOptionalToken(env.H5_LOCAL_PYTHON_TOKEN)
+  };
+}
+
+function normalizeOptionalToken(value: string | undefined) {
+  const token = value?.trim();
+  return token ? token : null;
+}
+
+function getRuntimeEnv(): LocalDevTokenEnv {
+  return typeof process === "undefined" ? {} : process.env;
 }
