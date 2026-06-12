@@ -12,11 +12,31 @@ export type ProductSelectionItem = {
 
 export type ProductReview = {
   author: string;
+  avatarUrl?: string;
   content: string;
+  imageUrls?: string[];
+  rating?: number;
+  skuText?: string;
+};
+
+export type ProductMediaItem = {
+  id: string;
+  posterUrl?: string;
+  type: "image" | "video";
+  url: string;
+};
+
+export type ProductShopSummary = {
+  href: string;
+  id: string;
+  logoUrl?: string;
+  name: string;
+  statusText: string;
 };
 
 export type ProductSkuOption = {
   id: string;
+  imageUrl?: string;
   label: string;
   selectedLabel: string;
   specsText: string;
@@ -50,9 +70,12 @@ export type ProductDetailData = {
   soldText: string;
   countdown: [string, string, string];
   galleryText: string;
+  heroImageUrls?: string[];
+  mediaItems?: ProductMediaItem[];
   services: ProductServiceItem[];
   selectionRows: ProductSelectionItem[];
   licenseTags: string[];
+  shop?: ProductShopSummary;
   reviewSummary: {
     countText: string;
     positiveRateText: string;
@@ -63,6 +86,7 @@ export type ProductDetailData = {
     title: string;
     description: string;
     imageLabel: string;
+    richContentHtml?: string;
   };
   consultPlaceholder: string;
   consultHref: string;
@@ -78,6 +102,7 @@ export type OrderConfirmAddress = {
 
 export type OrderConfirmItem = {
   id: string;
+  imageUrl?: string;
   imageLabel: string;
   title: string;
   specsText: string;
@@ -94,6 +119,7 @@ export type OrderConfirmFeeRow = {
 
 export type OrderConfirmData = {
   address: OrderConfirmAddress | null;
+  productId: string;
   items: OrderConfirmItem[];
   totalQuantity: number;
   totalAmount: number;

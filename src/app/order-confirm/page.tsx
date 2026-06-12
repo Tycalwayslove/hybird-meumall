@@ -1,4 +1,4 @@
-import { OrderConfirmScreen } from "@/features/product/components/OrderConfirmScreen";
+import { OrderConfirmRuntimeScreen, OrderConfirmScreen } from "@/features/product/components/OrderConfirmScreen";
 import { ProductNotFoundScreen } from "@/features/product/components/ProductDetailScreen";
 import { getOrderConfirmData } from "@/features/product/server/order-confirm-service";
 
@@ -16,6 +16,14 @@ export default async function OrderConfirmPage({ searchParams }: OrderConfirmPag
   });
 
   if (!data) {
+    const productId = normalizeParam(params?.productId);
+    const skuId = normalizeParam(params?.skuId);
+    const quantity = normalizeParam(params?.quantity);
+
+    if (productId && skuId) {
+      return <OrderConfirmRuntimeScreen productId={productId} quantity={quantity} skuId={skuId} />;
+    }
+
     return <ProductNotFoundScreen />;
   }
 

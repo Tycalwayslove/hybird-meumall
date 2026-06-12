@@ -14,8 +14,46 @@ export function getOrderConfirmData({
   quantity = "1",
   skuId
 }: GetOrderConfirmInput = {}): OrderConfirmData | null {
-  const product = getProductDetailById(productId ?? "p-1001") ?? getProductDetailById("p-1001");
+  const normalizedProductId = productId ?? "p-1001";
+  const product = getProductDetailById(normalizedProductId);
 
+  if (!product) {
+    if (productId) {
+      return null;
+    }
+
+    const fallbackProduct = getProductDetailById("p-1001");
+    if (!fallbackProduct) {
+      return null;
+    }
+
+    return createMockOrderConfirmData({
+      addressMode,
+      product: fallbackProduct,
+      quantity,
+      skuId
+    });
+  }
+
+  return createMockOrderConfirmData({
+    addressMode,
+    product,
+    quantity,
+    skuId
+  });
+}
+
+function createMockOrderConfirmData({
+  addressMode,
+  product,
+  quantity = "1",
+  skuId
+}: {
+  addressMode?: string | null;
+  product: NonNullable<ReturnType<typeof getProductDetailById>>;
+  quantity?: string | null;
+  skuId?: string | null;
+}): OrderConfirmData | null {
   if (!product) {
     return null;
   }
@@ -59,6 +97,7 @@ export function getOrderConfirmData({
       { label: "实付款", value: `￥${totalAmount}`, tone: "price" }
     ],
     items,
+    productId: product.id,
     serviceRows: [
       { label: "配送服务", value: "快递配送", tone: "muted" },
       { label: "配送费用", value: "￥0.00", tone: "primary" },

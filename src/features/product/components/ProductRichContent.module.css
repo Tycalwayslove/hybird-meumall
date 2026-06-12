@@ -1,0 +1,63 @@
+.richContent {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 14px;
+  line-height: 22px;
+  word-break: break-word;
+}
+
+.richContent :where(p, ul, ol, blockquote, table) {
+  margin: 0;
+}
+
+.richContent :where(ul, ol) {
+  padding-left: 20px;
+}
+
+.richContent :where(li + li) {
+  margin-top: 4px;
+}
+
+.richContent :where(h2, h3, h4) {
+  margin: 4px 0 0;
+  color: rgb(var(--mm-color-text-primary));
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.richContent :where(img) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.richContent :where(a) {
+  color: rgb(var(--mm-color-brand-normal));
+  text-decoration: none;
+}
+
+.richContent :where(table) {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid rgb(var(--mm-color-line-default));
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.richContent :where(td, th) {
+  padding: 8px;
+  border: 1px solid rgb(var(--mm-color-line-default));
+}
+
+.fallback {
+  margin: 0;
+  color: rgb(var(--mm-color-text-muted));
+  font-size: 14px;
+  line-height: 22px;
+}

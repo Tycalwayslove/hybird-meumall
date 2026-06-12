@@ -20,7 +20,8 @@ export function ProductPurchaseSheet({ data, onClose }: ProductPurchaseSheetProp
     () => data.purchase.skus.find((sku) => sku.id === selectedSkuId) ?? data.purchase.skus[0],
     [data.purchase.skus, selectedSkuId]
   );
-  const confirmHref = buildOrderConfirmHref(data, selectedSku, quantity);
+  const canConfirm = Boolean(selectedSku && selectedSku.stock > 0);
+  const confirmHref = selectedSku ? buildOrderConfirmHref(data, selectedSku, quantity) : "";
 
   return (
     <div aria-label="购买规格选择" aria-modal="true" className={styles.purchaseLayer} role="dialog">
@@ -34,18 +35,18 @@ export function ProductPurchaseSheet({ data, onClose }: ProductPurchaseSheetProp
           <div className={styles.purchaseSummary}>
             <p>
               <span>已选</span>
-              <strong>{selectedSku.selectedLabel}</strong>
+              <strong>{selectedSku?.selectedLabel ?? "暂无可购买规格"}</strong>
             </p>
             <p>
               <span>库存</span>
-              <strong>{selectedSku.stock}件</strong>
+              <strong>{selectedSku?.stock ?? 0}件</strong>
             </p>
             <div className={styles.purchasePriceRow}>
               <strong>
                 <span>￥</span>
-                {selectedSku.price}.<small>00</small>
+                {selectedSku?.price ?? 0}.<small>00</small>
               </strong>
-              <QuantityStepper max={selectedSku.stock} value={quantity} onChange={setQuantity} />
+              <QuantityStepper max={selectedSku?.stock ?? 0} value={quantity} onChange={setQuantity} />
             </div>
           </div>
         </div>
@@ -56,7 +57,7 @@ export function ProductPurchaseSheet({ data, onClose }: ProductPurchaseSheetProp
             {data.purchase.skus.map((sku) => (
               <button
                 key={sku.id}
-                className={sku.id === selectedSku.id ? styles.purchaseOptionActive : styles.purchaseOption}
+                className={sku.id === selectedSku?.id ? styles.purchaseOptionActive : styles.purchaseOption}
                 type="button"
                 onClick={() => {
                   setSelectedSkuId(sku.id);
@@ -85,9 +86,15 @@ export function ProductPurchaseSheet({ data, onClose }: ProductPurchaseSheetProp
         </div>
 
         <div className={styles.purchaseFooter}>
-          <Link className={styles.purchaseConfirm} href={confirmHref}>
-            确认
-          </Link>
+          {canConfirm ? (
+            <Link className={styles.purchaseConfirm} href={confirmHref}>
+              确认
+            </Link>
+          ) : (
+            <button className={styles.purchaseConfirmDisabled} disabled type="button">
+              暂无可购买规格
+            </button>
+          )}
         </div>
       </section>
     </div>

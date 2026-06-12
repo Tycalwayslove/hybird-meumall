@@ -1,5 +1,5 @@
 import { ProductDetailScreen, ProductNotFoundScreen } from "@/features/product/components/ProductDetailScreen";
-import { getProductDetailById } from "@/features/product/server/product-detail-service";
+import { createProductLoadingData, getProductDetailById } from "@/features/product/server/product-detail-service";
 
 type ProductDetailPageProps = {
   params: Promise<{
@@ -12,8 +12,16 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
   const product = getProductDetailById(id);
 
   if (!product) {
+    if (isRemoteProductId(id)) {
+      return <ProductDetailScreen data={createProductLoadingData(id)} />;
+    }
+
     return <ProductNotFoundScreen />;
   }
 
   return <ProductDetailScreen data={product} />;
+}
+
+function isRemoteProductId(id: string) {
+  return /^\d+$/.test(id);
 }

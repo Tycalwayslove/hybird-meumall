@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import ProductDetailPage from "@/app/product/[id]/page";
+import { resolveMediaSwipeDirection } from "./components/ProductDetailScreen";
 import { ProductPurchaseSheet } from "./components/ProductPurchaseSheet";
 import { mockProductDetails } from "./mock/product-detail";
 
@@ -12,6 +15,20 @@ function expectNoBareLocalAssetUrls(html: string) {
 }
 
 describe("product detail page", () => {
+  it("resolves horizontal media swipe gestures without hijacking vertical scroll", () => {
+    expect(resolveMediaSwipeDirection({ deltaX: -84, deltaY: 12 })).toBe(1);
+    expect(resolveMediaSwipeDirection({ deltaX: 96, deltaY: 10 })).toBe(-1);
+    expect(resolveMediaSwipeDirection({ deltaX: -24, deltaY: 4 })).toBe(0);
+    expect(resolveMediaSwipeDirection({ deltaX: -80, deltaY: 120 })).toBe(0);
+  });
+
+  it("keeps media carousel transitions animated", () => {
+    const css = readFileSync(join(process.cwd(), "src/features/product/components/ProductDetailScreen.module.css"), "utf8");
+
+    expect(css).toContain(".mediaTrack");
+    expect(css).toContain("transition: transform");
+  });
+
   it("renders the Figma-aligned product detail structure for a known product", async () => {
     const html = renderToStaticMarkup(await ProductDetailPage({ params: Promise.resolve({ id: "p-1001" }) }));
 

@@ -1,5 +1,11 @@
-import { ProductImagePlaceholder, StandardNavPage } from "@/design-system";
+"use client";
 
+import { useEffect, useState } from "react";
+
+import { ProductImagePlaceholder, StandardNavPage } from "@/design-system";
+import { createH5Client } from "@/lib/http";
+
+import { createProductApi } from "../api";
 import type { OrderConfirmData, OrderConfirmFeeRow, OrderConfirmItem } from "../types";
 import styles from "./OrderConfirmScreen.module.css";
 
@@ -7,9 +13,60 @@ type OrderConfirmScreenProps = {
   data: OrderConfirmData;
 };
 
+export function OrderConfirmRuntimeScreen({ productId, quantity, skuId }: { productId: string; quantity?: string; skuId: string }) {
+  const [data, setData] = useState<OrderConfirmData | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let disposed = false;
+    const api = createProductApi(createH5Client());
+
+    async function loadOrderConfirm() {
+      const result = await api
+        .getOrderConfirm({
+          productId,
+          quantity: Number(quantity ?? 1),
+          skuId
+        })
+        .catch(() => undefined);
+
+      if (disposed) {
+        return;
+      }
+      if (result?.success) {
+        setData(result.data.view);
+        setErrorMessage(null);
+        return;
+      }
+      setErrorMessage(result && !result.success ? result.message : "订单确认失败，请返回商品详情重试。");
+    }
+
+    void loadOrderConfirm();
+
+    return () => {
+      disposed = true;
+    };
+  }, [productId, quantity, skuId]);
+
+  if (data) {
+    return <OrderConfirmScreen data={data} />;
+  }
+
+  return (
+    <StandardNavPage backHref={`/product/${productId}`} title="提交订单" className={styles.screen} contentClassName={styles.content}>
+      <div className={styles.page}>
+        <section className={styles.stateCard} aria-label={errorMessage ? "订单确认失败" : "正在确认订单"}>
+          <strong>{errorMessage ? "订单确认失败" : "正在确认订单"}</strong>
+          <p>{errorMessage ?? "正在实时校验商品价格、库存和规格，请稍候。"}</p>
+        </section>
+      </div>
+    </StandardNavPage>
+  );
+}
+
 export function OrderConfirmScreen({ data }: OrderConfirmScreenProps) {
   return (
-    <StandardNavPage backHref="/product/p-1001" title="提交订单" className={styles.screen} contentClassName={styles.content}>
+    <StandardNavPage backHref={`/product/${data.productId}`} title="提交订单" className={styles.screen} contentClassName={styles.content}>
       <div className={styles.page}>
         <AddressCard data={data} />
         <section className={styles.itemsCard} aria-label="确认商品">
@@ -65,7 +122,12 @@ function AddressCard({ data }: { data: OrderConfirmData }) {
 function OrderItemCard({ item }: { item: OrderConfirmItem }) {
   return (
     <article className={styles.orderItem}>
-      <ProductImagePlaceholder ariaLabel={item.imageLabel} className={styles.itemImage} />
+      {item.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className={styles.itemImage} src={item.imageUrl} alt="" />
+      ) : (
+        <ProductImagePlaceholder ariaLabel={item.imageLabel} className={styles.itemImage} />
+      )}
       <div className={styles.itemInfo}>
         <h2>{item.title}</h2>
         <p>{item.specsText}</p>

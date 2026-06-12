@@ -4,6 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "set -a && . config/env/h5.local.env && { [ ! -f ../.env.local ] || . ../.env.local; } && { [ ! -f .env.local ] || . .env.local; } && set +a && next dev -H ${H5_HOST:-localhost} -p ${H5_PORT:-3109}",
+    "dev:test": "set -a && . config/env/h5.test.env && set +a && next dev -H ${H5_HOST:-localhost} -p ${H5_PORT:-3109}",
+    "dev:prod": "set -a && . config/env/h5.prod.env && set +a && next dev -H ${H5_HOST:-localhost} -p ${H5_PORT:-3109}",
+    "build:test": "set -a && . config/env/h5.test.env && set +a && next build",
+    "build:prod": "set -a && . config/env/h5.prod.env && set +a && next build",
     "build": "next build",
     "start": "node .next/standalone/server.js",
     "typecheck": "tsc --noEmit",
@@ -33,9 +38,11 @@
   "dependencies": {
     "@gsap/react": "^2.1.2",
     "gsap": "^3.15.0",
+    "html-react-parser": "^6.1.3",
     "next": "^16.2.6",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "sanitize-html": "^2.17.5"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.1",
@@ -44,6 +51,7 @@
     "@types/node": "^25.8.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/sanitize-html": "^2.16.1",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.6",
