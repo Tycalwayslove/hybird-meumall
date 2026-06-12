@@ -50,7 +50,12 @@ function makeNativeRuntimeContext(): NativeRuntimeContext {
     cookies: [],
     environment: {
       appEnv: "test",
-      h5Version: "1.0.0"
+      h5Version: "1.0.0",
+      localTokenFallback: {
+        enabled: false,
+        javaTokenPresent: false,
+        pythonTokenPresent: false
+      }
     },
     pageConfig: null,
     sourceParams: {},

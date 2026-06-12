@@ -1,6 +1,7 @@
 import type { LocalAssetKey } from "@/lib/assets";
 
 export type HomeQuickCategory = {
+  iconUrl?: string;
   label: string;
   href: string;
 };
@@ -15,6 +16,7 @@ export type HomeActivityCard = {
 
 export type HomeProductCard = {
   id: string;
+  imageUrl?: string;
   title: string;
   href: string;
   badge: "热卖" | "推荐";
@@ -29,7 +31,8 @@ export type HomeExperienceData = {
   messageAssetKey: LocalAssetKey;
   banner: {
     href: string;
-    assetKey: LocalAssetKey;
+    assetKey?: LocalAssetKey;
+    imageUrl?: string;
     alt: string;
   };
   categories: HomeQuickCategory[];

@@ -1,24 +1,21 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test, vi } from "vitest";
-import { buildHomeConfigUrl, fetchActiveHomeConfig, HomeConfigError, parseHomeConfig } from "./api";
+import { HomeConfigError, parseHomeConfig } from "./api";
 import { defaultHomeConfig } from "./default-config";
-import { HomeExperience } from "./components/HomeExperience";
+import { HomeExperience, loadNextHomeRecommendProductsPage, shouldShowHomeBackToTop } from "./components/HomeExperience";
 import { HomeSkeleton } from "./HomeSkeleton";
 import { getVisibleHomeModules, HomeModules } from "./HomeModules";
+import type { HomeApi } from "./home-api";
 import { resolveHomeConfigState } from "./HomeScreen";
 import { getHomeConfigCacheKey, readHomeConfigCache, writeHomeConfigCache } from "./home-cache";
 import { homeExperienceData } from "./mock/home-page-data";
 import type { ActivitySectionModule, CategoryGridModule, HomeConfig } from "./types";
 
 describe("home config api", () => {
-  test("fetches active prod config and validates the payload", async () => {
-    const remoteConfig = makeHomeConfig("remote-001");
-    const fetcher = vi.fn(async () => Response.json(remoteConfig)) as unknown as typeof fetch;
+  test("validates a local home config payload", () => {
+    const config = parseHomeConfig(makeHomeConfig("local-001"));
 
-    const config = await fetchActiveHomeConfig({ fetcher, environment: "prod", timeoutMs: 1000 });
-
-    expect(fetcher).toHaveBeenCalledWith(buildHomeConfigUrl("prod"), expect.objectContaining({ headers: { accept: "application/json" } }));
-    expect(config.configVersion).toBe("remote-001");
+    expect(config.configVersion).toBe("local-001");
   });
 
   test("rejects invalid config payloads", () => {
@@ -42,19 +39,19 @@ describe("home config cache", () => {
 });
 
 describe("home screen loading decision", () => {
-  test("uses remote config and writes cache on success", async () => {
+  test("uses static default config without requesting remote home config", async () => {
     const storage = new MemoryStorage();
-    const remoteConfig = makeHomeConfig("remote-success");
-    const fetcher = vi.fn(async () => Response.json(remoteConfig)) as unknown as typeof fetch;
+    const fetcher = vi.fn(async () => Response.json(makeHomeConfig("remote-success"))) as unknown as typeof fetch;
 
     const state = await resolveHomeConfigState({ fetcher, storage, now: Date.parse("2026-06-01T00:00:00Z") });
 
-    expect(state.source).toBe("remote");
-    expect(state.config.configVersion).toBe("remote-success");
-    expect(readHomeConfigCache({ storage })?.entry.config.configVersion).toBe("remote-success");
+    expect(fetcher).not.toHaveBeenCalled();
+    expect(state.source).toBe("default");
+    expect(state.config.configVersion).toBe(defaultHomeConfig.configVersion);
+    expect(readHomeConfigCache({ storage })).toBeNull();
   });
 
-  test("falls back to stale cache when remote fetch fails", async () => {
+  test("uses cached config without requesting remote home config", async () => {
     const storage = new MemoryStorage();
     const now = Date.parse("2026-06-01T00:00:00Z");
     const cachedConfig = makeHomeConfig("cache-stale");
@@ -66,15 +63,17 @@ describe("home screen loading decision", () => {
 
     const state = await resolveHomeConfigState({ fetcher, storage, now: now + 700_000 });
 
+    expect(fetcher).not.toHaveBeenCalled();
     expect(state.source).toBe("cache");
     expect(state.config.configVersion).toBe("cache-stale");
   });
 
-  test("uses static default when remote fetch fails without cache", async () => {
+  test("uses static default when cache is missing", async () => {
     const fetcher = vi.fn(async () => new Response("missing", { status: 404 })) as unknown as typeof fetch;
 
     const state = await resolveHomeConfigState({ fetcher, storage: new MemoryStorage() });
 
+    expect(fetcher).not.toHaveBeenCalled();
     expect(state.source).toBe("default");
     expect(state.config.configVersion).toBe(defaultHomeConfig.configVersion);
   });
@@ -91,6 +90,80 @@ describe("home module rendering", () => {
     const html = renderToStaticMarkup(<HomeExperience data={homeExperienceData} />);
 
     expect(html).toContain("/assets/common/icons/search.png");
+  });
+
+  test("links recommendation more action to the dedicated recommendation page", () => {
+    const html = renderToStaticMarkup(<HomeExperience data={homeExperienceData} />);
+
+    expect(html).toContain('href="/home/recommend-products"');
+    expect(html).toContain("为您推荐");
+    expect(html).toContain("更多");
+  });
+
+  test("loads the next home recommendation page and appends products", async () => {
+    const firstProduct = homeExperienceData.products[0]!;
+    const nextProduct = {
+      ...homeExperienceData.products[1]!,
+      id: "home-next-product",
+      title: "首页第二页推荐商品"
+    };
+    const requests: Array<{ current?: number; size?: number }> = [];
+    const homeApi: Pick<HomeApi, "getRecommendProducts"> = {
+      async getRecommendProducts(params) {
+        requests.push(params ?? {});
+
+        return {
+          data: {
+            modules: {
+              recommendPage: {
+                current: 2,
+                pages: 3,
+                records: [],
+                size: 10,
+                total: 24
+              },
+              recommendProducts: []
+            },
+            page: {
+              current: 2,
+              hasMore: true,
+              pages: 3,
+              size: 10,
+              total: 24
+            },
+            view: {
+              products: [nextProduct]
+            }
+          },
+          requestId: "req-home-next-page",
+          success: true
+        };
+      }
+    };
+
+    const state = await loadNextHomeRecommendProductsPage({
+      homeApi,
+      state: {
+        page: {
+          current: 1,
+          hasMore: true,
+          size: 10
+        },
+        products: [firstProduct],
+        status: "idle"
+      }
+    });
+
+    expect(requests).toEqual([{ current: 2, size: 10 }]);
+    expect(state.products.map((product) => product.id)).toEqual([firstProduct.id, nextProduct.id]);
+    expect(state.page).toMatchObject({
+      current: 2,
+      hasMore: true,
+      pages: 3,
+      size: 10,
+      total: 24
+    });
+    expect(shouldShowHomeBackToTop(state)).toBe(true);
   });
 
   test("skips disabled, unknown, cart, and out-of-window modules", () => {

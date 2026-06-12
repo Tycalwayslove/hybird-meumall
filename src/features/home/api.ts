@@ -1,78 +1,14 @@
-import type { HomeConfig, HomeEnvironment, HomeModule } from "./types";
-
-export const HOME_CONFIG_ENDPOINT = "/api/h5/home/config/active";
-const DEFAULT_TIMEOUT_MS = 4000;
-const DEFAULT_CONFIG_API_BASE_URL = "http://127.0.0.1:4100";
-
-type FetchHomeConfigOptions = {
-  environment?: HomeEnvironment;
-  fetcher?: typeof fetch;
-  timeoutMs?: number;
-};
+import type { HomeConfig, HomeModule } from "./types";
 
 export class HomeConfigError extends Error {
   constructor(
     message: string,
-    public readonly code: "NETWORK_ERROR" | "TIMEOUT" | "HTTP_ERROR" | "PARSE_ERROR" | "INVALID_CONFIG",
+    public readonly code: "INVALID_CONFIG",
     public readonly status?: number
   ) {
     super(message);
     this.name = "HomeConfigError";
   }
-}
-
-export async function fetchActiveHomeConfig({
-  environment = "prod",
-  fetcher = globalThis.fetch,
-  timeoutMs = DEFAULT_TIMEOUT_MS
-}: FetchHomeConfigOptions = {}): Promise<HomeConfig> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    const response = await fetcher(buildHomeConfigUrl(environment), {
-      headers: {
-        accept: "application/json"
-      },
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      throw new HomeConfigError("Active home config request failed", "HTTP_ERROR", response.status);
-    }
-
-    let payload: unknown;
-    try {
-      payload = await response.json();
-    } catch (error) {
-      throw new HomeConfigError(getSafeErrorMessage(error), "PARSE_ERROR");
-    }
-
-    return parseHomeConfig(payload);
-  } catch (error) {
-    if (error instanceof HomeConfigError) {
-      throw error;
-    }
-
-    if (isAbortError(error)) {
-      throw new HomeConfigError("Active home config request timed out", "TIMEOUT");
-    }
-
-    throw new HomeConfigError(getSafeErrorMessage(error), "NETWORK_ERROR");
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-export function buildHomeConfigUrl(environment: HomeEnvironment = "prod"): string {
-  const baseUrl = getConfigApiBaseUrl();
-  const path = `${HOME_CONFIG_ENDPOINT}?environment=${encodeURIComponent(environment)}`;
-
-  if (!baseUrl) {
-    return path;
-  }
-
-  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
 export function parseHomeConfig(payload: unknown): HomeConfig {
@@ -146,16 +82,4 @@ function asOptionalPositiveNumber(value: unknown): number | undefined {
 
 function asOptionalTelemetryRate(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : undefined;
-}
-
-function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException ? error.name === "AbortError" : isRecord(error) && error.name === "AbortError";
-}
-
-function getSafeErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown home config error";
-}
-
-function getConfigApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_CONFIG_API_BASE_URL || DEFAULT_CONFIG_API_BASE_URL;
 }

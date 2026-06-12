@@ -1,30 +1,131 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useState } from "react";
+import type { RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/design-system";
 import { localAssetUrl } from "@/lib/assets";
+import { createH5Client } from "@/lib/http";
 import { HybridLink } from "@/lib/navigation";
 
 import { BridgeDebugPanel } from "../BridgeDebugPanel";
+import type { HomeApi } from "../home-api";
+import { createHomeApi } from "../home-api";
 import type { HomeActivityCard, HomeExperienceData, HomeProductCard } from "../home-page-data";
 import { NativeRuntimePanel } from "../NativeRuntimePanel";
 import styles from "./HomeExperience.module.css";
 
-export function HomeExperience({ data, releaseLabel }: { data: HomeExperienceData; releaseLabel?: string }) {
+type HomeRecommendPageInfo = {
+  current: number;
+  size: number;
+  total?: number;
+  pages?: number;
+  hasMore: boolean;
+};
+
+export type HomeRecommendPageState = {
+  products: HomeProductCard[];
+  page: HomeRecommendPageInfo;
+  status: "idle" | "loading" | "finished" | "error";
+};
+
+const HOME_RECOMMEND_PAGE_SIZE = 10;
+const HOME_BACK_TO_TOP_MIN_PAGE = 2;
+
+export function HomeExperience({
+  data,
+  homeApi,
+  releaseLabel
+}: {
+  data: HomeExperienceData;
+  homeApi?: Pick<HomeApi, "getRecommendProducts">;
+  releaseLabel?: string;
+}) {
   void releaseLabel;
+  const defaultHomeApi = useMemo(() => createHomeApi(createH5Client()), []);
+  const api = homeApi ?? defaultHomeApi;
+  const [recommendState, setRecommendState] = useState<HomeRecommendPageState>(() => createInitialHomeRecommendPageState(data.products));
+  const loadingNextRef = useRef(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  const loadMoreProducts = useCallback(async () => {
+    if (loadingNextRef.current || (recommendState.status !== "idle" && recommendState.status !== "error") || !recommendState.page.hasMore) {
+      return;
+    }
+
+    loadingNextRef.current = true;
+    const currentState = recommendState;
+    setRecommendState((state) => ({
+      ...state,
+      status: "loading"
+    }));
+
+    try {
+      const nextState = await loadNextHomeRecommendProductsPage({
+        homeApi: api,
+        state: currentState
+      });
+      setRecommendState(nextState);
+    } finally {
+      loadingNextRef.current = false;
+    }
+  }, [api, recommendState]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || recommendState.status !== "idle" || !recommendState.page.hasMore || typeof IntersectionObserver === "undefined") {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void loadMoreProducts();
+        }
+      },
+      {
+        rootMargin: "180px 0px"
+      }
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [loadMoreProducts, recommendState.page.hasMore, recommendState.status]);
+
+  function handleBackToTop() {
+    window.scrollTo({
+      behavior: "smooth",
+      top: 0
+    });
+  }
+
+  const pageData = useMemo(
+    () => ({
+      ...data,
+      products: recommendState.products
+    }),
+    [data, recommendState.products]
+  );
 
   return (
     <main className={styles.screen}>
       <div className={styles.viewport}>
-        <HomeHeader data={data} />
+        <HomeHeader data={pageData} />
         <div className={styles.content}>
-          <HomeBanner data={data} />
-          <CategoryGrid data={data} />
-          <ActivityGrid activities={data.activities} />
-          <RecommendationSection data={data} />
+          <HomeBanner data={pageData} />
+          <CategoryGrid data={pageData} />
+          <ActivityGrid activities={pageData.activities} />
+          <RecommendationSection data={pageData} loadMoreRef={loadMoreRef} onLoadMore={loadMoreProducts} recommendState={recommendState} />
         </div>
+        {shouldShowHomeBackToTop(recommendState) ? (
+          <button className={styles.backToTopButton} type="button" onClick={handleBackToTop}>
+            顶部
+          </button>
+        ) : null}
         <HomeDebugDrawer />
       </div>
     </main>
@@ -56,7 +157,7 @@ function HomeHeader({ data }: { data: HomeExperienceData }) {
 function HomeBanner({ data }: { data: HomeExperienceData }) {
   return (
     <HybridLink className={styles.bannerLink} href={data.banner.href} strategy="switch-tab" tab="promotion" aria-label={data.banner.alt}>
-      <img className={styles.bannerImage} src={localAssetUrl(data.banner.assetKey)} alt={data.banner.alt} />
+      <img className={styles.bannerImage} src={data.banner.imageUrl ?? localAssetUrl(data.banner.assetKey ?? "home.banner.springPlan")} alt={data.banner.alt} />
     </HybridLink>
   );
 }
@@ -66,7 +167,9 @@ function CategoryGrid({ data }: { data: HomeExperienceData }) {
     <nav className={styles.categoryGrid} aria-label="首页分类">
       {data.categories.map((category) => (
         <HybridLink className={styles.categoryItem} href={category.href} key={category.label} source="home" strategy="new-webview" title="商品分类">
-          <span className={styles.categoryIcon} aria-hidden="true" />
+          <span className={cn(styles.categoryIcon, category.iconUrl && styles.categoryIconRemote)} aria-hidden="true">
+            {category.iconUrl ? <img className={styles.categoryIconImage} src={category.iconUrl} alt="" /> : null}
+          </span>
           <span className={styles.categoryLabel}>{category.label}</span>
         </HybridLink>
       ))}
@@ -98,7 +201,17 @@ function ActivityGrid({ activities }: { activities: HomeActivityCard[] }) {
   );
 }
 
-function RecommendationSection({ data }: { data: HomeExperienceData }) {
+function RecommendationSection({
+  data,
+  loadMoreRef,
+  onLoadMore,
+  recommendState
+}: {
+  data: HomeExperienceData;
+  loadMoreRef: RefObject<HTMLDivElement | null>;
+  onLoadMore: () => void;
+  recommendState: HomeRecommendPageState;
+}) {
   return (
     <section className={styles.recommendSection} aria-label="为您推荐">
       <div className={styles.recommendHeader}>
@@ -106,7 +219,7 @@ function RecommendationSection({ data }: { data: HomeExperienceData }) {
           <img className={styles.recommendIcon} src={localAssetUrl(data.recommendationIconAssetKey)} alt="" />
           <h2 className={styles.recommendTitleText}>为您推荐</h2>
         </div>
-        <HybridLink className={styles.moreLink} href="/category" source="home" strategy="new-webview" title="商品分类">
+        <HybridLink className={styles.moreLink} href="/home/recommend-products" source="home" strategy="new-webview" title="相似推荐商品">
           更多
           <img className={styles.moreIcon} src={localAssetUrl(data.moreAssetKey)} alt="" />
         </HybridLink>
@@ -121,8 +234,91 @@ function RecommendationSection({ data }: { data: HomeExperienceData }) {
           />
         ))}
       </div>
+      <div ref={loadMoreRef} className={styles.loadMore} data-home-recommend-load-more="true">
+        {recommendState.status === "loading" ? <span>加载中...</span> : null}
+        {recommendState.status === "idle" && recommendState.page.hasMore ? (
+          <button className={styles.loadMoreButton} type="button" onClick={onLoadMore}>
+            加载更多
+          </button>
+        ) : null}
+        {recommendState.status === "finished" || (!recommendState.page.hasMore && recommendState.status !== "loading" && recommendState.status !== "error") ? (
+          <span>没有更多了</span>
+        ) : null}
+        {recommendState.status === "error" && recommendState.page.hasMore ? (
+          <button className={styles.loadMoreButton} type="button" onClick={onLoadMore}>
+            继续加载
+          </button>
+        ) : null}
+      </div>
     </section>
   );
+}
+
+export async function loadNextHomeRecommendProductsPage({
+  homeApi,
+  state
+}: {
+  homeApi: Pick<HomeApi, "getRecommendProducts">;
+  state: HomeRecommendPageState;
+}): Promise<HomeRecommendPageState> {
+  if (!state.page.hasMore || state.status === "loading" || state.status === "finished") {
+    return state;
+  }
+
+  try {
+    const result = await homeApi.getRecommendProducts({
+      current: state.page.current + 1,
+      size: state.page.size
+    });
+
+    if (!result.success) {
+      return {
+        ...state,
+        status: "error"
+      };
+    }
+
+    return {
+      page: result.data.page,
+      products: mergeProductsById(state.products, result.data.view.products),
+      status: result.data.page.hasMore ? "idle" : "finished"
+    };
+  } catch {
+    return {
+      ...state,
+      status: "error"
+    };
+  }
+}
+
+export function shouldShowHomeBackToTop(state: HomeRecommendPageState) {
+  return state.page.current >= HOME_BACK_TO_TOP_MIN_PAGE || state.products.length > state.page.size;
+}
+
+function createInitialHomeRecommendPageState(products: HomeProductCard[]): HomeRecommendPageState {
+  return {
+    page: {
+      current: 1,
+      hasMore: products.length >= HOME_RECOMMEND_PAGE_SIZE,
+      size: HOME_RECOMMEND_PAGE_SIZE
+    },
+    products,
+    status: "idle"
+  };
+}
+
+function mergeProductsById(currentProducts: HomeProductCard[], nextProducts: HomeProductCard[]) {
+  const seen = new Set(currentProducts.map((product) => product.id));
+  const merged = [...currentProducts];
+
+  nextProducts.forEach((product) => {
+    if (!seen.has(product.id)) {
+      seen.add(product.id);
+      merged.push(product);
+    }
+  });
+
+  return merged;
 }
 
 function ProductCard({
@@ -137,6 +333,7 @@ function ProductCard({
   return (
     <HybridLink className={styles.productCard} href={product.href} source="home" strategy="new-webview" title="商品详情">
       <div className={styles.productMedia}>
+        {product.imageUrl ? <img className={styles.productImage} src={product.imageUrl} alt="" /> : null}
         <span className={cn(styles.productBadge, product.badge === "推荐" && styles.productBadgeRecommended)}>{product.badge}</span>
       </div>
       <div className={styles.productBody}>
