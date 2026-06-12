@@ -20,6 +20,37 @@
 ### 备选方案
 ```
 
+## ADR-0024 - 独立 H5 调试登录不进入原生 App 路径
+
+日期：2026-06-12
+
+状态：Accepted
+
+### 背景
+
+线上 H5 版本可以被浏览器直接打开，例如 `/h5-v/v1.0.13`。浏览器环境没有原生 App 注入的 `mallToken` 和 `pythonToken`，真实首页、商品详情和订单确认 BFF 会因为缺少 token 无法继续联调。但原生 App 内部已经有 token 注入能力，不能因为调试便利而把手动 token 页面暴露给 App 用户。
+
+### 决策
+
+新增 `/debug-login` 作为独立 H5 调试页面，只接受 Java Token 和 Python Token，不提供账号密码登录。入口规则：
+
+- Cookie 中已有 `mallToken` 和 `pythonToken` 时，直接跳回目标页面。
+- 缺少 token 且没有原生运行信号时，展示调试页并允许写入调试 Cookie。
+- 检测到 `statusHeight`、`meu_page_config`、App/WebView header 或 `x-platform=ios/android` 时返回 404。
+- 首页 `/` 仅在独立浏览器、无 token、无原生信号时跳转到 `/debug-login?redirect=/`。
+
+### 影响
+
+- 研发可以在浏览器里调试线上版本真实 BFF 链路，不再依赖手动 DevTools 写 Cookie。
+- 原生 App WebView 不会看到该页面，正式鉴权模型仍是 App 写入 `mallToken` / `pythonToken` Cookie。
+- 调试页写入的是 JS 可读 Cookie，只能作为联调工具，不得扩展为正式登录入口。
+
+### 备选方案
+
+- 继续要求研发手动写 Cookie：拒绝，操作成本高且容易写错 token 名称。
+- 在 App 内也展示调试页：拒绝，会破坏正式鉴权边界。
+- 做传统账号密码登录：拒绝，当前需求是调试真实后端 token，不是新增账号体系。
+
 ## ADR-0023 - H5 业务接口通过 Feature API Adapter 接入
 
 日期：2026-06-11

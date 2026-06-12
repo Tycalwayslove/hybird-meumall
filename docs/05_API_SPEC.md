@@ -73,6 +73,20 @@ H5_LOCAL_PYTHON_TOKEN=本地调试用 pythonToken
 
 修改 `.env.local` 后必须重启 Next dev server；已运行的进程不会自动读取新 token。
 
+### 独立 H5 调试 Token 登录页
+
+线上或测试版本需要在浏览器里单独打开 H5 调试时，可以访问 `/debug-login`。该页面不是正式登录能力，只是调试 Cookie 写入工具：
+
+| 条件 | 行为 |
+| --- | --- |
+| Cookie 中已同时存在 `mallToken` 和 `pythonToken` | 直接跳回目标页面。 |
+| 缺少 token，且没有原生运行信号 | 展示 Java Token / Python Token 输入框，提交后写入调试 Cookie。 |
+| 检测到原生运行信号 | 返回 404，不展示调试页。 |
+
+原生运行信号包括 `statusHeight`、`meu_page_config`、`x-app-version`、`x-app-build`、`x-device-model`、`x-os-version`、`x-webview-version`，以及 `x-platform=ios/android`。原生 App WebView 应始终由 App 写入 `mallToken` 和 `pythonToken`，不依赖该页面。
+
+`/` 首页在浏览器独立 H5、无 token、无原生信号时会跳转到 `/debug-login?redirect=/`，用于解决线上版本浏览器调试无法获取 token 的问题。调试页写入的 token Cookie 不是 HttpOnly，仅用于手动联调；不要把真实 token 写入代码、环境 profile、文档或日志。
+
 ### 服务端后端注册表
 
 后端环境通过服务端环境变量注入，不进入浏览器 bundle：

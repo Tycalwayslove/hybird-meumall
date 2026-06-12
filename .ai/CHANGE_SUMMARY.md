@@ -1,5 +1,19 @@
 # 变更摘要
 
+## 2026-06-12 - 独立 H5 调试 Token 登录页
+
+### 变更
+
+- 新增 `/debug-login` 调试页，仅用于浏览器独立打开 H5 且缺少 `mallToken` / `pythonToken` 时手动写入 Java Token 和 Python Token。
+- `/` 首页在独立 H5、无 token、无原生运行信号时会跳转到 `/debug-login?redirect=/`，方便线上版本浏览器调试。
+- 调试页检测到 `statusHeight`、`meu_page_config`、`x-app-version`、`x-platform=ios/android` 等原生运行信号时直接返回 404，避免在原生 App WebView 中展示。
+- 调试页检测到两个 token Cookie 均已存在时直接回到目标页面，不重复展示。
+- 调试写入的 Cookie 有效期 7 天，`SameSite=Lax`，HTTPS 下追加 `Secure`；该能力不改变原生 App 写入 HttpOnly Cookie 的正式鉴权模型。
+
+### 验证
+
+- `pnpm test src/features/debug-login/debug-login.test.tsx`：先按 TDD 确认缺少组件时失败，再实现通过，1 file / 4 tests。
+
 ## 2026-06-12 - 商品图片缺省组件中心图标
 
 ### 变更

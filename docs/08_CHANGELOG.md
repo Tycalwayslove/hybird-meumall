@@ -35,6 +35,7 @@
 - 新增 H5 三套环境 profile：`config/env/h5.local.env`、`config/env/h5.test.env`、`config/env/h5.prod.env`，当前统一指向测试 H5 配置和测试后端域名。
 - 新增首页 BFF route 自身异常日志 `[h5-bff-route-error]`，用于区分 BFF 自身错误和后端调用错误。
 - 新增 H5 本地 token 兜底：仅 `APP_ENV=local` 且 Cookie 缺失时，从 `.env.local` 读取 `H5_LOCAL_JAVA_TOKEN` / `H5_LOCAL_PYTHON_TOKEN`。
+- 新增独立 H5 调试登录页 `/debug-login`：仅浏览器独立打开且缺少 `mallToken` / `pythonToken` 时可手动写入 Java Token 和 Python Token；检测到原生 App 运行信号时返回 404。
 - 新增 BFF 后端业务码日志字段：`backendBusinessCode`、`backendBusinessMessage`、`backendBusinessSuccess`。
 - 新增商品详情真实接口 BFF：`/api/bff/product-detail?prodId=<prodId>`，请求 Java `/prod/prodInfo?prodId=<prodId>&addrId=0&dvyType=1`。
 - 新增订单确认实时校验 BFF：`/api/bff/order-confirm?productId=<prodId>&skuId=<skuId>&quantity=<n>`，订单确认页重新校验 SKU、库存和价格。
