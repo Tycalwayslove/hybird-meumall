@@ -1,6 +1,6 @@
 export type BridgeModule = "router" | "event" | "rpc";
 
-export type BridgeRoute = "home" | "back" | "product_detail" | "webview" | "tab" | "close_webview" | "native_page";
+export type BridgeRoute = "home" | "back" | "product_detail" | "webview" | "tab" | "close_webview" | (string & {});
 export type PresentationStyle = "push" | "present" | "sheet" | "fullscreen";
 
 export type NavigatePayload = {

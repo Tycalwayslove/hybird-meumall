@@ -82,6 +82,39 @@ describe("hybrid navigation", () => {
     ]);
   });
 
+  test("opens native pages through direct router navigate routes", () => {
+    const messages: unknown[] = [];
+    const bridge = createProtocolBridge({
+      postMessage: (message) => {
+        messages.push(message);
+      }
+    });
+    const navigator = createHybridNavigator({ bridge });
+
+    navigator.openNativePage("settings");
+    navigator.openNativePage("address", { source: "mine" });
+
+    expect(messages).toEqual([
+      {
+        module: "router",
+        action: "navigate",
+        payload: {
+          route: "settings"
+        }
+      },
+      {
+        module: "router",
+        action: "navigate",
+        payload: {
+          route: "address",
+          params: {
+            source: "mine"
+          }
+        }
+      }
+    ]);
+  });
+
   test("infers fallback tab from a H5 path", () => {
     expect(inferFallbackTab("/promotion/rank-center")).toBe("promotion");
     expect(inferFallbackTab("/orders")).toBe("mine");

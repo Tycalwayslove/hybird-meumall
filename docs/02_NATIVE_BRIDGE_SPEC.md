@@ -149,7 +149,7 @@ type BridgeRoute =
   | "webview"
   | "tab"
   | "close_webview"
-  | "native_page";
+  | string;
 ```
 
 | route | H5 发起场景 | 原生处理 |
@@ -158,8 +158,11 @@ type BridgeRoute =
 | `tab` | 二级页需要回到首页、推广首页或我的 Tab 根页面。 | 切换目标 Tab；若 `closeCurrentWebView=true`，关闭当前二级 WebView。 |
 | `back` | H5 顶部导航返回或 H5 请求原生返回。 | 当前 WebView 可回退则 `goBack()`；否则关闭当前二级 WebView。 |
 | `close_webview` | H5 明确要求关闭当前二级容器。 | 关闭当前栈顶 H5 WebView。 |
-| `native_page` | H5 打开设置等原生页面。 | 打开对应原生页面；当前调试壳先显示占位页。 |
+| `settings` | 我的页设置入口。 | 打开原生设置页。 |
+| `<native-page-route>` | H5 打开其它原生页面。 | route 直接使用原生页面名，如 `address`、`login`；参数放在 `params`。 |
 | `product_detail` | 兼容商品详情语义跳转。 | 根据商品 id 拼接 H5 商品详情 URL 并新开 WebView。 |
+
+原生页不再通过 `route: "native_page"` + `params.name` 包装；H5 `HybridLink strategy="native-page" nativePage="<name>"` 会直接发送 `payload.route="<name>"`。
 
 `event/route_changed` payload：
 

@@ -6,7 +6,7 @@
 
 ## 覆盖范围
 
-- Bridge route 类型扩展：`tab`、`close_webview`、`native_page`。
+- Bridge route 类型扩展：`tab`、`close_webview`；原生页后续收敛为直接 route（如 `settings`），不再使用 `native_page` 包装。
 - Bridge event 扩展：`route_changed`。
 - `src/lib/navigation`：
   - `HybridLink`

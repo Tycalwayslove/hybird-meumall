@@ -2,7 +2,7 @@ import type { NavigatePayload, ProtocolBridge } from "@/lib/bridge/protocol-brid
 import { createWindowProtocolBridge } from "@/lib/bridge/protocol-bridge";
 
 export type HybridTabKey = "home" | "promotion" | "mine";
-export type NativePageName = "settings" | string;
+export type NativePageName = string;
 
 export type HybridNavigatorOptions = {
   bridge?: ProtocolBridge;
@@ -96,11 +96,8 @@ export function createHybridNavigator(options: HybridNavigatorOptions = {}) {
   function openNativePage(name: NativePageName, params: Record<string, unknown> = {}) {
     if (bridge.isAvailable()) {
       bridge.navigate({
-        route: "native_page",
-        params: {
-          name,
-          ...params
-        }
+        route: name,
+        ...(Object.keys(params).length === 0 ? {} : { params })
       });
       return;
     }
