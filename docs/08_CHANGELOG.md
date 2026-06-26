@@ -55,6 +55,7 @@
 - 搜索结果页分类筛选接口调整为默认不传 `depth`，即请求 `/category/list?parentId=<id>&shopId=0`，让后端返回当前类目的所有子孙类目。
 - 首页正式联调移除本地业务 mock fallback：`/api/bff/home` 或推荐商品分页失败时展示错误/空业务态，缺失 banner、分类或推荐商品时不使用 `homeExperienceData` 补齐。
 - 首页聚合接口按 Apifox 最新口径改为从 `navList` 直接渲染首页类目；不再拼接 `hotCategory + categoryTop8`，banner 或类目为空时展示骨架屏。
+- 首页 `navList.navType` 路由分流固化：`navType=1` 进入 `/search/ranking`，并在后端返回 `rankType/categoryId` 时打开指定热榜标签；`navType=2` 进入 `/search?categoryId=<id>`；`navType=3` 进入 `/category`。商品分类页 leaf 点击与 `navType=2` 同口径。
 - 首页“限时秒杀”和“推广带货”入口卡改为 H5 固定 UI，分别固定跳转 `/seckill` 和 `/promotion/products`，不再由首页聚合接口或配置模块控制。
 - Java / mall 后端出站请求统一注入 `source: 1`，表示当前 H5 运行在 App WebView 内，按 App 来源上报；Python 请求不携带该 header。
 - 初始化 Hybrid App H5 AI 工程化工作流文档结构。

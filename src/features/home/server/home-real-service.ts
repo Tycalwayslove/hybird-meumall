@@ -531,7 +531,7 @@ function mapHomeNavItem(nav: AppHomeNavVO, assetBaseUrl?: string): HomeQuickCate
 
   if (nav.navType === 1) {
     return {
-      href: "/search/ranking",
+      href: buildHomeRankingHref(nav),
       ...optionalImageUrl("iconUrl", resolveJavaImageUrl(nav.icon, assetBaseUrl)),
       label
     };
@@ -558,6 +558,18 @@ function mapHomeNavItem(nav: AppHomeNavVO, assetBaseUrl?: string): HomeQuickCate
   }
 
   return null;
+}
+
+function buildHomeRankingHref(nav: AppHomeNavVO) {
+  if (!nav.rankType || (nav.rankType === 1 && nav.categoryId === undefined)) {
+    return "/search/ranking";
+  }
+
+  const params = new URLSearchParams({ rankType: String(nav.rankType) });
+  if (nav.categoryId !== undefined) {
+    params.set("categoryId", String(nav.categoryId));
+  }
+  return `/search/ranking?${params.toString()}`;
 }
 
 function mapProducts(products: AppRecommendProdVO[] | undefined, assetBaseUrl?: string): HomeProductCard[] {

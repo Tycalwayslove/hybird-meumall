@@ -4,6 +4,7 @@
 
 ### 变更
 
+- 首页 `navList.navType` 路由分流已补充回归：`navType=1` 进入 `/search/ranking`，并在后端返回 `rankType/categoryId` 时打开指定热榜标签；`navType=2` 进入 `/search?categoryId=<id>`；`navType=3` 进入 `/category`。商品分类页 leaf 点击与 `navType=2` 同口径。
 - 新增 `/pay-way` 收银台页面，订单确认页提交成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
 - 新增 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber` 和 `/sys/config/info/getSysPaySwitch`，展示订单金额、过期时间、支付状态和支付方式。
 - 收银台样式按旧 uni-app `pay-way` 结构迁移：顶部金额/倒计时、中间支付方式、底部固定“确定支付”按钮。

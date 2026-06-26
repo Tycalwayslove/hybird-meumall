@@ -434,7 +434,7 @@ type HomeBffData = {
 };
 ```
 
-- `view`：当前首页组件直接渲染的稳定视图模型。首页类目直接来自 Java `navList`；`navType=1` 进入热榜，`navType=2` 进入带 `categoryId` 的搜索结果，`navType=3` 进入完整分类页。
+- `view`：当前首页组件直接渲染的稳定视图模型。首页类目直接来自 Java `navList`；`navType=1` 进入热榜 `/search/ranking`，若 Java 同时返回 `rankType/categoryId` 则携带到完整榜单用于默认选中对应标签；`navType=2` 进入带 `categoryId` 的搜索结果 `/search?categoryId=<id>`；`navType=3` 进入完整分类页 `/category`。
 - `modules`：保留首页业务模块和后端字段，方便后续首页增加字段、调整交互时直接查到对应数据，不必每次先回 BFF 里翻 mapper。`navList` 是当前分类展示来源；`hotCategory/categoryTop8` 如后端仍返回，仅作为兼容调试字段保留，不参与首页分类拼接。
 - `debugRaw`：仅 `GET /api/bff/home?debugRaw=1` 且 `APP_ENV=local/test` 时返回，用于联调对比 Java 原始 envelope；正式环境不返回。
 
@@ -672,7 +672,7 @@ H5 BFF Query：
 
 入口规则：
 
-- 首页分类或分类页 leaf 进入 `/search?categoryId=<categoryId>`，无关键词也展示搜索结果页。
+- 首页 `navType=2` 或分类页 leaf 进入 `/search?categoryId=<categoryId>`，无关键词也展示搜索结果页。
 - 搜索框、热门搜索、搜索历史进入 `/search?q=<keyword>`，不带 `categoryId`，表示全局搜索。
 - 分类入口下再次搜索进入 `/search?q=<keyword>&categoryId=<categoryId>`，在当前分类 scope 内搜索。
 - 排序只展示“销量”和“价格”两个条件；两者互斥，同一条件重复点击在升序/降序间切换，并高亮对应上下箭头。
@@ -749,7 +749,7 @@ type CategoryListBffData = {
 - 二级分类的 `children[]` 映射为三级宫格；没有三级时将二级分类自身作为 leaf。
 - `status=0` 分类不展示。
 - 分类按 `seq` 升序展示。
-- leaf 点击进入 `/search?categoryId=<categoryId>`。
+- leaf 点击与首页 `navType=2` 同口径，进入 `/search?categoryId=<categoryId>`。
 - `pic` / `icon` 相对路径通过 `JAVA_OSS_ASSET_BASE_URL` 拼接为完整图片 URL。
 
 `/category` 首屏展示骨架屏，不渲染本地 mock 分类；Java 空数组展示“暂无分类”，失败展示“分类加载失败”，均不回退 mock。

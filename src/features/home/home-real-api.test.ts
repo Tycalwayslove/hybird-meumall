@@ -141,6 +141,47 @@ describe("home real api mapper", () => {
       label: "更多分类"
     });
   });
+
+  test("routes home navType values to ranking, category search and category page", () => {
+    const data = mapHomeApiToExperienceData({
+      aggregate: {
+        ...makeAggregatePayload(),
+        navList: [
+          {
+            categoryId: 33,
+            navType: 1,
+            rankType: 2,
+            title: "保健品热榜"
+          },
+          {
+            categoryId: 88,
+            keyword: "保健品",
+            navType: 2
+          },
+          {
+            navType: 3,
+            title: "全部分类"
+          }
+        ]
+      },
+      fallback: homeExperienceData
+    });
+
+    expect(data.categories).toEqual([
+      {
+        href: "/search/ranking?rankType=2&categoryId=33",
+        label: "保健品热榜"
+      },
+      {
+        href: "/search?categoryId=88",
+        label: "保健品"
+      },
+      {
+        href: "/category",
+        label: "全部分类"
+      }
+    ]);
+  });
 });
 
 describe("home BFF service", () => {
