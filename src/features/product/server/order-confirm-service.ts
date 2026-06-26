@@ -2,6 +2,7 @@ import { getProductDetailById } from "./product-detail-service";
 import type { OrderConfirmData, OrderConfirmItem } from "../types";
 
 type GetOrderConfirmInput = {
+  addressId?: string | null;
   addressMode?: string | null;
   productId?: string | null;
   quantity?: string | null;
@@ -9,6 +10,7 @@ type GetOrderConfirmInput = {
 };
 
 export function getOrderConfirmData({
+  addressId,
   addressMode,
   productId = "p-1001",
   quantity = "1",
@@ -29,6 +31,7 @@ export function getOrderConfirmData({
 
     return createMockOrderConfirmData({
       addressMode,
+      addressId,
       product: fallbackProduct,
       quantity,
       skuId
@@ -37,6 +40,7 @@ export function getOrderConfirmData({
 
   return createMockOrderConfirmData({
     addressMode,
+    addressId,
     product,
     quantity,
     skuId
@@ -45,11 +49,13 @@ export function getOrderConfirmData({
 
 function createMockOrderConfirmData({
   addressMode,
+  addressId,
   product,
   quantity = "1",
   skuId
 }: {
   addressMode?: string | null;
+  addressId?: string | null;
   product: NonNullable<ReturnType<typeof getProductDetailById>>;
   quantity?: string | null;
   skuId?: string | null;
@@ -81,11 +87,13 @@ function createMockOrderConfirmData({
   const totalQuantity = 4;
   const totalAmount = 8976;
   const hasAddress = addressMode !== "missing";
+  const selectedAddressId = addressId || "10001";
 
   return {
     address: hasAddress
       ? {
           fullAddress: "广东省广州市越秀区东风中路268号",
+          id: selectedAddressId,
           name: "秦先生",
           phone: "1827267737"
         }
@@ -98,6 +106,8 @@ function createMockOrderConfirmData({
     ],
     items,
     productId: product.id,
+    selectedAddressId: hasAddress ? selectedAddressId : "",
+    selectedSkuId: selectedSku.id,
     serviceRows: [
       { label: "配送服务", value: "快递配送", tone: "muted" },
       { label: "配送费用", value: "￥0.00", tone: "primary" },

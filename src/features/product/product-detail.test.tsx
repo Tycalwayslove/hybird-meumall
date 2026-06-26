@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import ProductDetailPage from "@/app/product/[id]/page";
-import { resolveMediaSwipeDirection } from "./components/ProductDetailScreen";
+import { mergeProductAddressSelectionRows, resolveMediaSwipeDirection } from "./components/ProductDetailScreen";
 import { ProductPurchaseSheet } from "./components/ProductPurchaseSheet";
 import { mockProductDetails } from "./mock/product-detail";
 
@@ -15,6 +15,38 @@ function expectNoBareLocalAssetUrls(html: string) {
 }
 
 describe("product detail page", () => {
+  it("merges the App address into the product delivery selection row", () => {
+    const rows = mergeProductAddressSelectionRows(
+      [
+        { action: "purchase", label: "选择", value: "已选：默认规格" },
+        { accentPrefix: "快递配送", action: "address", href: "/address", label: "配送", value: "快递配送  |  7天内发货  |  包邮" }
+      ],
+      {
+        addr: "东风中路268号",
+        addrId: "3001",
+        area: "越秀区",
+        city: "广州市",
+        commonAddr: 1,
+        mobile: "1827267737",
+        province: "广东省",
+        receiver: "秦先生"
+      }
+    );
+
+    expect(rows[1]).toMatchObject({
+      action: "address",
+      href: "/address",
+      value: "快递配送  |  广东省广州市越秀区东风中路268号  |  包邮"
+    });
+
+    const emptyRows = mergeProductAddressSelectionRows(rows, null);
+    expect(emptyRows[1]).toMatchObject({
+      action: "address",
+      href: "/address",
+      value: "快递配送  |  请选择收货地址"
+    });
+  });
+
   it("resolves horizontal media swipe gestures without hijacking vertical scroll", () => {
     expect(resolveMediaSwipeDirection({ deltaX: -84, deltaY: 12 })).toBe(1);
     expect(resolveMediaSwipeDirection({ deltaX: 96, deltaY: 10 })).toBe(-1);
@@ -50,6 +82,21 @@ describe("product detail page", () => {
     expect(html).not.toContain('href="#selection"');
     expect(html).not.toContain('href="#address"');
     expectNoBareLocalAssetUrls(html);
+  });
+
+  it("renders a skeleton state before a remote product detail response is ready", async () => {
+    const html = renderToStaticMarkup(await ProductDetailPage({ params: Promise.resolve({ id: "1000054" }) }));
+
+    expect(html).toContain('data-product-detail-skeleton="true"');
+    expect(html).not.toContain("正在加载商品");
+    expect(html).not.toContain("￥0");
+  });
+
+  it("uses the shared product image placeholder when product detail media is empty", async () => {
+    const html = renderToStaticMarkup(await ProductDetailPage({ params: Promise.resolve({ id: "p-1001" }) }));
+
+    expect(html).toContain('data-product-hero-empty-image="true"');
+    expect(html).toContain('data-product-image-placeholder="true"');
   });
 
   it("renders the Figma-aligned purchase sheet with sku, quantity and confirm href", () => {

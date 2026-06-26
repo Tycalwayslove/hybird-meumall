@@ -3,10 +3,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
-import { StandardNavPage } from "@/design-system";
+import { ProductImagePlaceholder, Skeleton, StandardNavPage } from "@/design-system";
+import { createWindowProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createH5Client } from "@/lib/http";
 
+import { createAddressApi } from "@/features/mine-secondary/api";
+import { createHybridAddressApi } from "@/features/mine-secondary/address-hybrid-api";
+import { formatFullAddress, type AddressEntry } from "@/features/mine-secondary/mock/address-data";
+
 import { createProductApi } from "../api";
+import { recordProductDetailFlow } from "../order-flow-log";
 import type { ProductDetailData, ProductMediaItem, ProductReview, ProductSelectionItem, ProductServiceItem } from "../types";
 import styles from "./ProductDetailScreen.module.css";
 import { ProductPurchaseSheet } from "./ProductPurchaseSheet";
@@ -38,10 +44,69 @@ export function resolveMediaSwipeDirection({
   return deltaX < 0 ? 1 : -1;
 }
 
+export function mergeProductAddressSelectionRows(rows: ProductSelectionItem[], address: AddressEntry | null): ProductSelectionItem[] {
+  return rows.map((row) => {
+    if (row.action !== "address" && row.label !== "配送") {
+      return row;
+    }
+
+    const deliveryLabel = row.accentPrefix ?? "快递配送";
+    const freightText = getDeliveryTailText(row);
+    const value = address
+      ? [deliveryLabel, formatFullAddress(address), freightText].filter(Boolean).join("  |  ")
+      : `${deliveryLabel}  |  请选择收货地址`;
+
+    return {
+      ...row,
+      action: "address",
+      href: row.href ?? "/address",
+      value
+    };
+  });
+}
+
+function getDeliveryTailText(row: ProductSelectionItem) {
+  const deliveryLabel = row.accentPrefix ?? "";
+  const suffix = deliveryLabel && row.value.startsWith(deliveryLabel) ? row.value.slice(deliveryLabel.length) : row.value;
+  const parts = suffix
+    .split("|")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  return parts.at(-1) ?? "";
+}
+
 export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
   const [displayData, setDisplayData] = useState(data);
+  const [defaultAddress, setDefaultAddress] = useState<AddressEntry | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+
+  useEffect(() => {
+    recordProductDetailFlow({ productId: data.id });
+  }, [data.id]);
+
+  useEffect(() => {
+    let disposed = false;
+    const addressApi = createHybridAddressApi({
+      bridge: createWindowProtocolBridge(),
+      fallback: createAddressApi(createH5Client())
+    });
+
+    async function loadDefaultAddress() {
+      const result = await addressApi.getDefaultAddress().catch(() => undefined);
+      if (disposed || !result?.success) {
+        return;
+      }
+      setDefaultAddress(result.data);
+    }
+
+    void loadDefaultAddress();
+
+    return () => {
+      disposed = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!/^\d+$/.test(data.id)) {
@@ -52,7 +117,7 @@ export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
     const api = createProductApi(createH5Client());
 
     async function loadProduct() {
-      const result = await api.getProductDetail({ prodId: data.id }).catch(() => undefined);
+      const result = await api.getProductDetail({ addrId: defaultAddress?.addrId, prodId: data.id }).catch(() => undefined);
       if (disposed) {
         return;
       }
@@ -71,19 +136,27 @@ export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
     return () => {
       disposed = true;
     };
-  }, [data.id]);
+  }, [defaultAddress?.addrId, data.id]);
+
+  const isLoadingProduct = Boolean(displayData.isLoading && !loadError);
+  const isUnavailableProduct = Boolean(displayData.isLoading && loadError);
 
   return (
     <StandardNavPage backHref="/" title="商品详情" contentClassName={styles.scrollBody}>
       <article className={styles.page}>
         {loadError ? <InlineState message={loadError} title="商品加载失败" /> : null}
-        <ProductHero data={displayData} />
-        <ProductInfoCard data={displayData} onOpenPurchaseSheet={() => setShowPurchaseSheet(true)} />
-        <ReviewSection data={displayData} />
-        <DetailSection data={displayData} />
+        {isLoadingProduct ? <ProductDetailSkeleton /> : null}
+        {!isLoadingProduct && !isUnavailableProduct ? (
+          <>
+            <ProductHero data={displayData} />
+            <ProductInfoCard data={{ ...displayData, selectionRows: mergeProductAddressSelectionRows(displayData.selectionRows, defaultAddress) }} onOpenPurchaseSheet={() => setShowPurchaseSheet(true)} />
+            <ReviewSection data={displayData} />
+            <DetailSection data={displayData} />
+          </>
+        ) : null}
       </article>
-      <BottomActionBar data={displayData} onBuy={() => setShowPurchaseSheet(true)} />
-      {showPurchaseSheet ? <ProductPurchaseSheet data={displayData} onClose={() => setShowPurchaseSheet(false)} /> : null}
+      {!displayData.isLoading ? <BottomActionBar data={displayData} onBuy={() => setShowPurchaseSheet(true)} /> : null}
+      {showPurchaseSheet && !displayData.isLoading ? <ProductPurchaseSheet data={displayData} onClose={() => setShowPurchaseSheet(false)} /> : null}
     </StandardNavPage>
   );
 }
@@ -93,6 +166,37 @@ function InlineState({ message, title }: { message: string; title: string }) {
     <section className={styles.inlineState} aria-label={title}>
       <strong>{title}</strong>
       <p>{message}</p>
+    </section>
+  );
+}
+
+function ProductDetailSkeleton() {
+  return (
+    <section className={styles.skeletonPage} aria-label="商品详情加载中" data-product-detail-skeleton="true">
+      <Skeleton className={styles.skeletonHero} />
+      <div className={styles.skeletonPriceStrip}>
+        <Skeleton className={styles.skeletonPrice} />
+        <Skeleton className={styles.skeletonCountdown} />
+      </div>
+      <section className={styles.skeletonCard}>
+        <Skeleton className={styles.skeletonTitle} />
+        <Skeleton className={styles.skeletonSubtitle} />
+        <div className={styles.skeletonServiceRow}>
+          <Skeleton className={styles.skeletonPill} />
+          <Skeleton className={styles.skeletonPill} />
+          <Skeleton className={styles.skeletonPillShort} />
+        </div>
+      </section>
+      <section className={styles.skeletonCard}>
+        <Skeleton className={styles.skeletonRow} />
+        <Skeleton className={styles.skeletonRowShort} />
+        <Skeleton className={styles.skeletonRow} />
+      </section>
+      <section className={styles.skeletonCard}>
+        <Skeleton className={styles.skeletonTitleShort} />
+        <Skeleton className={styles.skeletonParagraph} />
+        <Skeleton className={styles.skeletonParagraphShort} />
+      </section>
     </section>
   );
 }
@@ -216,11 +320,11 @@ function ProductHero({ data }: ProductDetailScreenProps) {
             ))}
           </div>
         ) : (
-          <>
-            <div className={styles.visualBackdrop} />
-            <div className={styles.shirtShape} />
-            <div className={styles.visualShadow} />
-          </>
+          <ProductImagePlaceholder
+            ariaLabel={data.detail.imageLabel}
+            className={styles.heroImagePlaceholder}
+            data-product-hero-empty-image="true"
+          />
         )}
         {mediaItems.length > 1 ? (
           <>
@@ -386,9 +490,9 @@ function SelectionRow({ item, onOpenPurchaseSheet }: { item: ProductSelectionIte
 
   if (item.action === "address") {
     return (
-      <button className={styles.selectionRow} type="button" aria-label="地址列表暂未开发">
+      <Link className={styles.selectionRow} href={item.href ?? "/address"} aria-label="管理收货地址">
         {content}
-      </button>
+      </Link>
     );
   }
 

@@ -1,4 +1,4 @@
-import { fetchProductOrderConfirmData } from "@/features/product/server/product-real-service";
+import { fetchOrderPayInfoData } from "@/features/payment/server/cashier-service";
 import { createApiError } from "@/lib/api/errors";
 import { createBffRequestContext } from "@/server/http/bff-context";
 import { toBffResponse } from "@/server/http/bff-response";
@@ -6,52 +6,50 @@ import { toBffResponse } from "@/server/http/bff-response";
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
-    const productId = url.searchParams.get("productId")?.trim();
-    const skuId = url.searchParams.get("skuId")?.trim();
-    const quantity = Number(url.searchParams.get("quantity") ?? 1);
-    const addrId = url.searchParams.get("addrId")?.trim() || "0";
+    const orderNumbers = url.searchParams.get("orderNumbers")?.trim();
 
-    if (!productId || !skuId) {
+    if (!orderNumbers) {
       return toBffResponse({
         ok: false,
         error: createApiError("PARSE_ERROR", {
-          message: "商品或规格参数缺失。",
+          message: "订单号缺失。",
           requestId: request.headers.get("x-request-id") ?? undefined
         })
       });
     }
 
     const context = createBffRequestContext(request);
-    const result = await fetchProductOrderConfirmData({
+    const result = await fetchOrderPayInfoData({
       authRequired: true,
       authToken: context.getAuthToken("java"),
-      addrId,
       backendClient: context.backendClient,
       clientContext: context.clientContext,
+      dvyType: url.searchParams.get("dvyType")?.trim() || "1",
       includeDebugRaw: shouldIncludeDebugRaw(request),
-      productId,
-      quantity,
-      skuId
+      isPurePoints: url.searchParams.get("isPurePoints")?.trim() || "0",
+      orderNumbers,
+      orderType: url.searchParams.get("orderType")?.trim() || "0",
+      ordermold: url.searchParams.get("ordermold")?.trim() || "0"
     });
 
     return toBffResponse(result);
   } catch (error) {
     const requestId = request.headers.get("x-request-id") ?? undefined;
     console.error("[h5-bff-route-error]", {
-      message: error instanceof Error ? error.message : "Order confirm BFF request failed.",
+      message: error instanceof Error ? error.message : "Order pay info BFF request failed.",
       requestId,
-      route: "/api/bff/order-confirm"
+      route: "/api/bff/order-pay-info"
     });
 
     return Response.json(
       {
         success: false,
         code: "NETWORK_ERROR",
-        message: error instanceof Error ? error.message : "Order confirm BFF request failed.",
+        message: error instanceof Error ? error.message : "Order pay info BFF request failed.",
         requestId,
         recoverable: true
       },
-      { status: statusFromError(error) }
+      { status: 502 }
     );
   }
 }
@@ -63,12 +61,4 @@ function shouldIncludeDebugRaw(request: Request) {
 
   const appEnv = process.env.APP_ENV;
   return appEnv === "local" || appEnv === "test";
-}
-
-function statusFromError(error: unknown) {
-  const apiError = createApiError("NETWORK_ERROR", {
-    message: error instanceof Error ? error.message : undefined
-  });
-
-  return apiError.recoverable ? 502 : 500;
 }

@@ -8,7 +8,9 @@ type OrderConfirmPageProps = {
 
 export default async function OrderConfirmPage({ searchParams }: OrderConfirmPageProps) {
   const params = await searchParams;
+  const addressId = normalizeParam(params?.addressId);
   const data = getOrderConfirmData({
+    addressId,
     addressMode: normalizeParam(params?.address),
     productId: normalizeParam(params?.productId),
     quantity: normalizeParam(params?.quantity),
@@ -21,7 +23,7 @@ export default async function OrderConfirmPage({ searchParams }: OrderConfirmPag
     const quantity = normalizeParam(params?.quantity);
 
     if (productId && skuId) {
-      return <OrderConfirmRuntimeScreen productId={productId} quantity={quantity} skuId={skuId} />;
+      return <OrderConfirmRuntimeScreen addressId={addressId} productId={productId} quantity={quantity} skuId={skuId} />;
     }
 
     return <ProductNotFoundScreen />;

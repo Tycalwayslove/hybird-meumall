@@ -62,6 +62,7 @@ export type ProductPurchaseData = {
 
 export type ProductDetailData = {
   id: string;
+  isLoading?: boolean;
   title: string;
   subtitle: string;
   talentLevelLabel: string;
@@ -95,6 +96,7 @@ export type ProductDetailData = {
 };
 
 export type OrderConfirmAddress = {
+  id: string;
   name: string;
   phone: string;
   fullAddress: string;
@@ -120,6 +122,8 @@ export type OrderConfirmFeeRow = {
 export type OrderConfirmData = {
   address: OrderConfirmAddress | null;
   productId: string;
+  selectedAddressId: string;
+  selectedSkuId: string;
   items: OrderConfirmItem[];
   totalQuantity: number;
   totalAmount: number;

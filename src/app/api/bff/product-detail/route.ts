@@ -7,6 +7,7 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const prodId = url.searchParams.get("prodId")?.trim();
+    const addrId = url.searchParams.get("addrId")?.trim() || "0";
 
     if (!prodId) {
       return toBffResponse({
@@ -25,6 +26,7 @@ export async function GET(request: Request) {
       backendClient: context.backendClient,
       clientContext: context.clientContext,
       includeDebugRaw: shouldIncludeDebugRaw(request),
+      addrId,
       prodId
     });
 

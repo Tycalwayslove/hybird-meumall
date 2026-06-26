@@ -1,11 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ProductImagePlaceholder, StandardNavPage } from "@/design-system";
+import { createAddressApi } from "@/features/mine-secondary/api";
+import { createHybridAddressApi } from "@/features/mine-secondary/address-hybrid-api";
+import { createCashierHrefFromSubmitResult } from "@/features/payment/cashier-links";
+import { createWindowProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createH5Client } from "@/lib/http";
 
 import { createProductApi } from "../api";
+import { createOrderSubmitFlowLogParam, recordOrderConfirmFlow } from "../order-flow-log";
 import type { OrderConfirmData, OrderConfirmFeeRow, OrderConfirmItem } from "../types";
 import styles from "./OrderConfirmScreen.module.css";
 
@@ -13,17 +19,41 @@ type OrderConfirmScreenProps = {
   data: OrderConfirmData;
 };
 
-export function OrderConfirmRuntimeScreen({ productId, quantity, skuId }: { productId: string; quantity?: string; skuId: string }) {
+export function OrderConfirmRuntimeScreen({
+  addressId,
+  productId,
+  quantity,
+  skuId
+}: {
+  addressId?: string;
+  productId: string;
+  quantity?: string;
+  skuId: string;
+}) {
   const [data, setData] = useState<OrderConfirmData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let disposed = false;
+    recordOrderConfirmFlow();
     const api = createProductApi(createH5Client());
+    const addressApi = createHybridAddressApi({
+      bridge: createWindowProtocolBridge(),
+      fallback: createAddressApi(createH5Client())
+    });
 
     async function loadOrderConfirm() {
+      let resolvedAddressId = addressId;
+      if (!resolvedAddressId) {
+        const addressResult = await addressApi.getDefaultAddress().catch(() => undefined);
+        if (addressResult?.success && addressResult.data?.addrId) {
+          resolvedAddressId = addressResult.data.addrId;
+        }
+      }
+
       const result = await api
         .getOrderConfirm({
+          addrId: resolvedAddressId,
           productId,
           quantity: Number(quantity ?? 1),
           skuId
@@ -46,7 +76,7 @@ export function OrderConfirmRuntimeScreen({ productId, quantity, skuId }: { prod
     return () => {
       disposed = true;
     };
-  }, [productId, quantity, skuId]);
+  }, [addressId, productId, quantity, skuId]);
 
   if (data) {
     return <OrderConfirmScreen data={data} />;
@@ -94,18 +124,20 @@ export function OrderConfirmScreen({ data }: OrderConfirmScreenProps) {
 }
 
 function AddressCard({ data }: { data: OrderConfirmData }) {
+  const href = createAddressSelectHref(data);
+
   if (!data.address) {
     return (
-      <section className={styles.addressCard} aria-label="收货信息">
+      <Link className={styles.addressCard} href={href} aria-label="收货信息">
         <span className={styles.locationIcon} aria-hidden="true" />
         <strong>请先填写收货人信息</strong>
         <span className={styles.arrowIcon} aria-hidden="true" />
-      </section>
+      </Link>
     );
   }
 
   return (
-    <section className={styles.addressCardLarge} aria-label="收货信息">
+    <Link className={styles.addressCardLarge} href={href} aria-label="更换收货地址">
       <div className={styles.addressTitleRow}>
         <span className={styles.locationIcon} aria-hidden="true" />
         <strong>{data.address.fullAddress}</strong>
@@ -115,7 +147,8 @@ function AddressCard({ data }: { data: OrderConfirmData }) {
         <span>{data.address.name}</span>
         <span>{data.address.phone}</span>
       </p>
-    </section>
+      <span className={styles.addressHint}>更换收货地址</span>
+    </Link>
   );
 }
 
@@ -154,20 +187,94 @@ function SummaryRow({ row }: { row: OrderConfirmFeeRow }) {
 }
 
 function SubmitBar({ data }: { data: OrderConfirmData }) {
+  const [submitState, setSubmitState] = useState<{
+    message?: string;
+    orderNumbers?: string;
+    status: "error" | "idle" | "submitting" | "success";
+  }>({ status: "idle" });
+  const canSubmit = data.canSubmit && submitState.status !== "submitting" && submitState.status !== "success";
+
+  async function handleSubmit() {
+    if (!canSubmit) {
+      return;
+    }
+
+    setSubmitState({ message: "正在提交订单...", status: "submitting" });
+    const api = createProductApi(createH5Client());
+    const result = await api
+      .submitOrder({
+        productId: data.productId,
+        addrId: data.selectedAddressId,
+        orderFlowLogParam: createOrderSubmitFlowLogParam(),
+        quantity: data.totalQuantity,
+        skuId: data.selectedSkuId
+      })
+      .catch(() => undefined);
+
+    if (result?.success) {
+      window.location.assign(
+        createCashierHrefFromSubmitResult({
+          dvyType: "1",
+          orderNumbers: result.data.view.orderNumbers,
+          orderType: "0",
+          ordermold: "0"
+        })
+      );
+      setSubmitState({
+        message: result.data.view.message,
+        orderNumbers: result.data.view.orderNumbers,
+        status: "success"
+      });
+      return;
+    }
+
+    setSubmitState({
+      message: result && !result.success ? result.message : "订单提交失败，请稍后重试。",
+      status: "error"
+    });
+  }
+
   return (
     <div className={styles.submitBar}>
       <div className={styles.submitInner}>
-        <p>
-          共{data.totalQuantity}件 合计:
-          <strong>
-            <span>￥</span>
-            {data.totalAmount}
-          </strong>
-        </p>
-        <button className={data.canSubmit ? styles.submitButton : styles.submitButtonDisabled} disabled={!data.canSubmit} type="button">
-          提交订单
+        <div className={styles.submitText}>
+          <p>
+            共{data.totalQuantity}件 合计:
+            <strong>
+              <span>￥</span>
+              {data.totalAmount}
+            </strong>
+          </p>
+          {submitState.status !== "idle" ? (
+            <span className={submitState.status === "error" ? styles.submitError : styles.submitMessage}>
+              {submitState.orderNumbers ? `${submitState.message} 订单号：${submitState.orderNumbers}` : submitState.message}
+            </span>
+          ) : null}
+        </div>
+        <button
+          className={canSubmit ? styles.submitButton : styles.submitButtonDisabled}
+          disabled={!canSubmit}
+          onClick={handleSubmit}
+          type="button"
+        >
+          {submitState.status === "submitting" ? "提交中" : submitState.status === "success" ? "已下单" : "提交订单"}
         </button>
       </div>
     </div>
   );
+}
+
+function createAddressSelectHref(data: OrderConfirmData) {
+  const query = new URLSearchParams({
+    select: "1",
+    productId: data.productId,
+    quantity: String(data.totalQuantity),
+    skuId: data.selectedSkuId
+  });
+
+  if (data.selectedAddressId) {
+    query.set("addressId", data.selectedAddressId);
+  }
+
+  return `/address?${query.toString()}`;
 }

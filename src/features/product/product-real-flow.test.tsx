@@ -12,8 +12,10 @@ import {
   createProductDetailBffData,
   fetchProductDetailData,
   fetchProductOrderConfirmData,
+  submitProductOrder,
   type JavaProductCommentPage,
   type JavaProductCommentSummary,
+  type JavaUserAddress,
   type JavaShopHeadInfo,
   type ProductServerResponse
 } from "./server/product-real-service";
@@ -67,6 +69,16 @@ const sampleShopInfo: JavaShopHeadInfo = {
   shopName: "喵呜自营旗舰店",
   shopStatus: 1,
   type: 1
+};
+
+const sampleAddress: JavaUserAddress = {
+  addr: "东风中路268号",
+  addrId: 3001,
+  area: "越秀区",
+  city: "广州市",
+  mobile: "1827267737",
+  province: "广东省",
+  receiver: "秦先生"
 };
 
 const sampleCommentSummary: JavaProductCommentSummary = {
@@ -331,6 +343,316 @@ describe("product real flow service", () => {
       expect(result.error.message).toContain("库存不足");
     }
   });
+
+  it("loads the default address before confirming a real product order", async () => {
+    const backendClient = createFakeBackendClient({
+      "/p/address/addrInfo/0": {
+        code: "00000",
+        data: sampleAddress,
+        success: true
+      },
+      "/prod/prodInfo?prodId=1000054&addrId=3001&dvyType=1": {
+        code: "00000",
+        data: sampleProduct,
+        success: true
+      },
+      "/p/order/confirm": {
+        code: "00000",
+        data: {
+          submitOrder: 1
+        },
+        success: true
+      },
+      "/p/score/scoreInfo": {
+        code: "00000",
+        data: {
+          score: 200
+        },
+        success: true
+      }
+    });
+
+    const result = await fetchProductOrderConfirmData({
+      authRequired: true,
+      authToken: "mall-token",
+      backendClient,
+      productId: "1000054",
+      quantity: 2,
+      skuId: "6001"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view.address).toEqual({
+        fullAddress: "广东省广州市越秀区东风中路268号",
+        id: "3001",
+        name: "秦先生",
+        phone: "1827267737"
+      });
+      expect(result.data.view.canSubmit).toBe(true);
+      expect(result.data.view.selectedAddressId).toBe("3001");
+    }
+    expect(backendClient.requests.map((request) => ({ body: request.body, method: request.method, path: request.path }))).toEqual([
+      {
+        body: undefined,
+        method: "GET",
+        path: "/p/address/addrInfo/0"
+      },
+      {
+        body: undefined,
+        method: "GET",
+        path: "/prod/prodInfo?prodId=1000054&addrId=3001&dvyType=1"
+      },
+      {
+        body: {
+          addrId: 3001,
+          dvyTypes: [{ dvyType: 1, lat: null, lng: null, shopId: 8801, stationId: 0 }],
+          isScorePay: 0,
+          orderItem: {
+            prodCount: 2,
+            prodId: "1000054",
+            shopId: 8801,
+            skuId: "6001"
+          },
+          prodCount: 2,
+          userChangeCoupon: 0,
+          couponParams: [],
+          userUseScore: 0
+        },
+        method: "POST",
+        path: "/p/order/confirm"
+      },
+      {
+        body: undefined,
+        method: "GET",
+        path: "/p/score/scoreInfo"
+      }
+    ]);
+  });
+
+  it("keeps ordinary express order submittable when confirm returns submitOrder 0 like the legacy page", async () => {
+    const backendClient = createFakeBackendClient({
+      "/p/address/addrInfo/0": {
+        code: "00000",
+        data: sampleAddress,
+        success: true
+      },
+      "/prod/prodInfo?prodId=1000054&addrId=3001&dvyType=1": {
+        code: "00000",
+        data: sampleProduct,
+        success: true
+      },
+      "/p/order/confirm": {
+        code: "00000",
+        data: {
+          shopCartOrders: [{ shopId: 8801, stationSearchVO: { stationId: 0 } }],
+          submitOrder: 0
+        },
+        success: true
+      },
+      "/p/score/scoreInfo": {
+        code: "00000",
+        data: {
+          score: 200
+        },
+        success: true
+      }
+    });
+
+    const result = await fetchProductOrderConfirmData({
+      authRequired: true,
+      authToken: "mall-token",
+      backendClient,
+      productId: "1000054",
+      quantity: 2,
+      skuId: "6001"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view.canSubmit).toBe(true);
+    }
+  });
+
+  it("submits an ordinary express order after confirming the selected product sku", async () => {
+    const backendClient = createFakeBackendClient({
+      "/p/address/addrInfo/0": {
+        code: "00000",
+        data: sampleAddress,
+        success: true
+      },
+      "/prod/prodInfo?prodId=1000054&addrId=3001&dvyType=1": {
+        code: "00000",
+        data: sampleProduct,
+        success: true
+      },
+      "/p/order/confirm": {
+        code: "00000",
+        data: {
+          submitOrder: 1
+        },
+        success: true
+      },
+      "/p/order/submit": {
+        code: "00000",
+        data: {
+          orderNumbers: "O202606120001"
+        },
+        success: true
+      }
+    });
+
+    const result = await submitProductOrder({
+      authRequired: true,
+      authToken: "mall-token",
+      backendClient,
+      orderFlowLogParam: {
+        prevPageId: 3,
+        step: 2,
+        systemType: 5,
+        uuid: "uuid-user",
+        uuidSession: "uuid-session",
+        visitType: 1
+      },
+      productId: "1000054",
+      quantity: 2,
+      skuId: "6001"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view).toEqual({
+        message: "订单已创建，等待支付。",
+        orderNumbers: "O202606120001",
+        status: "created"
+      });
+    }
+    expect(backendClient.requests.map((request) => ({ body: request.body, method: request.method, path: request.path }))).toEqual([
+      {
+        body: undefined,
+        method: "GET",
+        path: "/p/address/addrInfo/0"
+      },
+      {
+        body: undefined,
+        method: "GET",
+        path: "/prod/prodInfo?prodId=1000054&addrId=3001&dvyType=1"
+      },
+      {
+        body: {
+          addrId: 3001,
+          dvyTypes: [{ dvyType: 1, lat: null, lng: null, shopId: 8801, stationId: 0 }],
+          isScorePay: 0,
+          orderItem: {
+            prodCount: 2,
+            prodId: "1000054",
+            shopId: 8801,
+            skuId: "6001"
+          },
+          prodCount: 2,
+          userChangeCoupon: 0,
+          couponParams: [],
+          userUseScore: 0
+        },
+        method: "POST",
+        path: "/p/order/confirm"
+      },
+      {
+        body: {
+          isScorePay: 0,
+          orderFlowLogParam: {
+            prevPageId: 3,
+            step: 2,
+            systemType: 5,
+            uuid: "uuid-user",
+            uuidSession: "uuid-session",
+            visitType: 1
+          },
+          orderInvoiceList: null,
+          orderSelfStationDto: {
+            stationId: 0,
+            stationTime: "",
+            stationUserMobile: "",
+            stationUserName: ""
+          },
+          orderShopParams: [{ remarks: "", shopId: 8801, stationId: 0 }],
+          virtualRemarkList: []
+        },
+        method: "POST",
+        path: "/p/order/submit"
+      }
+    ]);
+  });
+
+  it("does not block ordinary submit only because confirm submitOrder is 0", async () => {
+    const backendClient = createFakeBackendClient({
+      "/p/address/addrInfo/0": {
+        code: "00000",
+        data: sampleAddress,
+        success: true
+      },
+      "/prod/prodInfo?prodId=1000054&addrId=3001&dvyType=1": {
+        code: "00000",
+        data: sampleProduct,
+        success: true
+      },
+      "/p/order/confirm": {
+        code: "00000",
+        data: {
+          shopCartOrders: [{ shopId: 8801, stationSearchVO: { stationId: 0 } }],
+          submitOrder: 0
+        },
+        success: true
+      },
+      "/p/order/submit": {
+        code: "00000",
+        data: {
+          orderNumbers: "O202606120002"
+        },
+        success: true
+      }
+    });
+
+    const result = await submitProductOrder({
+      authRequired: true,
+      authToken: "mall-token",
+      backendClient,
+      productId: "1000054",
+      quantity: 2,
+      skuId: "6001"
+    });
+
+    expect(result.ok).toBe(true);
+    expect(backendClient.requests.map((request) => request.path)).toEqual([
+      "/p/address/addrInfo/0",
+      "/prod/prodInfo?prodId=1000054&addrId=3001&dvyType=1",
+      "/p/order/confirm",
+      "/p/order/submit"
+    ]);
+  });
+
+  it("blocks order submit when no delivery address can be resolved", async () => {
+    const backendClient = createFakeBackendClient({
+      "/p/address/addrInfo/0": { code: "00000", data: null, success: true }
+    });
+
+    const result = await submitProductOrder({
+      authRequired: true,
+      authToken: "mall-token",
+      backendClient,
+      productId: "1000054",
+      quantity: 1,
+      skuId: "6001"
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("HTTP_ERROR");
+      expect(result.error.httpStatus).toBe(409);
+      expect(result.error.message).toContain("收货地址");
+    }
+    expect(backendClient.requests.map((request) => request.path)).toEqual(["/p/address/addrInfo/0"]);
+  });
 });
 
 describe("product browser api adapter", () => {
@@ -349,10 +671,12 @@ describe("product browser api adapter", () => {
 
     await api.getProductDetail({ prodId: "1000054" });
     await api.getOrderConfirm({ productId: "1000054", quantity: 2, skuId: "6001" });
+    await api.submitOrder({ productId: "1000054", quantity: 2, skuId: "6001" });
 
     expect(paths).toEqual([
       "/api/bff/product-detail?prodId=1000054",
-      "/api/bff/order-confirm?productId=1000054&skuId=6001&quantity=2"
+      "/api/bff/order-confirm?productId=1000054&skuId=6001&quantity=2",
+      "/api/bff/order-submit"
     ]);
   });
 });
@@ -410,11 +734,12 @@ describe("product real flow rendering", () => {
     expect(pageHtml).not.toContain("店铺信息");
   });
 
-  it("renders a remote product shell for numeric product ids that are not in local mock", async () => {
+  it("renders a remote product skeleton for numeric product ids that are not in local mock", async () => {
     const html = renderToStaticMarkup(await ProductDetailPage({ params: Promise.resolve({ id: "1000054" }) }));
 
     expect(html).toContain("商品详情");
-    expect(html).toContain("正在加载商品");
+    expect(html).toContain('data-product-detail-skeleton="true"');
+    expect(html).not.toContain("正在加载商品");
     expect(html).not.toContain("商品暂时不可见");
   });
 
@@ -445,9 +770,11 @@ describe("product real flow rendering", () => {
 type FakeBackendResponse =
   | { ok: false }
   | ProductServerResponse<typeof sampleProduct>
+  | ProductServerResponse<JavaUserAddress>
   | ProductServerResponse<JavaShopHeadInfo>
   | ProductServerResponse<JavaProductCommentSummary>
-  | ProductServerResponse<JavaProductCommentPage>;
+  | ProductServerResponse<JavaProductCommentPage>
+  | ProductServerResponse<{ orderNumbers?: string; submitOrder?: number }>;
 
 function createFakeBackendClient(responses: Record<string, FakeBackendResponse>) {
   const requests: BackendRequestOptions[] = [];

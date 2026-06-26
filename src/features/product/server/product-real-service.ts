@@ -3,6 +3,7 @@ import type { ApiError } from "@/lib/api/types";
 import type { ClientRequestContext } from "@/lib/http/client-context";
 import type { BackendApiResult, BackendRequestOptions } from "@/server/http/backend-client";
 import { getJavaResponseCodeMeta, mapJavaBusinessCodeToApiErrorCode } from "@/server/http/java-response-codes";
+import type { OrderFlowLogParam } from "../order-flow-log";
 import { resolveRichContentAssetUrl, sanitizeProductRichContent } from "../rich-content";
 import type { OrderConfirmData, OrderConfirmItem, ProductDetailData, ProductSkuOption } from "../types";
 
@@ -100,6 +101,20 @@ export type JavaProductSku = {
   [key: string]: unknown;
 };
 
+export type JavaUserAddress = {
+  addr?: string;
+  addrId?: number | string;
+  area?: string;
+  city?: string;
+  commonAddr?: number;
+  lat?: number | string;
+  lng?: number | string;
+  mobile?: string;
+  province?: string;
+  receiver?: string;
+  [key: string]: unknown;
+};
+
 export type ProductDetailBffData = {
   debugRaw?: {
     prodInfo: ProductServerResponse<JavaProductInfo>;
@@ -116,13 +131,59 @@ export type ProductDetailBffData = {
 
 export type OrderConfirmBffData = {
   debugRaw?: {
+    orderConfirm?: ProductServerResponse<JavaOrderConfirmInfo>;
     prodInfo: ProductServerResponse<JavaProductInfo>;
+    scoreInfo?: ProductServerResponse<JavaScoreInfo>;
   };
   modules: {
+    orderConfirm?: JavaOrderConfirmInfo;
     productInfo: JavaProductInfo;
+    scoreInfo?: JavaScoreInfo;
     selectedSku: JavaProductSku;
+    userAddress?: JavaUserAddress;
   };
   view: OrderConfirmData;
+};
+
+export type JavaOrderConfirmInfo = {
+  actualTotal?: number;
+  orderReduce?: number;
+  total?: number;
+  totalCount?: number;
+  totalTransFee?: number;
+  submitOrder?: number;
+  [key: string]: unknown;
+};
+
+export type JavaScoreInfo = {
+  score?: number;
+  [key: string]: unknown;
+};
+
+export type JavaOrderSubmitInfo = {
+  duplicateError?: number;
+  orderNumbers?: string;
+  [key: string]: unknown;
+};
+
+export type OrderSubmitBffData = {
+  debugRaw?: {
+    orderConfirm?: ProductServerResponse<JavaOrderConfirmInfo>;
+    orderSubmit?: ProductServerResponse<JavaOrderSubmitInfo>;
+    prodInfo?: ProductServerResponse<JavaProductInfo>;
+  };
+  modules: {
+    orderConfirm?: JavaOrderConfirmInfo;
+    orderSubmit: JavaOrderSubmitInfo;
+    productInfo: JavaProductInfo;
+    selectedSku: JavaProductSku;
+    userAddress: JavaUserAddress;
+  };
+  view: {
+    message: string;
+    orderNumbers: string;
+    status: "created";
+  };
 };
 
 export type FetchProductDetailOptions = {
@@ -149,6 +210,10 @@ export type FetchProductOrderConfirmOptions = {
   productId: string;
   quantity?: number;
   skuId: string;
+};
+
+export type SubmitProductOrderOptions = FetchProductOrderConfirmOptions & {
+  orderFlowLogParam?: OrderFlowLogParam;
 };
 
 export async function fetchProductDetailData({
@@ -216,13 +281,22 @@ export async function fetchProductOrderConfirmData({
   quantity = 1,
   skuId
 }: FetchProductOrderConfirmOptions): Promise<BackendApiResult<OrderConfirmBffData>> {
+  const userAddress = await fetchUserAddress({
+    authRequired,
+    authToken,
+    backendClient,
+    clientContext,
+    addrId,
+    route: "/order-confirm"
+  });
+  const effectiveAddrId = normalizeAddressId(userAddress) || addrId;
   const result = await backendClient.request<ProductServerResponse<JavaProductInfo>>({
     authRequired,
     authToken,
     backend: "java",
     clientContext,
     method: "GET",
-    path: `/prod/prodInfo?${new URLSearchParams({ prodId: productId, addrId, dvyType }).toString()}`,
+    path: `/prod/prodInfo?${new URLSearchParams({ prodId: productId, addrId: effectiveAddrId, dvyType }).toString()}`,
     route: "/order-confirm"
   });
   if (!result.ok) {
@@ -259,16 +333,221 @@ export async function fetchProductOrderConfirmData({
     };
   }
 
+  const shopId = normalizeBackendNumericId(product.data.shopId);
+  const confirmBody = createOrderConfirmRequestBody({
+    addrId: effectiveAddrId,
+    dvyType,
+    productId,
+    quantity: normalizedQuantity,
+    shopId,
+    skuId
+  });
+  const confirmResult = await backendClient.request<ProductServerResponse<JavaOrderConfirmInfo>>({
+    authRequired,
+    authToken,
+    backend: "java",
+    body: confirmBody,
+    clientContext,
+    method: "POST",
+    path: "/p/order/confirm",
+    route: "/order-confirm"
+  });
+  if (!confirmResult.ok) {
+    return confirmResult;
+  }
+
+  const confirmed = unwrapJavaData(confirmResult.data, confirmResult.meta.requestId, "订单确认失败，请返回商品详情重试。");
+  if (!confirmed.ok) {
+    return confirmed;
+  }
+  const scoreInfo = await fetchUserScoreInfo({
+    authRequired,
+    authToken,
+    backendClient,
+    clientContext,
+    route: "/order-confirm"
+  });
+
   return {
     ok: true,
     data: createOrderConfirmBffData({
+      addrId: effectiveAddrId,
+      address: userAddress,
       javaOssAssetBaseUrl,
+      orderConfirm: confirmed.data,
       productInfo: product.data,
       quantity: normalizedQuantity,
       raw: includeDebugRaw ? result.data : undefined,
+      rawOrderConfirm: includeDebugRaw ? confirmResult.data : undefined,
+      scoreInfo,
       selectedSkuId: skuId
     }),
     meta: result.meta
+  };
+}
+
+export async function submitProductOrder({
+  addrId = "0",
+  authRequired = false,
+  authToken,
+  backendClient,
+  clientContext,
+  dvyType = "1",
+  includeDebugRaw = false,
+  javaOssAssetBaseUrl,
+  orderFlowLogParam,
+  productId,
+  quantity = 1,
+  skuId
+}: SubmitProductOrderOptions): Promise<BackendApiResult<OrderSubmitBffData>> {
+  void javaOssAssetBaseUrl;
+  const userAddress = await fetchUserAddress({
+    authRequired,
+    authToken,
+    backendClient,
+    clientContext,
+    addrId,
+    route: "/order-submit"
+  });
+  if (!userAddress) {
+    return {
+      ok: false,
+      error: createApiError("HTTP_ERROR", {
+        httpStatus: 409,
+        message: "请先选择收货地址。",
+        requestId: "address-unresolved"
+      })
+    };
+  }
+  const effectiveAddrId = normalizeAddressId(userAddress) || addrId;
+  const productResult = await backendClient.request<ProductServerResponse<JavaProductInfo>>({
+    authRequired,
+    authToken,
+    backend: "java",
+    clientContext,
+    method: "GET",
+    path: `/prod/prodInfo?${new URLSearchParams({ prodId: productId, addrId: effectiveAddrId, dvyType }).toString()}`,
+    route: "/order-submit"
+  });
+  if (!productResult.ok) {
+    return productResult;
+  }
+
+  const product = unwrapProductData(productResult.data, productResult.meta.requestId);
+  if (!product.ok) {
+    return product;
+  }
+
+  const selectedSku = findSku(product.data.skuList, skuId);
+  if (!selectedSku) {
+    return {
+      ok: false,
+      error: createApiError("HTTP_ERROR", {
+        httpStatus: 404,
+        message: "所选规格不存在，请返回商品详情重新选择。",
+        requestId: productResult.meta.requestId
+      })
+    };
+  }
+
+  const normalizedQuantity = normalizeQuantity(quantity);
+  const stock = normalizeStock(selectedSku);
+  if (stock <= 0 || normalizedQuantity > stock) {
+    return {
+      ok: false,
+      error: createApiError("HTTP_ERROR", {
+        httpStatus: 409,
+        message: "所选规格库存不足，请返回商品详情重新选择。",
+        requestId: productResult.meta.requestId
+      })
+    };
+  }
+
+  const shopId = normalizeBackendNumericId(product.data.shopId);
+  const confirmBody = createOrderConfirmRequestBody({
+    addrId: effectiveAddrId,
+    dvyType,
+    productId,
+    quantity: normalizedQuantity,
+    shopId,
+    skuId
+  });
+  const confirmResult = await backendClient.request<ProductServerResponse<JavaOrderConfirmInfo>>({
+    authRequired,
+    authToken,
+    backend: "java",
+    body: confirmBody,
+    clientContext,
+    method: "POST",
+    path: "/p/order/confirm",
+    route: "/order-submit"
+  });
+  if (!confirmResult.ok) {
+    return confirmResult;
+  }
+
+  const confirmed = unwrapJavaData(confirmResult.data, confirmResult.meta.requestId, "订单确认失败，请返回商品详情重试。");
+  if (!confirmed.ok) {
+    return confirmed;
+  }
+  const submitBody = createOrderSubmitRequestBody(shopId, confirmed.data, orderFlowLogParam);
+  const submitResult = await backendClient.request<ProductServerResponse<JavaOrderSubmitInfo>>({
+    authRequired,
+    authToken,
+    backend: "java",
+    body: submitBody,
+    clientContext,
+    method: "POST",
+    path: "/p/order/submit",
+    route: "/order-submit"
+  });
+  if (!submitResult.ok) {
+    return submitResult;
+  }
+
+  const submitted = unwrapJavaData(submitResult.data, submitResult.meta.requestId, "订单提交失败，请稍后重试。");
+  if (!submitted.ok) {
+    return submitted;
+  }
+
+  const orderNumbers = normalizeText(submitted.data.orderNumbers, "");
+  if (!orderNumbers) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        details: { code: submitResult.data.code },
+        message: "订单提交成功但缺少订单号。",
+        requestId: submitResult.meta.requestId
+      })
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      ...(includeDebugRaw
+        ? {
+            debugRaw: {
+              orderConfirm: confirmResult.data,
+              orderSubmit: submitResult.data,
+              prodInfo: productResult.data
+            }
+          }
+        : {}),
+      modules: {
+        orderConfirm: confirmed.data,
+        orderSubmit: submitted.data,
+        productInfo: product.data,
+        selectedSku,
+        userAddress
+      },
+      view: {
+        message: "订单已创建，等待支付。",
+        orderNumbers,
+        status: "created"
+      }
+    },
+    meta: submitResult.meta
   };
 }
 
@@ -356,6 +635,8 @@ export function createProductDetailBffData({
         },
         {
           accentPrefix: deliveryText,
+          action: "address",
+          href: "/address",
           label: "配送",
           value: [deliveryText, deliveryLeadText, freightText].filter(Boolean).join("  |  ")
         }
@@ -457,17 +738,89 @@ async function fetchOptionalJavaEnvelope<T>({
   return result.data.data;
 }
 
+async function fetchUserAddress({
+  addrId,
+  authRequired,
+  authToken,
+  backendClient,
+  clientContext,
+  route
+}: {
+  addrId: string;
+  authRequired: boolean;
+  authToken?: string | null;
+  backendClient: ProductBackendClient;
+  clientContext?: ClientRequestContext;
+  route: string;
+}) {
+  const result = await backendClient.request<ProductServerResponse<JavaUserAddress>>({
+    authRequired,
+    authToken,
+    backend: "java",
+    clientContext,
+    method: "GET",
+    path: `/p/address/addrInfo/${addrId || "0"}`,
+    route
+  });
+
+  if (!result.ok || result.data.success === false || !result.data.data) {
+    return null;
+  }
+
+  return result.data.data;
+}
+
+async function fetchUserScoreInfo({
+  authRequired,
+  authToken,
+  backendClient,
+  clientContext,
+  route
+}: {
+  authRequired: boolean;
+  authToken?: string | null;
+  backendClient: ProductBackendClient;
+  clientContext?: ClientRequestContext;
+  route: string;
+}) {
+  const result = await backendClient.request<ProductServerResponse<JavaScoreInfo>>({
+    authRequired,
+    authToken,
+    backend: "java",
+    clientContext,
+    method: "GET",
+    path: "/p/score/scoreInfo",
+    route
+  });
+
+  if (!result.ok || result.data.success === false || !result.data.data) {
+    return undefined;
+  }
+
+  return result.data.data;
+}
+
 export function createOrderConfirmBffData({
+  addrId = "0",
+  address,
   javaOssAssetBaseUrl,
+  orderConfirm,
   productInfo,
   quantity,
   raw,
+  rawOrderConfirm,
+  scoreInfo,
   selectedSkuId
 }: {
+  addrId?: string;
+  address?: JavaUserAddress | null;
   javaOssAssetBaseUrl?: string;
+  orderConfirm?: JavaOrderConfirmInfo;
   productInfo: JavaProductInfo;
   quantity: number;
   raw?: ProductServerResponse<JavaProductInfo>;
+  rawOrderConfirm?: ProductServerResponse<JavaOrderConfirmInfo>;
+  scoreInfo?: JavaScoreInfo;
   selectedSkuId: string;
 }): OrderConfirmBffData {
   const normalizedSkus = normalizeSkus(productInfo, javaOssAssetBaseUrl);
@@ -476,7 +829,10 @@ export function createOrderConfirmBffData({
   const normalizedQuantity = normalizeQuantity(quantity);
   const title = normalizeText(productInfo.prodName, "商品");
   const price = selectedSku?.price ?? normalizeMoney(productInfo.price ?? productInfo.defaultPrice);
-  const totalAmount = price * normalizedQuantity;
+  const estimatedTotalAmount = price * normalizedQuantity;
+  const totalAmount = normalizeOrderMoney(orderConfirm?.actualTotal, estimatedTotalAmount);
+  const totalQuantity = normalizeOrderCount(orderConfirm?.totalCount, normalizedQuantity);
+  const normalizedAddress = address === undefined ? undefined : normalizeOrderAddress(address);
   const item: OrderConfirmItem = {
     id: `${normalizeId(productInfo.prodId)}-${selectedSku?.id ?? "sku"}`,
     imageLabel: title,
@@ -488,26 +844,130 @@ export function createOrderConfirmBffData({
   };
 
   return {
-    ...(raw === undefined ? {} : { debugRaw: { prodInfo: raw } }),
+    ...(raw === undefined
+      ? {}
+      : {
+      debugRaw: {
+        ...(rawOrderConfirm === undefined ? {} : { orderConfirm: rawOrderConfirm }),
+        prodInfo: raw
+      }
+    }),
     modules: {
+      ...(orderConfirm === undefined ? {} : { orderConfirm }),
       productInfo,
-      selectedSku: rawSku ?? {}
+      ...(scoreInfo === undefined ? {} : { scoreInfo }),
+      selectedSku: rawSku ?? {},
+      ...(normalizedAddress && address ? { userAddress: address } : {})
     },
     view: {
-      address: null,
-      canSubmit: true,
-      discountRows: [{ label: "实付款", value: `￥${formatPrice(totalAmount)}`, tone: "price" }],
+      address: normalizedAddress ?? null,
+      canSubmit: address === undefined ? true : Boolean(normalizedAddress),
+      discountRows: normalizeOrderDiscountRows(orderConfirm, totalAmount),
       items: [item],
       productId: normalizeId(productInfo.prodId),
+      selectedAddressId: normalizedAddress?.id ?? addrId,
+      selectedSkuId,
       serviceRows: [
         { label: "配送服务", value: "快递配送", tone: "muted" },
-        { label: "配送费用", value: `￥${formatPrice(normalizeMoney(productInfo.totalTransFee))}`, tone: "primary" },
+        { label: "配送费用", value: `￥${formatPrice(normalizeOrderMoney(orderConfirm?.totalTransFee, normalizeMoney(productInfo.totalTransFee)))}`, tone: "primary" },
         { label: "订单备注", value: "选填", tone: "muted", navigable: true }
       ],
       totalAmount,
-      totalQuantity: normalizedQuantity
+      totalQuantity
     }
   };
+}
+
+function normalizeOrderDiscountRows(orderConfirm: JavaOrderConfirmInfo | undefined, totalAmount: number): OrderConfirmData["discountRows"] {
+  const orderReduce = normalizeOrderMoney(orderConfirm?.orderReduce, 0);
+  return [
+    ...(orderReduce > 0 ? [{ label: "订单优惠", value: `-￥${formatPrice(orderReduce)}`, tone: "primary" as const }] : []),
+    { label: "实付款", value: `￥${formatPrice(totalAmount)}`, tone: "price" as const }
+  ];
+}
+
+function normalizeOrderMoney(value: unknown, fallback = 0) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeOrderCount(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.floor(value) : fallback;
+}
+
+function createOrderConfirmRequestBody({
+  addrId,
+  dvyType,
+  productId,
+  quantity,
+  shopId,
+  skuId
+}: {
+  addrId: string;
+  dvyType: "1";
+  productId: string;
+  quantity: number;
+  shopId: number;
+  skuId: string;
+}) {
+  return {
+    addrId: normalizeBackendNumericId(addrId),
+    dvyTypes: [{ dvyType: Number(dvyType), lat: null, lng: null, shopId, stationId: 0 }],
+    isScorePay: 0,
+    orderItem: {
+      prodCount: quantity,
+      prodId: productId,
+      shopId,
+      skuId
+    },
+    couponParams: [],
+    prodCount: quantity,
+    userChangeCoupon: 0,
+    userUseScore: 0
+  };
+}
+
+function createOrderSubmitRequestBody(shopId: number, orderConfirm?: JavaOrderConfirmInfo, orderFlowLogParam?: OrderFlowLogParam) {
+  return {
+    isScorePay: 0,
+    orderInvoiceList: null,
+    orderSelfStationDto: {
+      stationId: 0,
+      stationTime: "",
+      stationUserMobile: "",
+      stationUserName: ""
+    },
+    orderFlowLogParam: orderFlowLogParam ?? { step: 1, visitType: 1 },
+    orderShopParams: normalizeOrderShopParams(orderConfirm, shopId),
+    virtualRemarkList: []
+  };
+}
+
+function normalizeOrderShopParams(orderConfirm: JavaOrderConfirmInfo | undefined, fallbackShopId: number) {
+  const shopCartOrders = Array.isArray(orderConfirm?.shopCartOrders) ? orderConfirm.shopCartOrders : [];
+  const params = shopCartOrders
+    .map((shopCart) => {
+      if (!shopCart || typeof shopCart !== "object") {
+        return undefined;
+      }
+      const source = shopCart as {
+        remarks?: unknown;
+        shopId?: unknown;
+        stationSearchVO?: { stationId?: unknown };
+      };
+      const shopId = normalizeBackendNumericId(source.shopId);
+      if (!shopId) {
+        return undefined;
+      }
+
+      return {
+        remarks: normalizeText(source.remarks, "").trim(),
+        shopId,
+        stationId: normalizeBackendNumericId(source.stationSearchVO?.stationId)
+      };
+    })
+    .filter((item): item is { remarks: string; shopId: number; stationId: number } => item !== undefined);
+
+  return params.length > 0 ? params : [{ remarks: "", shopId: fallbackShopId, stationId: 0 }];
 }
 
 function unwrapProductData<T extends JavaProductInfo>(response: ProductServerResponse<T>, requestId: string): BackendApiResult<T> {
@@ -546,6 +1006,46 @@ function unwrapProductData<T extends JavaProductInfo>(response: ProductServerRes
       h5Version: "unknown",
       requestId,
       route: "/product/[id]"
+    }
+  };
+}
+
+function unwrapJavaData<T>(response: ProductServerResponse<T>, requestId: string, fallbackMessage: string): BackendApiResult<T> {
+  if (response.success === false) {
+    const javaCodeMeta = getJavaResponseCodeMeta(response.code);
+    return {
+      ok: false,
+      error: createApiError(mapJavaBusinessCodeToApiErrorCode(response.code), {
+        details: {
+          code: response.code,
+          ...(javaCodeMeta === undefined ? {} : { codeName: javaCodeMeta.name })
+        },
+        message: response.msg ?? javaCodeMeta?.message ?? fallbackMessage,
+        requestId
+      })
+    };
+  }
+
+  if (!response.data) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        details: { code: response.code },
+        message: response.msg ?? fallbackMessage,
+        requestId
+      })
+    };
+  }
+
+  return {
+    ok: true,
+    data: response.data,
+    meta: {
+      appEnv: "unknown",
+      backend: "java",
+      h5Version: "unknown",
+      requestId,
+      route: "/order-submit"
     }
   };
 }
@@ -598,6 +1098,39 @@ function normalizeMoney(value: unknown) {
 
 function normalizeId(value: unknown) {
   return value === undefined || value === null ? "" : String(value);
+}
+
+function normalizeBackendNumericId(value: unknown) {
+  const numericValue = typeof value === "number" ? value : Number(String(value ?? "").trim());
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function normalizeAddressId(address: JavaUserAddress | null) {
+  return address?.addrId === undefined || address.addrId === null ? "" : String(address.addrId);
+}
+
+function normalizeOrderAddress(address: JavaUserAddress | null) {
+  if (!address) {
+    return null;
+  }
+
+  const id = normalizeAddressId(address);
+  const receiver = normalizeText(address.receiver, "");
+  const mobile = normalizeText(address.mobile, "");
+  const fullAddress = [address.province, address.city, address.area, address.addr]
+    .map((part) => normalizeText(part, ""))
+    .join("");
+
+  if (!id || !receiver || !mobile || !fullAddress) {
+    return null;
+  }
+
+  return {
+    fullAddress,
+    id,
+    name: receiver,
+    phone: mobile
+  };
 }
 
 function normalizeText(value: unknown, fallback: string) {

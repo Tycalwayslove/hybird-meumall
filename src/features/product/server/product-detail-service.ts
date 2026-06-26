@@ -18,6 +18,7 @@ export function createProductLoadingData(id: string): ProductDetailData {
     },
     galleryText: "0/0",
     id,
+    isLoading: true,
     licenseTags: [],
     originalPrice: "0",
     price: "0",
