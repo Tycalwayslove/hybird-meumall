@@ -40,6 +40,10 @@
 
 当前已按 `.ai-workspace/contracts/native-bridge/meumall-bridge-protocol.md` 增加统一信封调试 runtime。旧 `nativeBridge.call` 暂不删除；后续正式业务优先走新语义化入口。
 
+H5 每次通过 `router/navigate` 向 App 发起路由跳转前，都会在浏览器控制台打印 `[MeuMall][bridge-router:navigate]` 和完整 `payload`，用于判断跳转问题发生在 H5 传参阶段还是 App 接收/分发阶段。
+
+`NEXT_PUBLIC_APP_ENV=local` 或 `test` 时，H5 会默认启用页面内 Eruda 调试面板，可在 App WebView 内直接查看上述 H5 console 日志；`prod` 环境不启用该面板。
+
 首页已经提供 Bridge 调试面板，用于测试 P0/P1 草案能力是否能被原生容器收到。该面板只用于联调，不代表真实 token、导航、分享等业务能力已经由原生完成。
 
 ## 方法定义模板

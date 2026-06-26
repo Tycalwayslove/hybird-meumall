@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createProtocolBridge } from "./protocol-bridge";
 
 describe("protocol bridge", () => {
@@ -85,6 +85,53 @@ describe("protocol bridge", () => {
       mallToken: "mall-token",
       expiredAt: 1735689600000
     });
+  });
+
+  it("logs readable router navigate details before sending them to native bridge", () => {
+    const messages: unknown[] = [];
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const bridge = createProtocolBridge({
+      postMessage: (message) => {
+        messages.push(message);
+      }
+    });
+    const payload = {
+      route: "webview" as const,
+      params: {
+        source: "home",
+        title: "搜索",
+        url: "https://hybird.aigcpop.com/h5-v/v1.0.8/search"
+      },
+      presentation: { style: "push" as const, animated: true }
+    };
+
+    try {
+      bridge.navigate(payload);
+
+      expect(infoSpy).toHaveBeenCalledWith("[MeuMall][bridge-router:navigate] Bridge 调用参数明细", {
+        action: "router.navigate",
+        message: {
+          module: "router",
+          action: "navigate",
+          payload
+        },
+        params: payload.params,
+        payload,
+        payloadJson: JSON.stringify(payload, null, 2),
+        presentation: payload.presentation,
+        route: "webview",
+        sentAt: expect.any(String)
+      });
+      expect(messages).toEqual([
+        {
+          module: "router",
+          action: "navigate",
+          payload
+        }
+      ]);
+    } finally {
+      infoSpy.mockRestore();
+    }
   });
 
   it("posts address rpc messages through the shared envelope", async () => {

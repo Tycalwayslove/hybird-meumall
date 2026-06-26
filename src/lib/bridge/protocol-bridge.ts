@@ -1,3 +1,5 @@
+import { recordDebugConsoleLog } from "@/lib/runtime/debug-console";
+
 export type BridgeModule = "router" | "event" | "rpc";
 
 export type BridgeRoute = "home" | "back" | "product_detail" | "webview" | "tab" | "close_webview" | (string & {});
@@ -240,6 +242,7 @@ export function createProtocolBridge(options: ProtocolBridgeOptions = {}): Proto
       return Boolean(postMessage);
     },
     navigate(payload) {
+      logRouterNavigatePayload(payload);
       post({ module: "router", action: "navigate", payload });
     },
     emit(eventName, payload) {
@@ -275,6 +278,31 @@ export function createProtocolBridge(options: ProtocolBridgeOptions = {}): Proto
       };
     }
   };
+}
+
+function logRouterNavigatePayload(payload: NavigatePayload) {
+  recordDebugConsoleLog("[MeuMall][bridge-router:navigate] Bridge 调用参数明细", {
+    action: "router.navigate",
+    route: payload.route,
+    params: payload.params ?? null,
+    presentation: payload.presentation ?? null,
+    payload,
+    payloadJson: stringifyBridgePayload(payload),
+    message: {
+      module: "router",
+      action: "navigate",
+      payload
+    },
+    sentAt: new Date().toISOString()
+  });
+}
+
+function stringifyBridgePayload(payload: NavigatePayload) {
+  try {
+    return JSON.stringify(payload, null, 2);
+  } catch {
+    return "[unserializable payload]";
+  }
 }
 
 export function createWindowProtocolBridge(): ProtocolBridge {

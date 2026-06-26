@@ -1,5 +1,6 @@
 import type { NavigatePayload, ProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createWindowProtocolBridge } from "@/lib/bridge/protocol-bridge";
+import { recordDebugConsoleLog } from "@/lib/runtime/debug-console";
 
 export type HybridTabKey = "home" | "promotion" | "mine";
 export type NativePageName = string;
@@ -43,6 +44,15 @@ export function createHybridNavigator(options: HybridNavigatorOptions = {}) {
 
   function openWebView({ href, presentation, source, title }: OpenWebViewOptions) {
     const url = buildH5Url(href, locationRef);
+    logNavigationIntent({
+      bridgeAvailable: bridge.isAvailable(),
+      expectedRoute: "webview",
+      href,
+      source,
+      strategy: "new-h5-webview",
+      title,
+      url
+    });
     if (bridge.isAvailable()) {
       bridge.navigate({
         route: "webview",
@@ -199,6 +209,10 @@ function normalizeBasePath(value: string | undefined): string {
 
 function isAbsoluteUrl(href: string): boolean {
   return /^https?:\/\//i.test(href);
+}
+
+function logNavigationIntent(payload: Record<string, unknown>) {
+  recordDebugConsoleLog("[MeuMall][nav-intent]", payload);
 }
 
 function getWindowLocation() {

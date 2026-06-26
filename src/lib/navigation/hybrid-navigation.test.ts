@@ -82,6 +82,40 @@ describe("hybrid navigation", () => {
     ]);
   });
 
+  test("logs navigation intent before browser fallback when native bridge is unavailable", () => {
+    const assignedHrefs: string[] = [];
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    const navigator = createHybridNavigator({
+      bridge: createProtocolBridge(),
+      location: {
+        origin: "http://localhost:3109",
+        pathname: "/hybird",
+        search: "",
+        href: "http://localhost:3109/hybird"
+      },
+      assignLocation: (href) => {
+        assignedHrefs.push(href);
+      }
+    });
+
+    try {
+      navigator.openWebView({ href: "/search", source: "home", title: "搜索" });
+
+      expect(infoSpy).toHaveBeenCalledWith("[MeuMall][nav-intent]", {
+        bridgeAvailable: false,
+        expectedRoute: "webview",
+        href: "/search",
+        source: "home",
+        strategy: "new-h5-webview",
+        title: "搜索",
+        url: "http://localhost:3109/search"
+      });
+      expect(assignedHrefs).toEqual(["/search"]);
+    } finally {
+      infoSpy.mockRestore();
+    }
+  });
+
   test("opens native pages through direct router navigate routes", () => {
     const messages: unknown[] = [];
     const bridge = createProtocolBridge({
