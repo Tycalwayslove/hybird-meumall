@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import "@/styles/globals.css";
 import { HybridRouteReporter } from "@/lib/navigation";
+import { DebugConsoleLoader } from "@/lib/runtime/DebugConsoleLoader";
 import { DisableViewportZoom } from "@/lib/runtime/DisableViewportZoom";
 import { formatStatusBarCssVars } from "@/lib/runtime/status-bar";
 import { appViewport } from "@/lib/runtime/viewport-config";
@@ -39,6 +40,7 @@ export default async function RootLayout({
       >
         {children}
         <HybridRouteReporter />
+        <DebugConsoleLoader />
         <DisableViewportZoom />
         {showVersionBadge ? (
           <div className="h5-version-badge" aria-label={`当前 H5 版本：${releaseLabel}`}>
