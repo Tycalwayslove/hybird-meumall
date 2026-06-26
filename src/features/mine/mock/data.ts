@@ -34,7 +34,7 @@ export const minePageData = {
   tools: [
     { label: "我的足迹", href: "/footprints", assetKey: "mine.tool.footprint", navigation: "new-webview" },
     { label: "我的收藏", href: "/favorites/products", assetKey: "mine.tool.favorites", navigation: "new-webview" },
-    { label: "地址管理", assetKey: "mine.tool.address", navigation: "none" },
+    { label: "地址管理", href: "/address", assetKey: "mine.tool.address", navigation: "new-webview" },
     { label: "设置", assetKey: "mine.tool.settings", navigation: "native-page", nativePage: "settings" },
     { label: "客服服务", href: "/consult", assetKey: "mine.tool.customerService", navigation: "new-webview" },
     { label: "帮助中心", assetKey: "mine.tool.helpCenter", navigation: "none" },

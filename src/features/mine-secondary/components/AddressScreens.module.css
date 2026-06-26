@@ -1,0 +1,343 @@
+.screen {
+  background: #f3f7fb;
+}
+
+.content {
+  overflow-x: hidden;
+  padding: 12px 12px calc(env(safe-area-inset-bottom) + 112px);
+}
+
+.addressList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.statusText,
+.formStatus {
+  margin: 0 0 12px;
+  border-radius: 8px;
+  background: #fff;
+  color: #666;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 10px 12px;
+}
+
+.formStatus {
+  margin: 12px 0 0;
+  background: #f7f9f2;
+}
+
+.addressCard {
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 16px;
+}
+
+.addressMain {
+  position: relative;
+  display: block;
+  border-bottom: 1px solid #e9eaec;
+  color: inherit;
+  padding: 16px 0;
+  text-decoration: none;
+}
+
+.addressRegion {
+  margin: 0 0 4px;
+  color: #5b5b5b;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.addressDetail {
+  margin: 0 0 4px;
+  color: #333;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 21px;
+  word-break: break-word;
+}
+
+.addressPerson {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  color: #5b5b5b;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.useButton {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  display: inline-flex;
+  min-width: 54px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f2f7e8;
+  color: #151515;
+  font-size: 13px;
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+.addressActions {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.defaultFlag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #5b5b5b;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.defaultDot {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d5d3d3;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0;
+}
+
+.defaultDotActive {
+  border-color: #151515;
+  background: #151515;
+}
+
+.defaultDotActive::after {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #a8f156;
+  content: "";
+}
+
+.actionButtons {
+  display: flex;
+  gap: 18px;
+}
+
+.textButton {
+  border: 0;
+  background: transparent;
+  color: #5b5b5b;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 0;
+  text-decoration: none;
+}
+
+.textButton:disabled,
+.defaultDot:disabled,
+.saveButton:disabled {
+  cursor: default;
+  opacity: 0.56;
+}
+
+.footerButton {
+  position: fixed;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  left: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.footerButton a,
+.saveButton {
+  display: inline-flex;
+  width: min(310px, calc(100% - 60px));
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: #a8f156;
+  color: #151515;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 22px;
+  text-decoration: none;
+  pointer-events: auto;
+}
+
+.emptyState {
+  display: flex;
+  min-height: 380px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #999;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.emptyImage {
+  width: 190px;
+  height: 152px;
+  object-fit: contain;
+}
+
+.formCard {
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 12px 16px;
+}
+
+.fieldRow,
+.defaultRow {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding-top: 16px;
+}
+
+.fieldRow label,
+.defaultRow span {
+  color: #333;
+  font-size: 14px;
+  line-height: 24px;
+}
+
+.fieldControl {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  border-bottom: 1px solid #e1e1e1;
+  color: #333;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.fieldControl input,
+.fieldControl select,
+.fieldControl textarea {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #333;
+  font: inherit;
+  outline: none;
+}
+
+.fieldControl select {
+  height: 34px;
+  appearance: none;
+}
+
+.fieldControl textarea {
+  min-height: 48px;
+  resize: vertical;
+}
+
+.areaButton {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
+  color: #999;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+}
+
+.areaGrid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.regionStatus {
+  display: block;
+  margin-top: 6px;
+  color: #8a8f95;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.locationAction {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  margin-left: 10px;
+  color: #151515;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.locationAction img {
+  width: 16px;
+  height: 16px;
+}
+
+.switchMock {
+  justify-self: end;
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #d9dde3;
+  padding: 0;
+}
+
+.switchMock::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 16%);
+  content: "";
+  transition: transform 160ms ease;
+}
+
+.switchMockActive {
+  background: #a8f156;
+}
+
+.switchMockActive::after {
+  transform: translateX(20px);
+}
+
+.saveBar {
+  position: fixed;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  left: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
