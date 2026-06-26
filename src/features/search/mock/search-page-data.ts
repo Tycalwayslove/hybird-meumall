@@ -3,8 +3,16 @@ import type { SearchPageData } from "../types";
 export const searchPageData: SearchPageData = {
   hotKeywords: ["保健品", "米罗地儿", "生鲜", "家用除菌仪"],
   historyKeywords: ["保健品", "米罗地儿", "生鲜", "家用除菌仪", "米罗地儿", "生鲜", "家用除菌仪"],
-  rankingTabs: ["喵呜热榜", "生鲜", "饮料", "火锅食材", "服饰", "药品", "电器"],
-  activeRankingTab: "喵呜热榜",
+  rankingTabs: [
+    { id: "rank-1", label: "喵呜热榜", rankType: 1 },
+    { categoryId: "1001", id: "rank-2-1001", label: "生鲜", rankType: 2 },
+    { categoryId: "1002", id: "rank-2-1002", label: "饮料", rankType: 2 },
+    { categoryId: "1003", id: "rank-2-1003", label: "火锅食材", rankType: 2 },
+    { categoryId: "1004", id: "rank-2-1004", label: "服饰", rankType: 2 },
+    { categoryId: "1005", id: "rank-2-1005", label: "药品", rankType: 2 },
+    { categoryId: "1006", id: "rank-2-1006", label: "电器", rankType: 2 }
+  ],
+  activeRankingTab: "rank-1",
   rankingNotice: "官方榜单 · 真实数据 · 每周更新",
   categories: ["零食饮料", "生鲜熟食", "保健品", "家用电器", "书籍"],
   products: [

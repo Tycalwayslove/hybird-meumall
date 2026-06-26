@@ -9,10 +9,22 @@ type SearchPageProps = {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const q = normalizeParam(params?.q);
+  const categoryId = normalizeParam(params?.categoryId);
   const clear = normalizeParam(params?.clear);
   const filter = normalizeParam(params?.filter) as SearchFilterState | undefined;
+  const data = {
+    ...searchPageData,
+    activeRankingTab: "",
+    categories: [],
+    historyKeywords: [],
+    hotKeywords: [],
+    products: [],
+    rankingNotice: "",
+    rankingTabs: [],
+    resultProducts: []
+  };
 
-  return <SearchScreen data={searchPageData} filter={filter ?? "none"} initialShowClearDialog={clear === "1"} query={q} />;
+  return <SearchScreen categoryId={categoryId} data={data} filter={filter ?? "none"} initialShowClearDialog={clear === "1"} query={q} />;
 }
 
 function normalizeParam(value: string | string[] | undefined) {
