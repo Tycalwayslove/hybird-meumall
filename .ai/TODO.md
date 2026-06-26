@@ -1,6 +1,5 @@
 # TODO
-
-## Active
+s
 
 - [ ] 与原生 App 确认 H5 可获取的 App 名称、App 版本、build 号、系统版本、设备型号和 WebView 版本来源。
 - [ ] 与 Java / Python 后端确认接收、记录、透传和返回 `x-request-id`，并在入口日志记录 App / 设备 / 系统上下文。
