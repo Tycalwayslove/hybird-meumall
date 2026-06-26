@@ -1,5 +1,7 @@
 export type CategoryLeaf = {
+  href: string;
   id: string;
+  imageUrl?: string;
   label: string;
 };
 
@@ -16,6 +18,6 @@ export type PrimaryCategory = {
 
 export type CategoryPageData = {
   activeCategoryId: string;
+  categorySectionsByPrimaryId: Record<string, CategorySection[]>;
   primaryCategories: PrimaryCategory[];
-  sections: CategorySection[];
 };

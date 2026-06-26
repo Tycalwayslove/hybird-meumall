@@ -1,29 +1,98 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { StandardNavPage, cn } from "@/design-system";
+import { EmptyState, Skeleton, StandardNavPage, cn } from "@/design-system";
+import { createH5Client } from "@/lib/http";
 
+import { createCategoryApi, type CategoryApi } from "../api";
 import type { CategoryPageData, CategorySection, PrimaryCategory } from "../types";
 import styles from "./CategoryScreen.module.css";
 
 type CategoryScreenProps = {
-  data: CategoryPageData;
+  api?: Pick<CategoryApi, "getCategoryList">;
+  initialData?: CategoryPageData;
 };
 
-export function CategoryScreen({ data }: CategoryScreenProps) {
-  const [activeCategoryId, setActiveCategoryId] = useState(data.activeCategoryId);
+export function CategoryScreen({ api, initialData }: CategoryScreenProps) {
+  const categoryApi = useMemo(() => api ?? createCategoryApi(createH5Client()), [api]);
+  const [state, setState] = useState<{
+    data?: CategoryPageData;
+    status: "loading" | "success" | "empty" | "error";
+  }>(() => {
+    if (initialData && initialData.primaryCategories.length > 0) {
+      return { data: initialData, status: "success" };
+    }
+    return { status: "loading" };
+  });
+  const [activeCategoryId, setActiveCategoryId] = useState(initialData?.activeCategoryId ?? "");
+  const data = state.data;
   const activeCategoryIndex = useMemo(() => {
-    const index = data.primaryCategories.findIndex((category) => category.id === activeCategoryId);
+    const index = data?.primaryCategories.findIndex((category) => category.id === activeCategoryId) ?? -1;
     return index >= 0 ? index : 0;
-  }, [activeCategoryId, data.primaryCategories]);
-  const sections = useMemo(() => buildSectionsForActiveCategory(data.sections, activeCategoryIndex), [activeCategoryIndex, data.sections]);
+  }, [activeCategoryId, data?.primaryCategories]);
+  const sections = useMemo(() => data?.categorySectionsByPrimaryId[activeCategoryId] ?? [], [activeCategoryId, data?.categorySectionsByPrimaryId]);
+
+  useEffect(() => {
+    if (initialData) {
+      return;
+    }
+
+    let disposed = false;
+    categoryApi.getCategoryList()
+      .then((result) => {
+        if (disposed) {
+          return;
+        }
+        if (!result.success) {
+          setState({ status: "error" });
+          return;
+        }
+        const nextData = result.data.view;
+        if (nextData.primaryCategories.length === 0) {
+          setState({ data: nextData, status: "empty" });
+          return;
+        }
+        setActiveCategoryId(nextData.activeCategoryId);
+        setState({ data: nextData, status: "success" });
+      })
+      .catch(() => {
+        if (!disposed) {
+          setState({ status: "error" });
+        }
+      });
+
+    return () => {
+      disposed = true;
+    };
+  }, [categoryApi, initialData]);
+
+  const content = (() => {
+    if (state.status === "loading") {
+      return <CategorySkeleton />;
+    }
+    if (state.status === "empty") {
+      return <CategoryEmpty text="暂无分类" />;
+    }
+    if (state.status === "error") {
+      return <CategoryEmpty text="分类加载失败" />;
+    }
+    if (!data) {
+      return <CategorySkeleton />;
+    }
+
+    return (
+      <>
+        <CategorySidebar categories={data.primaryCategories} activeCategoryId={activeCategoryId} onSelectCategory={setActiveCategoryId} />
+        <CategoryContent activeCategoryIndex={activeCategoryIndex} sections={sections} />
+      </>
+    );
+  })();
 
   return (
     <StandardNavPage title="商品分类" backHref="/" className={styles.screen} contentClassName={styles.content}>
-      <CategorySidebar categories={data.primaryCategories} activeCategoryId={activeCategoryId} onSelectCategory={setActiveCategoryId} />
-      <CategoryContent activeCategoryIndex={activeCategoryIndex} sections={sections} />
+      {content}
     </StandardNavPage>
   );
 }
@@ -67,8 +136,12 @@ function CategoryContent({ activeCategoryIndex, sections }: { activeCategoryInde
           <h2 className={styles.sectionTitle}>{section.title}</h2>
           <div className={styles.leafGrid}>
             {section.items.map((item) => (
-              <Link className={styles.leafLink} href={`/category?leaf=${item.id}`} key={item.id}>
-                <span aria-hidden="true" className={cn(styles.leafMedia, "aspect-square")} />
+              <Link className={styles.leafLink} href={item.href} key={item.id}>
+                <span
+                  aria-hidden="true"
+                  className={cn(styles.leafMedia, "aspect-square")}
+                  style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
+                />
                 <span className={styles.leafLabel}>{item.label}</span>
               </Link>
             ))}
@@ -79,19 +152,37 @@ function CategoryContent({ activeCategoryIndex, sections }: { activeCategoryInde
   );
 }
 
-function buildSectionsForActiveCategory(sections: CategorySection[], activeCategoryIndex: number) {
-  if (activeCategoryIndex <= 1) {
-    return sections;
-  }
+function CategorySkeleton() {
+  return (
+    <>
+      <aside className={styles.sidebar} data-category-skeleton="true" aria-hidden="true">
+        {Array.from({ length: 9 }, (_, index) => (
+          <Skeleton className={styles.categorySkeletonItem} key={index} />
+        ))}
+      </aside>
+      <section className={styles.main} aria-label="分类内容">
+        {Array.from({ length: 2 }, (_, sectionIndex) => (
+          <div className={styles.section} key={sectionIndex}>
+            <Skeleton className={styles.sectionTitleSkeleton} />
+            <div className={styles.leafGrid}>
+              {Array.from({ length: 6 }, (_, itemIndex) => (
+                <div className={styles.leafSkeleton} key={itemIndex}>
+                  <Skeleton className={styles.leafMediaSkeleton} />
+                  <Skeleton className={styles.leafLabelSkeleton} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
+    </>
+  );
+}
 
-  return sections.map((section, sectionIndex) => ({
-    ...section,
-    id: `${section.id}-${activeCategoryIndex}`,
-    title: sectionIndex === 0 ? `二级分类 ${activeCategoryIndex + 1}` : "二级分类",
-    items: section.items.map((item, itemIndex) => ({
-      ...item,
-      id: `${item.id}-level-${activeCategoryIndex}`,
-      label: itemIndex < 3 ? `三级分类 ${activeCategoryIndex + 1}` : item.label
-    }))
-  }));
+function CategoryEmpty({ text }: { text: string }) {
+  return (
+    <div className={styles.emptyWrap}>
+      <EmptyState imageSize={138} text={text} textColor="rgb(var(--mm-color-text-placeholder))" textSize={14} />
+    </div>
+  );
 }

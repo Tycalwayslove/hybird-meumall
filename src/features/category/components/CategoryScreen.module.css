@@ -111,6 +111,9 @@
   border-radius: 11px;
   background:
     linear-gradient(145deg, rgb(var(--mm-color-fill-page)) 0%, rgb(var(--mm-color-fill-muted) / 0.45) 100%);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .leafLabel {
@@ -124,6 +127,49 @@
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.categorySkeletonItem {
+  width: 68px;
+  height: 22px;
+  border-radius: 999px;
+  margin: 17px 12px;
+}
+
+.sectionTitleSkeleton {
+  width: 82px;
+  height: 20px;
+  border-radius: 999px;
+  margin-bottom: 17px;
+}
+
+.leafSkeleton {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.leafMediaSkeleton {
+  width: 100%;
+  max-width: 74px;
+  aspect-ratio: 1 / 1;
+  border-radius: 11px;
+}
+
+.leafLabelSkeleton {
+  width: 50px;
+  height: 14px;
+  border-radius: 999px;
+}
+
+.emptyWrap {
+  grid-column: 1 / -1;
+  display: grid;
+  min-height: 360px;
+  place-items: center;
+  background: rgb(var(--mm-color-fill-white));
 }
 
 @media (max-width: 340px) {
