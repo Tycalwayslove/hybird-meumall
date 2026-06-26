@@ -116,6 +116,7 @@ type BridgeResult<T> =
 | webview.setTitle | 已定义 | 设置 WebView 标题。 |
 | rpc/getTokens | 调试中 | 统一信封 RPC，原生当前只返回 debug token。 |
 | rpc/getDeviceInfo | 调试中 | 统一信封 RPC，原生当前只返回 debug 设备信息。 |
+| rpc/address.* | 调试中 | 地址能力 RPC，H5 商品详情、订单确认和地址管理页优先使用；原生 debug receiver 当前返回调试地址。 |
 | router/navigate | 调试中 | H5 发出导航信封，原生当前只接收记录。 |
 | event/token_expired | 调试中 | H5 发出 token 失效事件，原生当前只接收记录。 |
 | event/share | 调试中 | H5 发出分享事件，原生当前只接收记录。 |
@@ -192,6 +193,31 @@ type SharePayload = {
 - 推广商品页点击“推广”按钮时发出 `event/share`。
 - 原生 App 负责接收该事件并打开平台分享面板或内部推广分享流程。
 - Web 环境无 Bridge 时 H5 安全 no-op，不弹错误。
+
+## rpc/address.* 地址能力
+
+商品详情和地址管理的地址来源优先级：
+
+1. App Native Bridge `rpc/address.*`。
+2. H5 BFF `/api/bff/address/*`。
+
+Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不得展示本地样例地址。
+
+地址 RPC 清单：
+
+| action | payload | resolve data | H5 使用场景 |
+| --- | --- | --- | --- |
+| `address.getDefault` | 无 | `{ address: Address \| null }` | 商品详情配送行、订单确认默认地址。 |
+| `address.getList` | 无 | `{ addresses: Address[] }` | `/address` 地址列表。 |
+| `address.getInfo` | `{ addrId }` | `{ address: Address \| null }` | `/address/edit` 编辑回填。 |
+| `address.save` | `Address` | `{ addrId?, message? }` | 新增/编辑地址。 |
+| `address.setDefault` | `{ addrId }` | `{ message? }` | 设置默认地址。 |
+| `address.delete` | `{ addrId }` | `{ message? }` | 删除地址。 |
+| `address.chooseLocation` | 无 | `{ location: AddressLocation \| null }` | 定位选点预留；App 后续接入真实定位。 |
+
+`Address` 字段沿用旧 Java 地址对象核心字段：`addrId`、`receiver`、`mobile`、`province`、`provinceId`、`city`、`cityId`、`area`、`areaId`、`addr`、`commonAddr`、`lat`、`lng`。订单确认和提交 BFF 仍会调用 Java `/p/address/addrInfo/{addrId}` 校验地址，不能只信任 Bridge 快照。
+
+`address.chooseLocation` 当前只做 Bridge 能力预留：H5 发起 RPC 并输出 `[MeuMall][address-location]` console 日志；App 未接入时页面提示“定位能力等待 App Bridge 接入”，不会伪造定位结果。
 
 ## 首批方法
 

@@ -86,4 +86,100 @@ describe("protocol bridge", () => {
       expiredAt: 1735689600000
     });
   });
+
+  it("posts address rpc messages through the shared envelope", async () => {
+    const messages: unknown[] = [];
+    const bridge = createProtocolBridge({
+      postMessage: (message) => {
+        messages.push(message);
+      },
+      createCallbackId: () => "cb_address",
+      timeoutMs: 100
+    });
+
+    const promise = bridge.rpc("address.getList");
+
+    expect(messages).toEqual([
+      {
+        module: "rpc",
+        action: "address.getList",
+        callbackId: "cb_address"
+      }
+    ]);
+
+    bridge.reply.resolve("cb_address", {
+      addresses: [
+        {
+          addr: "东风中路268号",
+          addrId: "3001",
+          area: "越秀区",
+          city: "广州市",
+          commonAddr: 1,
+          mobile: "1827267737",
+          province: "广东省",
+          receiver: "秦先生"
+        }
+      ]
+    });
+
+    await expect(promise).resolves.toEqual({
+      addresses: [
+        {
+          addr: "东风中路268号",
+          addrId: "3001",
+          area: "越秀区",
+          city: "广州市",
+          commonAddr: 1,
+          mobile: "1827267737",
+          province: "广东省",
+          receiver: "秦先生"
+        }
+      ]
+    });
+  });
+
+  it("posts reserved address location rpc messages through the shared envelope", async () => {
+    const messages: unknown[] = [];
+    const bridge = createProtocolBridge({
+      postMessage: (message) => {
+        messages.push(message);
+      },
+      createCallbackId: () => "cb_location",
+      timeoutMs: 100
+    });
+
+    const promise = bridge.rpc("address.chooseLocation");
+
+    expect(messages).toEqual([
+      {
+        module: "rpc",
+        action: "address.chooseLocation",
+        callbackId: "cb_location"
+      }
+    ]);
+
+    bridge.reply.resolve("cb_location", {
+      location: {
+        addr: "东风中路268号",
+        area: "越秀区",
+        city: "广州市",
+        lat: 23.1291,
+        lng: 113.2644,
+        name: "交易广场",
+        province: "广东省"
+      }
+    });
+
+    await expect(promise).resolves.toEqual({
+      location: {
+        addr: "东风中路268号",
+        area: "越秀区",
+        city: "广州市",
+        lat: 23.1291,
+        lng: 113.2644,
+        name: "交易广场",
+        province: "广东省"
+      }
+    });
+  });
 });

@@ -31,6 +31,27 @@ export type WebEventMap = {
 
 export type WebEventName = keyof WebEventMap;
 
+export type BridgeAddress = {
+  addr?: string | null;
+  addrId?: number | string | null;
+  area?: string | null;
+  areaId?: number | string | null;
+  city?: string | null;
+  cityId?: number | string | null;
+  commonAddr?: number | string | boolean | null;
+  lat?: number | string | null;
+  lng?: number | string | null;
+  mobile?: string | null;
+  name?: string | null;
+  province?: string | null;
+  provinceId?: number | string | null;
+  receiver?: string | null;
+};
+
+export type BridgeAddressLocation = Omit<BridgeAddress, "addrId" | "commonAddr" | "mobile" | "receiver"> & {
+  name?: string | null;
+};
+
 export type RpcResponseMap = {
   getTokens: {
     accessToken: string;
@@ -44,11 +65,47 @@ export type RpcResponseMap = {
     bridgeVersion?: string;
     supportedActions?: string[];
   };
+  "address.getDefault": {
+    address?: BridgeAddress | null;
+  };
+  "address.getList": {
+    addresses: BridgeAddress[];
+  };
+  "address.getInfo": {
+    address?: BridgeAddress | null;
+  };
+  "address.save": {
+    addrId?: number | string;
+    address?: BridgeAddress | null;
+    message?: string;
+  };
+  "address.setDefault": {
+    message?: string;
+  };
+  "address.delete": {
+    message?: string;
+  };
+  "address.chooseLocation": {
+    location?: BridgeAddressLocation | null;
+  };
 };
 
 export type RpcRequestMap = {
   getTokens: undefined;
   getDeviceInfo: undefined;
+  "address.getDefault": undefined;
+  "address.getList": undefined;
+  "address.getInfo": {
+    addrId: string;
+  };
+  "address.save": BridgeAddress;
+  "address.setDefault": {
+    addrId: string;
+  };
+  "address.delete": {
+    addrId: string;
+  };
+  "address.chooseLocation": undefined;
 };
 
 export type RpcName = keyof RpcResponseMap;
@@ -188,7 +245,8 @@ export function createProtocolBridge(options: ProtocolBridgeOptions = {}): Proto
     emit(eventName, payload) {
       post({ module: "event", action: eventName, payload });
     },
-    rpc(action, payload) {
+    rpc(action, ...args) {
+      const payload = args[0];
       const callbackId = createCallbackId();
       const message: BridgeMessage = payload === undefined ? { module: "rpc", action, callbackId } : { module: "rpc", action, payload, callbackId };
 
