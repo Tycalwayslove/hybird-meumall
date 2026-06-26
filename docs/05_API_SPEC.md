@@ -410,7 +410,7 @@ BFF 后端调用：
 
 | 后端 | Method | Path | 说明 |
 | --- | --- | --- | --- |
-| Java | GET | `/p/app/home/index` | 首页聚合数据：banner、分类、热榜和秒杀模块。 |
+| Java | GET | `/p/app/home/index` | 首页聚合数据：banner 和 `navList` 首页导航入口。 |
 | Java | GET | `/p/app/home/recommendProds?current=<current>&size=<size>` | 首页“为您推荐”首屏商品流，由 `/api/bff/home/recommend-products` 调用。 |
 | Java | GET | `/p/app/home/forYouProds?current=<current>&size=<size>` | “相似推荐商品”更多页商品流，由 `/api/bff/home/for-you-products` 调用。 |
 
@@ -423,6 +423,7 @@ type HomeBffData = {
   view: HomeExperienceData;
   modules: {
     banners: AppBannerVO[];
+    navList: AppHomeNavVO[];
     hotCategory: ProdRankGroupDto | null;
     categoryTop8: CategoryDto[];
     seckillModule: AppSeckillModuleVO | null;
@@ -433,9 +434,11 @@ type HomeBffData = {
 };
 ```
 
-- `view`：当前首页组件直接渲染的稳定视图模型。Java 字段名或包裹结构调整，但页面语义不变时，优先只改 BFF mapper。
-- `modules`：保留首页业务模块和后端字段，方便后续首页增加字段、调整交互时直接查到对应数据，不必每次先回 BFF 里翻 mapper。`hotCategory.top3`、`seckillModule.products`、分类图标等字段即使当前页面暂时不用，也保留在模块对象内。
+- `view`：当前首页组件直接渲染的稳定视图模型。首页类目直接来自 Java `navList`；`navType=1` 进入热榜，`navType=2` 进入带 `categoryId` 的搜索结果，`navType=3` 进入完整分类页。
+- `modules`：保留首页业务模块和后端字段，方便后续首页增加字段、调整交互时直接查到对应数据，不必每次先回 BFF 里翻 mapper。`navList` 是当前分类展示来源；`hotCategory/categoryTop8` 如后端仍返回，仅作为兼容调试字段保留，不参与首页分类拼接。
 - `debugRaw`：仅 `GET /api/bff/home?debugRaw=1` 且 `APP_ENV=local/test` 时返回，用于联调对比 Java 原始 envelope；正式环境不返回。
+
+首页“限时秒杀”和“推广带货”入口卡是 H5 固定 UI，不再由 `/p/app/home/index` 或首页配置控制。两个入口分别固定跳转 `/seckill` 和 `/promotion/products`；进入对应页面后再由 `/api/bff/seckill/products` 和 `/api/bff/promotion/products` 请求真实商品列表。
 
 首页推荐商品分页 BFF 返回：
 
@@ -485,19 +488,283 @@ type HomeForYouProductsBffData = {
 };
 ```
 
-浏览器端通过 `createHomeApi(createH5Client()).getHome()` 请求首页核心 BFF，通过 `getRecommendProducts({ current, size })` 请求首页推荐商品。当前首页渲染使用 `home.data.view`，推荐商品成功时合并 `recommend.data.view.products`。任一接口失败时，只回落对应区域，不让推荐分页拖慢或拖垮首页首屏。首页商品区底部进入视口后继续按 `current + 1` 请求 `/api/bff/home/recommend-products`，成功后追加商品；加载到第 2 页后展示“顶部”按钮，点击后平滑回到页面顶部。
+浏览器端通过 `createHomeApi(createH5Client()).getHome()` 请求首页核心 BFF，通过 `getRecommendProducts({ current, size })` 请求首页推荐商品。当前首页渲染使用 `home.data.view`，推荐商品成功时合并 `recommend.data.view.products`。任一接口失败时，只展示错误/空业务态，不使用 `homeExperienceData` 补齐 banner、分类或推荐商品；首页固定活动入口不属于接口 fallback。首页商品区底部进入视口后继续按 `current + 1` 请求 `/api/bff/home/recommend-products`，成功后追加商品；加载到第 2 页后展示“顶部”按钮，点击后平滑回到页面顶部。
 
 首页“为您推荐”的“更多”按钮跳转 `/home/recommend-products`，新页面标题为“相似推荐商品”，页面结构参考 `/search`：顶部导航、搜索栏、筛选条件、商品列表。该页面通过 `getForYouProducts({ current, size })` 请求 `/api/bff/home/for-you-products`，再由 BFF 调 Java `/p/app/home/forYouProds`。页面底部进入视口时自动按 `current + 1` 加载下一页并追加商品；请求失败时保留已加载商品，用户可在底部继续触发加载。
 
 首页不再请求旧的 `GET /api/h5/home/config/active?environment=prod`。获取当前 H5 active 版本使用 `GET /api/h5/manifest/active?environment=prod`；首页核心数据使用 `GET /api/bff/home`，首页推荐商品分页使用 `GET /api/bff/home/recommend-products`，相似推荐商品更多页分页使用 `GET /api/bff/home/for-you-products`。
 
+### 搜索热门词真实接口
+
+搜索首页热门搜索词通过 H5 BFF 接入：
+
+```http
+GET /api/bff/search/hot-keywords?type=1
+```
+
+BFF 后端调用：
+
+| 后端 | Method | Path | 说明 |
+| --- | --- | --- | --- |
+| Java | GET | `/search/hotSearch?type=1` | 查看全局热搜，商品热词，来自后台 `tz_hot_search` 配置，最多 7 条。 |
+
+接口需要 `mallToken`。H5 浏览器端不读取 token，BFF 从 HttpOnly Cookie 读取 `mallToken` 并转成 Java `Authorization: <mallToken>`。
+
+Apifox `HotSearchDto` 字段：
+
+```ts
+type HotSearchDto = {
+  hotSearchId?: number;
+  title?: string;
+  content?: string;
+  status?: number;
+  type?: number;
+  seq?: number;
+  shopId?: number;
+  jumpType?: number;
+  jumpValue?: string;
+};
+```
+
+H5 BFF 响应：
+
+```ts
+type SearchHotKeywordsBffData = {
+  view: {
+    hotKeywords: string[];
+  };
+  modules: {
+    hotSearches: HotSearchDto[];
+  };
+  debugRaw?: {
+    hotSearch: ServerResponseEntityHotSearchDtoArray;
+  };
+};
+```
+
+映射规则：
+
+- `view.hotKeywords` 优先取 `title`，缺失时取 `content`。
+- `status=0` 的热词不进入视图。
+- 按 `seq` 升序展示，最多 7 条。
+- Java 返回空数组时展示“暂无热门搜索”，不拼接本地 mock 热词。
+- BFF 失败时展示“热门搜索加载失败”，不回退 mock。
+
+搜索历史不走后端接口，保存在浏览器 localStorage，key 为 `meumall.search.history`；提交搜索或点击热词会写入本地历史，顶部删除按钮清空全部历史，单个历史标签右侧删除按钮只删除对应关键词。
+
+根级契约：`.ai-workspace/contracts/api/h5-search-hot-keywords-contract.md`。
+
+### 搜索热榜真实接口
+
+搜索首页下方热榜模块和完整热榜页通过 H5 BFF 接入：
+
+```http
+GET /api/bff/search/ranking?categoryBoardCount=4
+GET /api/bff/search/ranking
+GET /api/bff/search/ranking?rankType=2&categoryId=<categoryId>
+```
+
+BFF 后端调用：
+
+| 后端 | Method | Path | 说明 |
+| --- | --- | --- | --- |
+| Java | GET | `/search/rankTabs?categoryBoardCount=<n>` 或 `/search/rankTabs` | 商品分类排行榜顶部标签；搜索首页传 `categoryBoardCount=4`，完整榜单页不传。 |
+| Java | GET | `/search/rank/{rankType}` | 查询商品排行榜商品列表；品类热榜额外传 `categoryId`。 |
+
+接口需要 `mallToken`。H5 浏览器端不读取 token，BFF 从 HttpOnly Cookie 读取 `mallToken` 并转成 Java `Authorization: <mallToken>`；Java 出站请求统一携带 `source: 1`。
+
+Apifox 字段：
+
+```ts
+type ProdRankTabDto = {
+  rankType?: number; // 1=喵呜热榜，2=品类热榜
+  rankName?: string;
+  categoryId?: number | string;
+};
+
+type ProductCardVO = {
+  prodId?: number | string;
+  prodName?: string;
+  pic?: string;
+  price?: number;
+  displayPrice?: number;
+  oriPrice?: number;
+  soldNum?: number;
+  activityType?: number; // 0=普通商品，1=秒杀
+  isHot?: boolean;
+  isRecommend?: boolean;
+};
+```
+
+H5 BFF 响应：
+
+```ts
+type SearchRankingBffData = {
+  view: {
+    tabs: Array<{ id: string; label: string; rankType: 1 | 2; categoryId?: string }>;
+    activeTabId: string;
+    notice: string;
+    products: Array<{
+      id: string;
+      href: string;
+      title: string;
+      feature: string;
+      price: number;
+      originalPrice: number;
+      soldText: string;
+      imageUrl?: string;
+      badge?: { type: "seckill" | "hot" | "recommend"; label: string };
+    }>;
+  };
+  modules: {
+    rankTabs: ProdRankTabDto[];
+    products: ProductCardVO[];
+  };
+};
+```
+
+映射规则：
+
+- `rankType=1` 生成 `rank-1`；`rankType=2 + categoryId` 生成 `rank-2-<categoryId>`。
+- `/search` 首页热榜标签请求 `categoryBoardCount=4`，商品列表只展示前三条。
+- `/search/ranking` 完整榜单页不传 `categoryBoardCount`，商品列表按接口返回完整展示。
+- `/search` 点击“查看完整榜单”时携带当前标签：喵呜热榜进入 `/search/ranking?rankType=1`，品类榜进入 `/search/ranking?rankType=2&categoryId=<categoryId>`。
+- `/search/ranking` 首屏读取 URL `rankType/categoryId` 作为初始标签和首个商品请求；页内切换标签只更新组件 state 和 BFF 请求，不调用 router、不更新 query。
+- 从 `/search` 点击商品详情或“查看完整榜单”离开搜索上下文时，H5 使用 `window.location.replace(buildClientHref(...))` 替换当前搜索 history；原生返回按钮或 App 滑动返回应回到搜索页之前的首页，而不是回到搜索页。
+- 切换品类热榜时，H5 BFF 请求 `/search/rank/2?categoryId=<categoryId>`。
+- 商品卡点击进入 `/product/<prodId>`，不携带价格快照。
+- `displayPrice` 优先作为展示价，缺失时回退 `price`；`oriPrice` 缺失时回退展示价。
+- `activityType=1` 展示“限时秒杀”，`isHot=true` 展示“热销”，`isRecommend=true` 展示“推荐”。
+- 图片相对路径通过 `JAVA_OSS_ASSET_BASE_URL` 拼接；完整 `http(s)` URL 原样使用。
+- 标签或商品为空时展示空态；搜索页热榜区域使用绿色背景，空态外层必须保持透明，不使用白底卡片；接口失败时展示“热榜加载失败”；不回退本地 mock 商品。
+
+根级契约：`.ai-workspace/contracts/api/h5-search-ranking-contract.md`。
+
+### 搜索结果商品真实接口
+
+搜索结果页通过 H5 BFF 接入 Java 商品分页接口：
+
+```http
+GET /api/bff/search/products?keyword=<keyword>&orderBy=<orderBy>&categoryId=<categoryId>
+```
+
+BFF 后端调用：
+
+| 后端 | Method | Path | 说明 |
+| --- | --- | --- | --- |
+| Java | GET | `/p/app/prod/page` | 自购商城 App 分页查询商品；支持 `current/size/orderBy/keyword/categoryId`。 |
+| Java | GET | `/category/list?parentId=<parentId>&shopId=0` | 获取分类筛选项；搜索筛选场景默认不传 `depth`，让后端返回当前类目的所有子孙类目；无分类入口时 `parentId=0`。 |
+| Java | GET | `/category/list?parentId=0&shopId=0` | 无分类入口时获取全局分类树。 |
+
+接口需要 `mallToken`。H5 浏览器端不读取 token，BFF 从 HttpOnly Cookie 读取 `mallToken` 并转成 Java `Authorization: <mallToken>`；Java 出站请求统一携带 `source: 1`。
+
+H5 BFF Query：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `current` | number | 页码，默认 `1`。 |
+| `size` | number | 每页条数，默认 `10`。 |
+| `orderBy` | string | 排序，H5 只透传 `soldNum`、`price`、`createTime` 白名单字段，格式 `+field` 或 `-field`。 |
+| `keyword` | string | 搜索词；为空时不传给 Java。 |
+| `categoryId` | number/string | 当前商品分类筛选 ID；为空时不传给 Java，表示全局搜索。 |
+| `scopeCategoryId` | number/string | 分类入口 scope，仅用于获取子分类筛选项。 |
+| `categoryOptionsParentId` | number/string | 当前展开分类的父级类目 ID；点击分类筛选项后用于继续获取子孙类目。 |
+
+入口规则：
+
+- 首页分类或分类页 leaf 进入 `/search?categoryId=<categoryId>`，无关键词也展示搜索结果页。
+- 搜索框、热门搜索、搜索历史进入 `/search?q=<keyword>`，不带 `categoryId`，表示全局搜索。
+- 分类入口下再次搜索进入 `/search?q=<keyword>&categoryId=<categoryId>`，在当前分类 scope 内搜索。
+- 排序只展示“销量”和“价格”两个条件；两者互斥，同一条件重复点击在升序/降序间切换，并高亮对应上下箭头。
+- 销量降序映射 `orderBy=-soldNum`，销量升序映射 `orderBy=+soldNum`；价格从低到高映射 `orderBy=+price`，价格从高到低映射 `orderBy=-price`。
+- 带 `categoryId` 的分类入口，后续分类筛选通过 `/category/list?parentId=<categoryId>&shopId=0` 获取当前类目的所有子孙类目；不带 `categoryId` 时从 `parentId=0` 获取全局分类树。
+- 搜索结果页分类接口默认不传 `depth`；BFF 递归保留 Java 返回项中的 `children/categories` 子孙树，分类筛选点击后优先直接展示当前节点已返回的 `children`，并继续传 `categoryOptionsParentId=<clickedCategoryId>` 按需刷新当前类目子孙；接口无子级时停在当前层级，不展示本地兜底。
+- 搜索结果筛选区展示“综合筛选”摘要、销量/价格分段按钮和分类层级标题；排序/分类切换只更新页面 state 与 BFF 请求，不修改 URL。
+- 分类面板展开时展示蒙层并锁定页面滚动；点击分类项只更新待确认状态，不请求商品接口；点击“确认”后应用分类并请求 BFF；点击“重置”清空分类并重新请求当前 scope。
+- 搜索结果页内再次提交搜索词或清空搜索词时，只更新当前页面关键词 state，并用 `history.replaceState` 同步 URL；排序和分类筛选 state 必须保留。
+- 搜索输入框使用 `type=text` 和 H5 自定义清空按钮，避免浏览器原生 search 清除按钮与自定义清空按钮重复。
+- 搜索结果商品有下一页时，底部哨兵进入视口自动请求下一页并追加，不再展示手动“加载更多”按钮。
+- 商品为空时展示通用 `EmptyState`，不拼接本地 mock 商品。
+- 搜索结果页首屏只展示骨架屏；商品或分类接口失败时展示错误态，不回退本地 mock 商品或分类。
+- 商品卡点击进入 `/product/<prodId>`，使用 replace 式离开搜索页，避免 App 返回或滑动返回停回搜索页。
+
+根级契约：`.ai-workspace/contracts/api/h5-search-products-contract.md`。
+
+### 商品分类列表真实接口
+
+商品分类页通过 H5 BFF 接入：
+
+```http
+GET /api/bff/category/list
+```
+
+BFF 后端调用：
+
+| 后端 | Method | Path | 说明 |
+| --- | --- | --- | --- |
+| Java | GET | `/category/list?parentId=-1&shopId=0&depth=3` | 获取平台一级、二级、三级分类树；当前 Java 联调口径 `depth` 必传，分类页固定传 `3`。 |
+
+接口需要 `mallToken`。H5 浏览器端不读取 token，BFF 从 HttpOnly Cookie 读取 `mallToken` 并转成 Java `Authorization: <mallToken>`。
+
+Apifox `CategoryListTreeVO` 字段：
+
+```ts
+type CategoryListTreeVO = {
+  categoryId?: number;
+  shopId?: number;
+  baseCategoryId?: number;
+  parentId?: number;
+  categoryName?: string;
+  icon?: string;
+  pic?: string;
+  seq?: number;
+  deductionRate?: number;
+  status?: number;
+  recTime?: string;
+  grade?: number;
+  updateTime?: string;
+  actualDeductionRate?: number;
+  children?: CategoryListTreeVO[];
+};
+```
+
+H5 BFF 响应：
+
+```ts
+type CategoryListBffData = {
+  view: CategoryPageData;
+  modules: {
+    categories: CategoryListTreeVO[];
+  };
+  debugRaw?: {
+    categoryList: ServerResponseEntityCategoryListTreeVOArray;
+  };
+};
+```
+
+映射规则：
+
+- 顶层 `data[]` 映射为左侧一级分类。
+- 一级分类的 `children[]` 映射为右侧二级 section。
+- 二级分类的 `children[]` 映射为三级宫格；没有三级时将二级分类自身作为 leaf。
+- `status=0` 分类不展示。
+- 分类按 `seq` 升序展示。
+- leaf 点击进入 `/search?categoryId=<categoryId>`。
+- `pic` / `icon` 相对路径通过 `JAVA_OSS_ASSET_BASE_URL` 拼接为完整图片 URL。
+
+`/category` 首屏展示骨架屏，不渲染本地 mock 分类；Java 空数组展示“暂无分类”，失败展示“分类加载失败”，均不回退 mock。
+
+根级契约：`.ai-workspace/contracts/api/h5-category-list-contract.md`。
+
 ### 商品详情真实接口
 
-商品详情真实接口通过 H5 BFF 接入，本期只覆盖普通商品、快递配送、SKU 和立即购买到订单确认实时校验：
+商品详情真实接口通过 H5 BFF 接入，本期覆盖普通商品、快递配送、SKU、立即购买到订单确认实时校验、普通快递订单创建，以及创建订单后的收银台支付信息展示：
 
 ```http
 GET /api/bff/product-detail?prodId=1000054
-GET /api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1
+GET /api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>
+POST /api/bff/order-submit
+GET /api/bff/order-pay-info?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0
 ```
 
 BFF 后端调用：
@@ -505,6 +772,11 @@ BFF 后端调用：
 | 后端 | Method | Path | 说明 |
 | --- | --- | --- | --- |
 | Java | GET | `/prod/prodInfo?prodId=<prodId>&addrId=0&dvyType=1` | 普通商品快递详情、SKU、价格、库存、图片和详情内容。 |
+| Java | GET | `/p/address/addrInfo/{addrId}` | 订单确认和提交前解析默认/选中收货地址；`addrId=0` 表示默认地址。 |
+| Java | POST | `/p/order/confirm` | 普通商品快递订单确认；订单确认页加载阶段和最终提交前都会调用，用于生成后端确认上下文和返回真实金额。 |
+| Java | POST | `/p/order/submit` | 普通商品快递订单提交；创建待支付订单并返回 `orderNumbers`。 |
+| Java | GET | `/p/order/getOrderPayInfoByOrderNumber?orderNumbers=<orderNumbers>` | 收银台读取待支付订单金额、过期时间、积分和支付状态。 |
+| Java | GET | `/sys/config/info/getSysPaySwitch` | 收银台读取支付方式开关，当前只展示支付宝和微信支付方式。 |
 | Java | GET | `/shop/headInfo?shopId=<shopId>` | 店铺头部信息；主商品接口成功且存在 `shopId` 后尽量请求。 |
 | Java | GET | `/prod/prodCommData?prodId=<prodId>&stationId=` | 评论统计；用于评价数量、好评率和评价标签。 |
 | Java | GET | `/prod/prodCommPageByProd?prodId=<prodId>&size=10&current=1&evaluate=-1&stationId=` | 评论分页；首屏只取前两条作为概要。 |
@@ -543,11 +815,113 @@ type ProductDetailBffData = {
 type OrderConfirmBffData = {
   view: OrderConfirmData;
   modules: {
+    orderConfirm?: JavaOrderConfirmInfo;
     productInfo: JavaProductInfo;
     selectedSku: JavaProductSku;
+    userAddress?: JavaUserAddress;
   };
   debugRaw?: {
+    orderConfirm?: JavaEnvelope<JavaOrderConfirmInfo>;
     prodInfo: JavaEnvelope<JavaProductInfo>;
+  };
+};
+```
+
+普通商品快递订单确认请求体按旧 uni-app 立即购买流程保持以下形态：
+
+```ts
+type JavaOrderConfirmRequest = {
+  addrId: number;
+  dvyTypes: Array<{
+    dvyType: 1;
+    lat: null;
+    lng: null;
+    shopId: number;
+    stationId: 0;
+  }>;
+  isScorePay: 0;
+  orderItem: {
+    prodCount: number;
+    prodId: string;
+    shopId: number;
+    skuId: string;
+  };
+  prodCount: number;
+  userChangeCoupon: 0;
+  userUseScore: 0;
+};
+```
+
+普通商品快递订单提交请求体按旧 uni-app 确认页提交结构保持以下形态；`orderShopParams` 优先由 `/p/order/confirm` 返回的 `shopCartOrders` 生成：
+
+```ts
+type JavaOrderSubmitRequest = {
+  isScorePay: 0;
+  orderFlowLogParam: {
+    step: 1;
+    visitType: 1;
+  };
+  orderInvoiceList: null;
+  orderSelfStationDto: {
+    stationId: 0;
+    stationTime: "";
+    stationUserMobile: "";
+    stationUserName: "";
+  };
+  orderShopParams: Array<{
+    remarks: "";
+    shopId: number;
+    stationId: 0;
+  }>;
+  virtualRemarkList: [];
+};
+```
+
+订单提交 BFF 成功响应：
+
+```ts
+type OrderSubmitBffData = {
+  view: {
+    message: string;
+    orderNumbers: string;
+    status: "created";
+  };
+  modules: {
+    orderConfirm?: JavaOrderConfirmInfo;
+    orderSubmit: JavaOrderSubmitInfo;
+    productInfo: JavaProductInfo;
+    selectedSku: JavaProductSku;
+    userAddress: JavaUserAddress;
+  };
+};
+```
+
+收银台支付信息 BFF 成功响应：
+
+```ts
+type OrderPayInfoData = {
+  view: {
+    amountText: string;
+    defaultPayType: 7 | 8;
+    dvyType: string;
+    endTime: string;
+    isPurePoints: boolean;
+    methods: Array<{
+      id: "aliPay" | "wechatPay";
+      label: string;
+      payType: 7 | 8;
+    }>;
+    orderNumbers: string;
+    orderType?: string;
+    ordermold?: string;
+    status: "failed" | "paid" | "pending" | "unknown";
+    statusText: string;
+    totalAmount: number;
+    totalScore: number;
+  };
+  modules: {
+    orderPayInfo: JavaOrderPayInfo;
+    paySwitch?: JavaPaymentSwitchInfo;
   };
 };
 ```
@@ -561,14 +935,76 @@ type OrderConfirmBffData = {
 - 售后保障按 Java `afterSaleType`、`afterSaleContent` 映射；资质条按 `prodCertificateRecordDtoList` 映射；无字段时不展示静态兜底。
 - 商品主数据成功后，BFF 会尽量聚合店铺头部、评论统计和评论分页；店铺头部仅保留在 modules，详情页不展示店铺卡片；评论辅助接口失败时展示评价空态，不影响商品基础信息、SKU 和立即购买。
 - 评论分页只用于首屏概要，`view.reviewSummary.reviews` 最多保留前两条；完整评论列表后续单独实现。
-- 购买弹窗确认时只携带 `productId`、`skuId`、`quantity`，不携带价格快照。
-- `/order-confirm` 会通过 `getOrderConfirm()` 重新请求商品详情并校验 SKU、库存和价格；校验失败时禁止继续交易。
+- 商品详情页会先通过 Bridge `address.getDefault` 获取默认地址，有 `addrId` 时传给 `/api/bff/product-detail` 刷新配送相关状态；Bridge 不可用时继续用 BFF 默认 `addrId=0`。
+- 购买弹窗确认时携带 `productId`、`skuId`、`quantity`，不携带价格快照。
+- `/order-confirm` 会先通过 Bridge `address.getDefault` 获取默认地址；再通过 `getOrderConfirm()` 请求 Java `/p/address/addrInfo/{addrId|0}` 解析默认/选中收货地址，重新请求商品详情校验 SKU、库存和价格，并调用 Java `/p/order/confirm` 生成后端确认上下文；如果 URL 中包含 `addressId`，会优先作为 `addrId` 传给 BFF；校验失败或无收货地址时禁止继续交易。普通快递链路对齐旧 uni-app，不因确认响应 `submitOrder=0` 在 H5 层置灰或阻断。
+- `/order-confirm` 地址卡会跳转 `/address?select=1&productId=<productId>&skuId=<skuId>&quantity=<quantity>`，地址列表“使用”会回到 `/order-confirm?addressId=<addrId>` 并保留商品参数。
+- `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
+- `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber` 和 `/sys/config/info/getSysPaySwitch` 后展示金额、倒计时、支付状态和支付方式。本期确认付款流程暂不迁移：点击“确定支付”只在 H5 本地提示“已发起支付”，不调用 Java `/p/order/pay`，不请求支付 Bridge，不进入支付结果页。
+
+### 收货地址模块
+
+地址模块优先通过 App Native Bridge 接入地址能力；Bridge 不可用或老版本 App 不支持时，通过 H5 BFF 接入旧 Java 地址接口。地址和省市区数据必须来自 Bridge、H5 BFF 或 Java 接口；接口无数据时展示空态、错误或空选项，不使用本地业务数据兜底：
+
+```http
+GET /address
+GET /address?select=1&productId=<productId>&skuId=<skuId>&quantity=<quantity>
+GET /address/edit
+GET /address/edit?addrId=<addrId>
+```
+
+当前实现：
+
+- `/address` 展示地址列表、默认地址、编辑、删除和新增入口；进入页面后优先请求 Bridge `address.getList`，失败时请求 `/api/bff/address/list` 同步真实地址；Bridge/BFF 都没有返回地址时展示空态，不展示本地样例地址。
+- `/address?select=1` 展示“使用”按钮，用于订单确认页选择地址。
+- `/address/edit` 展示收货人、手机号码、所在地区、详细地址、定位、设为默认地址和保存按钮；省市区通过 `/api/bff/address/regions` -> Java `/p/area/listByPid` 获取，接口未返回时不展示本地选项；回填和保存优先调用 Bridge `address.getInfo/address.save`，失败时调用 `/api/bff/address/info` 和 `/api/bff/address/save`。
+- 定位按钮预留 Bridge `address.chooseLocation`，本地会输出 `[MeuMall][address-location]` console 日志；App 未接入时提示“定位能力等待 App Bridge 接入”，不写入假地址。
+- 地址空态图和定位图标来自旧 uni-app 项目，并注册为 `address.empty`、`address.location` 本地资源 key。
+- 我的页“地址管理”入口已指向 `/address`。
+- 地址列表设默认和删除优先调用 Bridge `address.setDefault/address.delete`，失败时分别调用 `/api/bff/address/default` 与 `/api/bff/address/delete`。
+
+Bridge RPC：
+
+| 功能 | Bridge action | H5 fallback |
+| --- | --- | --- |
+| 默认地址 | `address.getDefault` | `/api/bff/address/list` 取默认/首个地址 |
+| 地址列表 | `address.getList` | `/api/bff/address/list` |
+| 地址详情 | `address.getInfo` | `/api/bff/address/info` |
+| 新增/编辑 | `address.save` | `/api/bff/address/save` |
+| 设默认 | `address.setDefault` | `/api/bff/address/default` |
+| 删除 | `address.delete` | `/api/bff/address/delete` |
+| 定位选点 | `address.chooseLocation` | 无 BFF fallback，App 后续接入 |
+
+H5 BFF：
+
+| 功能 | H5 BFF | Method | Java 依赖 |
+| --- | --- | --- | --- |
+| 地址列表 | `/api/bff/address/list` | GET | `/p/address/list?isDefaultFirst=false` |
+| 地址详情 | `/api/bff/address/info?addrId=<addrId>` | GET | `/p/address/addrInfo/{addrId}` |
+| 新增地址 | `/api/bff/address/save` | POST | `/p/address/addAddr` |
+| 编辑地址 | `/api/bff/address/save` | PUT | `/p/address/updateAddr` |
+| 设默认 | `/api/bff/address/default` | PUT | `/p/address/defaultAddr/{addrId}` |
+| 删除地址 | `/api/bff/address/delete` | DELETE | `/p/address/deleteAddr/{addrId}` |
+| 省市区 | `/api/bff/address/regions?parentId=<areaId>` | GET | `/p/area/listByPid?level=1` 或 `/p/area/listByPid?pid=<areaId>` |
+
+Java 接口：
+
+| 功能 | Java 接口 | Method | 说明 |
+| --- | --- | --- | --- |
+| 地址列表 | `/p/address/list` | GET | 旧项目入参包含 `isDefaultFirst`。 |
+| 地址详情/默认地址 | `/p/address/addrInfo/{addrId}` | GET | 编辑页回填；订单确认/提交使用 `addrId=0` 解析默认地址，返回空时禁止提交。 |
+| 新增地址 | `/p/address/addAddr` | POST | 保存新增地址。 |
+| 修改地址 | `/p/address/updateAddr` | PUT | 保存编辑地址。 |
+| 设置默认地址 | `/p/address/defaultAddr/{addrId}` | PUT | 地址列表默认地址切换。 |
+| 删除地址 | `/p/address/deleteAddr/{addrId}` | DELETE | 地址列表删除非默认地址。 |
+| 省市区 | `/p/area/listByPid` | GET | `level=1` 获取省份；`pid=<areaId>` 获取下级市/区。 |
 
 本期明确不包含：
 
 - 秒杀、拼团、自提、同城、门店定位。
 - 购物车数量和加入购物车；喵呜无购物车。
-- 正式创建订单、支付 Bridge、收藏、优惠券领取、分享海报。
+- 支付 Bridge、收藏、优惠券领取、分享海报。
+- 地图选点和 App 真实定位实现。当前 H5 仅预留 `address.chooseLocation` Bridge；省市区数据只消费 Java `/p/area/listByPid`，不保留本地轻量兜底数据。
 
 根级契约：`.ai-workspace/contracts/api/h5-product-detail-real-flow-contract.md`。
 

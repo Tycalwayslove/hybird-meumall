@@ -28,7 +28,7 @@
 
 - 新增 H5 HTTP 请求观测第一阶段：客户端上下文 header、BFF 到后端透传和 backend call logger hook。
 - 新增 H5 请求诊断、BFF request context、首页 Runtime feature API adapter 和推广模块 API adapter，形成后续真实接口接入模板。
-- 新增首页真实接口首批接入：`/api/bff/home` 负责 Java 首页核心聚合接口，`/api/bff/home/recommend-products` 负责首页“为您推荐”商品分页，`/api/bff/home/for-you-products` 负责相似推荐商品更多页分页，并保留静态 fallback。
+- 新增首页真实接口首批接入：`/api/bff/home` 负责 Java 首页核心聚合接口，`/api/bff/home/recommend-products` 负责首页“为您推荐”商品分页，`/api/bff/home/for-you-products` 负责相似推荐商品更多页分页；正式联调不保留本地业务 mock fallback。
 - 首页“为您推荐”区支持下滑加载更多商品，加载到第 2 页后显示回到顶部按钮。
 - 新增 H5 页面 `/home/recommend-products`，从首页“为您推荐”右侧“更多”进入，标题为“相似推荐商品”，包含导航栏、搜索栏、筛选条件、商品列表和下拉加载更多。
 - 首页 BFF 成功响应调整为 `view/modules/debugRaw` 结构：当前页面渲染读取 `view`，后续字段扩展优先查看 `modules`，local/test 可用 `debugRaw` 对比 Java 原始 envelope。
@@ -45,6 +45,17 @@
 - 新增 `ProductImagePlaceholder` 公共商品缩略图缺省组件，统一搜索、推广商品、秒杀、购买弹窗和提交订单商品行的灰色占位图。
 - 新增商品详情购买弹窗静态高保真实现，包含规格、配送方式、数量步进器和确认入口。
 - 新增提交订单高保真静态页，支持默认地址态和未填写收货信息态。
+- 新增收货地址模块前端闭环：`/address` 地址列表、`/address/edit` 新增/编辑地址页、我的页地址管理入口、订单确认地址选择入口。
+- 注册地址模块本地资源 `address.empty` 和 `address.location`，图片复制自旧 uni-app 地址页面资源。
+- 订单确认和订单提交 BFF 已接 Java `/p/address/addrInfo/{addrId}`，未传地址时用 `0` 解析默认地址；无收货地址时禁止提交订单。
+- 地址管理页新增真实 BFF：地址列表、地址详情、新增/编辑保存、设默认和删除已接旧 Java `/p/address/*` 接口；接口无数据时展示空态或错误提示，不展示本地样例地址。
+- 新增/编辑地址页省市区改为 `/api/bff/address/regions` -> Java `/p/area/listByPid` 真实接口级联；接口未返回时不展示本地选项。定位按钮预留 `address.chooseLocation` Bridge，并输出 `[MeuMall][address-location]` 本地调试日志，App 未接入时不伪造定位结果。
+- 搜索页离开跳转改为 replace：从 `/search` 进入完整榜单、热榜商品详情或搜索结果商品详情时替换当前搜索 history，原生返回按钮和 App 滑动返回会回到搜索页之前的首页。
+- 搜索页“查看完整榜单”会携带当前热榜标签 `rankType/categoryId`，完整榜单按该参数默认选中对应标签；完整榜单页内切换标签不操作路由，搜索页热榜空态容器改为透明背景。
+- 搜索结果页分类筛选接口调整为默认不传 `depth`，即请求 `/category/list?parentId=<id>&shopId=0`，让后端返回当前类目的所有子孙类目。
+- 首页正式联调移除本地业务 mock fallback：`/api/bff/home` 或推荐商品分页失败时展示错误/空业务态，缺失 banner、分类或推荐商品时不使用 `homeExperienceData` 补齐。
+- 首页聚合接口按 Apifox 最新口径改为从 `navList` 直接渲染首页类目；不再拼接 `hotCategory + categoryTop8`，banner 或类目为空时展示骨架屏。
+- 首页“限时秒杀”和“推广带货”入口卡改为 H5 固定 UI，分别固定跳转 `/seckill` 和 `/promotion/products`，不再由首页聚合接口或配置模块控制。
 - Java / mall 后端出站请求统一注入 `source: 1`，表示当前 H5 运行在 App WebView 内，按 App 来源上报；Python 请求不携带该 header。
 - 初始化 Hybrid App H5 AI 工程化工作流文档结构。
 - 添加项目级 Codex Skills：任务创建、规划、实现、测试、审查、归档、发布准备和回滚。
@@ -103,13 +114,16 @@
 
 - H5 BFF 鉴权和 API 规范补充 `User-Agent`、`x-request-id`、App 版本、系统版本、设备型号和 WebView 版本的透传约定。
 - 根目录 `dev:h5`、H5 项目环境启动命令和 `scripts/root/dev-all.sh` 改为读取 H5 environment profile；Java 后端统一为 `https://test.aigcpop.com/mini_h5`，Python 后端统一为 `https://test.aigcpop.com/api`。
-- 首页渲染数据源从纯静态 mock 调整为优先请求 H5 BFF，失败时回落到本地 `homeExperienceData`。
+- 首页渲染数据源从纯静态 mock 调整为优先请求 H5 BFF；早期失败回落 `homeExperienceData` 的策略已在后续正式联调阶段移除。
 - 首页停止请求旧 `GET /api/h5/home/config/active?environment=prod`；当前 active 版本通过 manifest active 获取，首页业务数据通过 `/api/bff/home` 获取。
 - 商品详情数字商品 ID 从静态 mock 改为远程商品加载壳，客户端通过 H5 BFF 拉取真实商品；本地 `p-1001` mock 仍保留为高保真验证入口。
+- 商品详情数字商品 ID 首屏加载壳从“正在加载商品”文本数据改为商品详情骨架屏；接口成功后再渲染真实详情。
+- 商品详情主图区无媒体图片时改为复用 `ProductImagePlaceholder` 通用商品图片空态。
 - 商品详情内容区从纯文本描述升级为优先渲染 `/prod/prodInfo.content` 富文本，支持段落、列表和详情图；富文本图片相对路径会拼接 `JAVA_OSS_ASSET_BASE_URL`。
 - 商品详情页按 Figma 修正评论概要展示；店铺卡片不在详情页主流程展示，评论接口失败时显示评价空态，不拖垮商品主详情。
 - 商品主图支持视频 + 图片混合轮播、触屏横滑、鼠标拖拽、横向滑动动画、预览和播放；售后保障和资质条按旧 uni-app 字段逻辑映射。
 - 订单确认页对真实商品参数重新请求商品详情校验，购买弹窗不再把价格作为 URL 可信数据。
+- 订单确认页地址卡改为可进入 `/address?select=1`，并把 `addressId/addrId` 传给订单确认和订单提交 BFF；BFF 会先解析真实收货地址再校验商品和提交订单；地址列表/保存/设默认/删除也已接真实 BFF。
 - Cookie 鉴权保持优先级：Cookie token 优先；本地 env token 只作为 local 开发兜底，测试和正式环境不生效。
 - BFF 日志排查口径补充：`backendStatus` 是 HTTP 状态，`backendBusinessCode` 才是后端业务码。
 - 首页原生 Runtime 面板改为通过 `createRuntimeApi()` 请求 BFF，避免组件直接拼接口路径。
@@ -191,6 +205,8 @@
 
 ### 修复
 
+- 修复普通商品立即购买进入订单确认后端报错：`/api/bff/order-confirm` 现在会在地址和商品/SKU 校验后调用 Java `/p/order/confirm`，按旧 uni-app DTO 传 `dvyTypes[].lat/lng/stationId`、`orderItem`、积分和优惠券默认值；确认页使用 Java 返回的实付款、运费、优惠和 `submitOrder` 状态，最终提交体补充 `orderFlowLogParam` 并优先从确认返回的 `shopCartOrders` 生成 `orderShopParams`。
+- 修复 `/home/recommend-products` 相似推荐商品卡在 App WebView 内进入详情可能 404 的问题：商品卡改用 `HybridLink strategy="new-webview"`，与首页商品卡保持同一商品详情容器策略。
 - 修复版本化路径下部分推广图片缺失风险：渲染测试会在 `/h5-v/<version>` basePath 场景检查本地图片路径必须带版本前缀。
 - 修复客户端组件重新渲染后本地静态资源可能退回裸 `/assets/...` 的问题：`assetUrl()` 改为显式读取 `NEXT_PUBLIC_H5_BASE_PATH`，保证权益中心等级切换、轮播和动画后的图片 URL 仍带版本 basePath。
 - 修复本地开发环境只设置 `H5_BASE_PATH` 导致客户端组件 hydrate 后图片路径可能退回裸 `/assets/...` 的问题：根目录 `dev:h5`、`dev-all.sh` 和 `next.config.ts` 均同步使用 `NEXT_PUBLIC_H5_BASE_PATH`。
@@ -202,6 +218,10 @@
 
 ### 验证
 
+- `pnpm test src/features/product/product-detail.test.tsx src/features/product/product-real-flow.test.tsx src/features/product/order-confirm.test.tsx src/design-system/components/product-image-placeholder.test.tsx` 通过，覆盖商品详情骨架、主图空态和相邻交易链路。
+- `pnpm test src/features/home/home-recommend-products.test.tsx src/features/home/home-real-api.test.ts` 通过，覆盖相似推荐商品详情 Hybrid 跳转和首页商品 mapper。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，0 errors，4 warnings；warning 均为既有 promotion 页面 `<img>` 规则提示。
 - 已确认项目级 Codex Skills 存在并包含必需工作流章节。
 - 已确认 AI 辅助脚本支持 help、参数校验、本地烟测和非法参数非 0 退出。
 - 本轮使用 AI 工作流自动化完善任务完成一次完整闭环演练。
@@ -408,3 +428,124 @@
 - `pnpm test src/server/http/backend-client.test.ts src/server/http/bff-context.test.ts src/server/http/java-response-codes.test.ts src/features/home/home-real-api.test.ts` 通过。
 - `pnpm typecheck` 通过。
 - `pnpm lint` 通过，存在 4 条历史 `<img>` warning，无 error。
+
+## 2026-06-24 - 首页分类联调口径修正
+
+### 变更
+
+- 首页真实接口 mapper 按 Apifox 当时口径组合分类入口：`hotCategory` 固定作为第一个入口，后续从 `categoryTop8` 补充，最多 10 个。
+- 该口径已在 2026-06-25 被 `navList` 直接展示规则替代；历史记录保留用于追溯接口变更。
+- 同步更新首页 API 契约、integration brief、任务记录和项目状态。
+
+### 验证
+
+- `pnpm test src/features/home/home-real-api.test.ts` 通过。
+- `pnpm typecheck` 通过。
+
+## 2026-06-24 - 秒杀和推广商品真实分页联调
+
+### 变更
+
+- 新增 `/api/bff/seckill/products`，调用 Java `/p/app/home/seckillProds` 并映射到限时秒杀页商品卡。
+- 新增 `/api/bff/promotion/products`，调用 Java `/p/distribution/prod/productPage` 并映射到推广商品页商品卡。
+- 新增通用 `EmptyState` 空态组件，默认使用喵呜空盒子角色图，支持自定义文案、图片尺寸、字体大小、颜色和间距。
+- `/seckill` 商品卡和秒杀按钮进入 `/product/<prodId>`。
+- `/promotion/products` 商品卡进入 `/product/<prodId>`，推广按钮分享 payload 使用真实商品 ID。
+- 链调阶段两个页面均不拼接本地 mock；Java 空列表展示通用空态组件。
+
+### 验证
+
+- `pnpm test src/design-system/components/empty-state.test.tsx src/lib/assets/asset-url.test.ts src/features/seckill/seckill.test.tsx src/features/promotion/promotion-products.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，0 errors，4 warnings；warning 均为既有 promotion 页面 `<img>` 规则提示。
+
+## 2026-06-24 - H5 真实接口联调渲染规则固化
+
+### 变更
+
+- 根级 H5 对接工作流新增真实接口联调渲染规则：首屏先展示骨架屏或 loading，接口成功后只渲染真实接口数据，列表为空展示 `EmptyState` 或业务空态，失败展示 error、重试、登录态或兼容提示，不使用 mock 数据兜底。
+- 对接说明模板新增真实接口渲染规则和验收项，后续接口联调需要明确是否已移除页面 mock 兜底。
+- `/home/recommend-products` 首屏不再注入 `homeExperienceData.products` mock 商品，默认展示商品骨架屏。
+- `/api/bff/home/for-you-products` 和 `/api/bff/home/recommend-products` 不再把 Java 空列表替换成本地 mock 商品。
+
+### 验证
+
+- `pnpm test src/features/home/home-recommend-products.test.tsx src/features/home/home-real-api.test.ts src/features/home/home.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，0 errors，4 warnings；warning 均为既有 promotion 页面 `<img>` 规则提示。
+- 本地 SSR smoke：`/hybird/home/recommend-products` 首屏包含 6 个骨架卡片，不包含 `homeExperienceData.products` mock 商品标题，不渲染商品图片缺省图。
+
+## 2026-06-24 - 搜索首页热门词真实接口
+
+### 变更
+
+- 新增 `/api/bff/search/hot-keywords`，调用 Java `/search/hotSearch?type=1` 获取搜索首页热门词。
+- 搜索首页热门搜索区域首屏展示骨架屏，接口成功后只展示真实热词；Java 空数组展示“暂无热门搜索”，失败展示“热门搜索加载失败”，不拼接本地 mock 热词。
+- 搜索历史改为前端 localStorage `meumall.search.history`，提交搜索或点击热词写入本地历史，按最新优先去重并限制 10 条；顶部删除按钮清空全部历史，单个历史标签右侧删除按钮只删除对应关键词。
+- 新增根级 API 契约 `.ai-workspace/contracts/api/h5-search-hot-keywords-contract.md`，更新 H5 API 规范、项目状态和页面盘点。
+
+### 验证
+
+- `pnpm test src/features/search/search-history.test.ts src/features/search/search-real-api.test.ts src/features/search/search.test.tsx` 通过，3 files / 15 tests。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，0 errors，4 warnings；warning 均为既有 promotion 页面 `<img>` 规则提示。
+- 本地 SSR smoke：`/hybird/search` 首屏包含热门词骨架，不包含 mock 热词“保健品”，搜索历史展示本地空态。
+
+## 2026-06-25 - 搜索热榜真实接口
+
+### 变更
+
+- 新增 `/api/bff/search/ranking`，调用 Java `/search/rankTabs` 和 `/search/rank/{rankType}` 获取搜索热榜标签和商品列表。
+- `/search` 下方热榜模块、`/search/ranking` 完整榜单页改为真实 BFF 数据源；首屏展示骨架屏，成功后展示真实标签和商品，空数据展示空态，失败展示“热榜加载失败”，不回退 mock。
+- 热榜商品卡展示真实图片、价格、原价、销量和 `限时秒杀/热销/推荐` 徽标，点击进入 `/product/<prodId>`。
+- 新增根级 API 契约 `.ai-workspace/contracts/api/h5-search-ranking-contract.md`，更新 H5 API 规范、项目状态和页面盘点。
+
+### 验证
+
+- `pnpm exec vitest run src/features/search`：通过，4 files / 20 tests。
+- `pnpm test`：通过，55 files / 281 tests。
+- `pnpm typecheck`：通过。
+- `pnpm lint`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 提示。
+- `pnpm run build`：通过。
+- HTTP smoke：`/hybird/search`、`/hybird/search/ranking`、`/hybird/api/bff/search/ranking?categoryBoardCount=6` 均返回 200；BFF 返回真实商品数据。
+
+## 2026-06-25 - 搜索结果商品真实接口
+
+### 变更
+
+- 新增 `/api/bff/search/products`，调用 Java `/p/app/prod/page` 获取搜索结果商品，支持 `current`、`size`、`orderBy`、`keyword`、`categoryId`。
+- `/search?q=<keyword>` 按全局搜索处理，不传 `categoryId`；分类筛选项来自 Java `/category/list?parentId=0&shopId=0`，默认不传 `depth`。
+- `/search?categoryId=<id>` 无关键词也进入搜索结果页，默认查当前分类；分类筛选项来自 Java `/category/list?parentId=<id>&shopId=0&depth=1`，后续筛选只查当前类目的子孙分类。
+- 搜索结果页销量/价格/分类筛选改为请求真实 BFF：销量 `orderBy=-soldNum`，价格升序 `+price`，价格降序 `-price`。
+- 搜索结果排序 UI 收敛为“销量”和“价格”两个互斥条件，按钮后展示上/下箭头并高亮当前方向；分类筛选改为级联面板，递归消费 Java `children/categories` 子孙树，点击分类后直接展示已返回的子孙类目并按需继续请求。
+- 搜索结果筛选区样式优化为“综合筛选”壳层、当前筛选摘要、分段排序按钮和分级类目标题，排序/分类切换不修改 URL。
+- 搜索结果分类筛选面板新增蒙层和页面滚动锁定；点击类目只更新待确认选中态，点击“确认”才请求接口，点击“重置”清空分类并重新请求。
+- 搜索结果页无分类入口时，分类查询从 `/category/list?parentId=0&shopId=0` 获取全局分类树；商品有下一页时改为底部进入视口自动加载下一页，不再展示“加载更多”按钮。
+- 搜索结果页内再次搜索或清空关键词改为本地 state 更新，并用 `history.replaceState` 同步 URL，不再重置当前排序和分类筛选；搜索输入框改为 `type=text`，只保留 H5 自定义清空按钮。
+- 搜索结果页首屏不渲染本地 mock 商品或分类；商品为空时使用通用 `EmptyState`，接口失败时展示错误态，不拼接本地 mock 商品；商品卡仍用 replace 式跳转到商品详情，避免 App 返回/滑动返回停回搜索页。
+- 新增根级 API 契约 `.ai-workspace/contracts/api/h5-search-products-contract.md` 和对接说明 `.ai-workspace/integration-briefs/BRIEF-2026-0625-002-h5-search-products-real-api.md`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/search/search-products-real-api.test.ts src/features/search/search.test.tsx` 通过，2 files / 18 tests。
+- 补充验证：`pnpm exec vitest run src/features/search/search-products-real-api.test.ts src/features/search/search.test.tsx` 通过，2 files / 29 tests；覆盖双向排序、互斥切换、递归分类 children 展示、蒙层/确认/重置和筛选 UI 回归。
+- `pnpm test` 通过，56 files / 291 tests。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 提示。
+- `pnpm run build` 通过，路由表包含 `/api/bff/search/products`。
+
+## 2026-06-24 - 商品分类页真实分类列表
+
+### 变更
+
+- 新增 `/api/bff/category/list`，调用 Java `/category/list?parentId=-1&shopId=0&depth=3` 获取商品分类树；当前联调口径 `depth` 必传，分类页固定传 `3`。
+- `/category` 首屏展示骨架屏，真实接口返回后渲染左侧一级分类和右侧二/三级分类；Java 空数组展示“暂无分类”，失败展示“分类加载失败”，不拼接本地 mock 分类。
+- 分类 leaf 点击进入 `/search?categoryId=<categoryId>`；分类图片使用 `pic` / `icon`，相对路径按 `JAVA_OSS_ASSET_BASE_URL` 拼接。
+- 新增根级 API 契约 `.ai-workspace/contracts/api/h5-category-list-contract.md`，更新 H5 API 规范、项目状态和页面盘点。
+
+### 验证
+
+- `pnpm test src/features/category/category-real-api.test.ts src/app/category/page.test.tsx` 通过，2 files / 3 tests。
+- `pnpm typecheck` 通过。
+- `pnpm lint` 通过，0 errors，4 warnings；warning 均为既有 promotion 页面 `<img>` 规则提示。
+- 本地 SSR smoke：`/hybird/category` 首屏包含分类骨架，不包含 mock“一级分类/二级分类/三级分类”。

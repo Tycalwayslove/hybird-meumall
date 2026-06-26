@@ -8,10 +8,12 @@
 - [ ] 接入正式线上日志平台后，将 `[h5-bff-backend-call]` 和 `[h5-bff-route-error]` 纳入可按 `requestId` 检索的日志索引。
 - [ ] 确认推广模块真实后端接口、达人等级规则、活动状态和榜单刷新策略。
 - [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`）、`route_changed`、手势返回和 URL 白名单。
-- [ ] 确认 v1.2.0 搜索接口、热榜接口、推广商品接口、佣金字段、秒杀库存/资格/活动时间接口和原生入口跳转参数。
-- [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054` 和订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1` 的真实数据链路。
+- [ ] 确认 v1.2.0 搜索建议、推广商品分类 ID 来源、收藏接口、秒杀购买资格/活动时间接口和原生入口跳转参数；热门搜索词、热榜和搜索结果商品已分别接 `/search/hotSearch`、`/search/rankTabs`、`/search/rank/{rankType}`、`/p/app/prod/page`。
+- [ ] 用 App 注入的有效 `mallToken` 验证秒杀商品 `/api/bff/seckill/products` 和推广商品 `/api/bff/promotion/products` 的真实数据、分页、商品详情跳转和分享 payload。
+- [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 的真实数据链路。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
-- [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取、正式下单和支付接口。
+- [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取、真正确认付款 `/p/order/pay` 和支付 Bridge/支付结果页对接口径。
+- [ ] 为 App 正式地址数据源接入 `rpc/address.*`，并补齐 `address.chooseLocation` 真实定位/地图选点和真实 App WebView token 联调验证。
 - [ ] 用 App 注入的有效 `mallToken` 验证真实商品 `content` 富文本中的详情图、表格和链接展示效果。
 - [ ] 用线上 `/debug-login` 写入 Java / Python 调试 token 后，验证浏览器独立 H5 首页、商品详情和订单确认真实接口链路。
 - [ ] 正式服务器和域名完成后，将 `config/env/h5.prod.env` 从测试域名切换为正式 H5、Java 和 Python 域名。
@@ -28,7 +30,7 @@
 - [ ] 确认 Telemetry 真实 Sentry/埋点平台、白屏采样点、采样率和隐私脱敏策略。
 - [ ] 将模拟页面中的色块占位替换为正式 icon 体系。
 - [ ] 确认商品详情评价详情、咨询能力归属和支付前正式下单接口。
-- [ ] 接入真实商品、分类、购物车、订单和用户接口。
+- [ ] 接入真实商品、订单和用户接口；分类列表已接 `/category/list`，喵呜无购物车概念。
 - [ ] 配置 GitHub Actions 所需 SSR secrets 和受保护发布环境。
 - [ ] 在真实 CI 环境配置 `H5_RELEASE_SERVER_URL`，验证 `register_release=true` 的 candidate release 注册链路。
 - [ ] 确认 manifest active 发布审批人和执行窗口。
@@ -80,6 +82,9 @@
 - [x] 将我的页、奖励记录和排行榜的浅绿顶部背景收敛为共享资源，并修正排行榜皇冠和领奖台布局。
 - [x] 建立 H5 与原生路由跳转基础闭环，完成 H5 统一导航封装、入口改造和 route_changed 上报。
 - [x] 完成 v1.2.0 搜索、推广商品和限时秒杀首批静态高保真页面。
+- [x] 接入限时秒杀页和推广商品页真实分页 BFF，链调阶段不拼接本地 mock。
+- [x] 接入搜索首页热门搜索词真实 BFF，并将搜索历史改为前端 localStorage 存储、清空全部和单条删除。
+- [x] 接入商品分类页真实分类列表 BFF，链调阶段不拼接本地 mock。
 - [x] 禁止 H5 WebView 页面级双指缩放，保留正常单指滚动。
 - [x] 完成 H5 HTTP 请求观测第一阶段：客户端上下文 header、BFF 到后端透传和 backend call logger hook。
 - [x] 补齐 H5 HTTP 请求架构：请求诊断、BFF request context、Runtime adapter 和 Promotion adapter 样板。
@@ -90,3 +95,4 @@
 - [x] 将我的页昵称后的 V1-V5 达人等级从文字胶囊替换为本地图片横条徽章。
 - [x] 完成个人中心二级页首批静态高保真：钱包、我的收藏、我的足迹、我的优惠券和订单列表。
 - [x] 新增独立 H5 调试 Token 登录页，浏览器无 token 时可手动写入 Java / Python token，原生 App 信号下不展示。
+- [x] 完成收货地址模块前端闭环：地址列表、新增/编辑地址页、我的页入口、订单确认地址选择入口和 `addrId` 传递。
