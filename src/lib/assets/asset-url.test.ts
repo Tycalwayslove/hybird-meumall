@@ -79,6 +79,9 @@ describe("assetUrl", () => {
     expect(localAssetPaths["placeholder.productImage"]).toBe(
       "/assets/placeholders/product-image-placeholder.png"
     );
+    expect(localAssetPaths["placeholder.emptyState"]).toBe(
+      "/assets/placeholders/empty-state-mascot.png"
+    );
     expect(localAssetPaths["promotion.icon.share"]).toBe(
       "/assets/promotion/icons/share.png"
     );
@@ -99,6 +102,9 @@ describe("assetUrl", () => {
     );
     expect(localAssetUrl("placeholder.productImage", { basePath: "/hybird" })).toBe(
       "/hybird/assets/placeholders/product-image-placeholder.png"
+    );
+    expect(localAssetUrl("placeholder.emptyState", { basePath: "/hybird" })).toBe(
+      "/hybird/assets/placeholders/empty-state-mascot.png"
     );
     expect(localAssetUrl("promotion.talentSummaryCard.v5", { basePath: "/hybird" })).toBe(
       "/hybird/assets/promotion/talent-badges/talent-summary-card-v5.png"

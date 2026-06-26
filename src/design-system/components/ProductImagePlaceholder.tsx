@@ -1,10 +1,10 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 
 import { localAssetUrl } from "@/lib/assets";
 
 import { cn } from "../utils/cn";
 
-type ProductImagePlaceholderProps = {
+type ProductImagePlaceholderProps = Omit<HTMLAttributes<HTMLSpanElement>, "children"> & {
   ariaLabel?: string;
   children?: ReactNode;
   className?: string;
@@ -17,7 +17,8 @@ export function ProductImagePlaceholder({
   children,
   className,
   decorative = false,
-  hideDefaultIcon = false
+  hideDefaultIcon = false,
+  ...props
 }: ProductImagePlaceholderProps) {
   return (
     <span
@@ -29,6 +30,7 @@ export function ProductImagePlaceholder({
       )}
       data-product-image-placeholder="true"
       role={decorative ? undefined : "img"}
+      {...props}
     >
       {hideDefaultIcon ? null : (
         // eslint-disable-next-line @next/next/no-img-element
