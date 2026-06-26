@@ -150,6 +150,24 @@ describe("cashier rendering", () => {
     ).toBe("/pay-way?orderNumbers=O202606260001&dvyType=1&isPurePoints=0&orderType=0&ordermold=0");
   });
 
+  it("keeps the cashier link under the configured H5 base path", () => {
+    const previousBasePath = process.env.NEXT_PUBLIC_H5_BASE_PATH;
+    process.env.NEXT_PUBLIC_H5_BASE_PATH = "/hybird";
+
+    try {
+      expect(
+        createCashierHrefFromSubmitResult({
+          dvyType: "1",
+          orderNumbers: "O202606260001",
+          orderType: "0",
+          ordermold: "0"
+        })
+      ).toBe("/hybird/pay-way?orderNumbers=O202606260001&dvyType=1&isPurePoints=0&orderType=0&ordermold=0");
+    } finally {
+      process.env.NEXT_PUBLIC_H5_BASE_PATH = previousBasePath;
+    }
+  });
+
   it("keeps the payment button local with a started-payment prompt", () => {
     expect(paymentStartedMessage).toBe("已发起支付");
   });

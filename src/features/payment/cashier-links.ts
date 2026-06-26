@@ -1,3 +1,5 @@
+import { buildClientHref } from "@/lib/navigation";
+
 export function createCashierHrefFromSubmitResult({
   dvyType = "1",
   isPurePoints = "0",
@@ -19,5 +21,5 @@ export function createCashierHrefFromSubmitResult({
     ordermold
   });
 
-  return `/pay-way?${query.toString()}`;
+  return buildClientHref(`/pay-way?${query.toString()}`);
 }
