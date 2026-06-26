@@ -2,11 +2,14 @@ export type PromotionProductsFilter = "none" | "category" | "commission" | "prop
 
 export type PromotionProductItem = {
   id: string;
+  href?: string;
+  imageUrl?: string;
   title: string;
   sales: number;
   userPrice: number;
   estimatedCommission: number;
   commissionRate: string;
+  isFavorite?: boolean;
 };
 
 export const promotionProductFilters = {

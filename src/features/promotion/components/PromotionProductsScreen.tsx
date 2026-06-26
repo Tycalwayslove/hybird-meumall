@@ -1,21 +1,45 @@
 "use client";
 
-import { useMemo } from "react";
+/* eslint-disable @next/next/no-img-element */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 
-import { DropdownFilterBar, ProductImagePlaceholder, StandardNavPage, useDropdownFilterBarState } from "@/design-system";
+import { DropdownFilterBar, EmptyState, ProductImagePlaceholder, StandardNavPage, useDropdownFilterBarState } from "@/design-system";
 import type { DropdownFilterBarItem } from "@/design-system";
 import { createWindowProtocolBridge, type NativeEventMap, type ProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { localAssetUrl } from "@/lib/assets";
+import { createH5Client } from "@/lib/http";
+import { HybridLink } from "@/lib/navigation";
 
-import { promotionProductFilters, promotionProducts, type PromotionProductItem, type PromotionProductsFilter } from "../mock/products";
+import type { PromotionProductsApi } from "../promotion-products-api";
+import { createPromotionProductsApi } from "../promotion-products-api";
+import { promotionProductFilters, type PromotionProductItem, type PromotionProductsFilter } from "../mock/products";
 import styles from "./PromotionProductsScreen.module.css";
 
 type PromotionProductsScreenProps = {
   filter?: PromotionProductsFilter;
+  initialProducts?: PromotionProductItem[];
+  promotionProductsApi?: Pick<PromotionProductsApi, "getProducts">;
 };
 
-export function PromotionProductsScreen({ filter = "none" }: PromotionProductsScreenProps) {
+type PromotionProductsPageState = {
+  products: PromotionProductItem[];
+  page: {
+    current: number;
+    size: number;
+    total?: number;
+    pages?: number;
+    hasMore: boolean;
+  };
+  status: "idle" | "loading" | "finished" | "error";
+};
+
+const PROMOTION_PRODUCTS_PAGE_SIZE = 10;
+
+export function PromotionProductsScreen({ filter = "none", initialProducts = [], promotionProductsApi }: PromotionProductsScreenProps) {
   const bridge = useMemo(() => createWindowProtocolBridge(), []);
+  const defaultPromotionProductsApi = useMemo(() => createPromotionProductsApi(createH5Client()), []);
+  const api = promotionProductsApi ?? defaultPromotionProductsApi;
   const filterState = useDropdownFilterBarState<PromotionProductsFilter>({
     initialActiveKey: filter === "none" ? "sales" : filter,
     initialExpandedKey: hasDropdownOptions(filter) ? filter : null,
@@ -28,10 +52,108 @@ export function PromotionProductsScreen({ filter = "none" }: PromotionProductsSc
     isDropdownKey: hasDropdownOptions
   });
   const { activeKey: activeFilter, expandedKey: expandedFilter, selectedOptions } = filterState;
-  const products = useMemo(
-    () => getPromotionProducts(activeFilter, selectedOptions),
-    [activeFilter, selectedOptions]
+  const [searchInput, setSearchInput] = useState("");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [pageState, setPageState] = useState<PromotionProductsPageState>(() =>
+    createInitialPromotionProductsPageState(getPromotionProducts(activeFilter, selectedOptions, initialProducts))
   );
+  const loadingRef = useRef(false);
+  const pageStateRef = useRef(pageState);
+
+  useEffect(() => {
+    pageStateRef.current = pageState;
+  }, [pageState]);
+
+  const loadProducts = useCallback(
+    async ({ append }: { append: boolean }) => {
+      if (loadingRef.current) {
+        return;
+      }
+
+      loadingRef.current = true;
+      setPageState((currentState) => ({
+        ...currentState,
+        status: "loading"
+      }));
+
+      try {
+        const currentPage = append ? pageStateRef.current.page.current + 1 : 1;
+        const result = await api.getProducts({
+          current: currentPage,
+          prodName: searchKeyword || undefined,
+          size: PROMOTION_PRODUCTS_PAGE_SIZE,
+          sort: mapPromotionProductsSort(activeFilter, selectedOptions)
+        });
+
+        if (!result.success) {
+          setPageState((currentState) => ({
+            ...currentState,
+            status: append ? "error" : "idle"
+          }));
+          return;
+        }
+
+        setPageState((currentState) => {
+          const products = append ? [...currentState.products, ...result.data.view.products] : result.data.view.products;
+          return {
+            page: result.data.page,
+            products,
+            status: result.data.page.hasMore ? "idle" : "finished"
+          };
+        });
+      } catch {
+        setPageState((currentState) => ({
+          ...currentState,
+          status: append ? "error" : "idle"
+        }));
+      } finally {
+        loadingRef.current = false;
+      }
+    },
+    [activeFilter, api, searchKeyword, selectedOptions]
+  );
+
+  useEffect(() => {
+    let disposed = false;
+
+    async function loadInitialProducts() {
+      try {
+        const result = await api.getProducts({
+          current: 1,
+          prodName: searchKeyword || undefined,
+          size: PROMOTION_PRODUCTS_PAGE_SIZE,
+          sort: mapPromotionProductsSort(activeFilter, selectedOptions)
+        });
+        if (disposed) {
+          return;
+        }
+        if (!result.success) {
+          setPageState(createInitialPromotionProductsPageState([]));
+          return;
+        }
+        setPageState({
+          page: result.data.page,
+          products: result.data.view.products,
+          status: result.data.page.hasMore ? "idle" : "finished"
+        });
+      } catch {
+        if (!disposed) {
+          setPageState(createInitialPromotionProductsPageState([]));
+        }
+      }
+    }
+
+    void loadInitialProducts();
+
+    return () => {
+      disposed = true;
+    };
+  }, [activeFilter, api, searchKeyword, selectedOptions]);
+
+  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSearchKeyword(searchInput.trim());
+  }
 
   return (
     <StandardNavPage title="推广商品" backHref="/promotion" className={styles.screen} contentClassName={styles.content}>
@@ -41,9 +163,9 @@ export function PromotionProductsScreen({ filter = "none" }: PromotionProductsSc
           您是平台的<span>“黄金达人”</span>，带货佣金每单将膨胀<span>50%</span>
         </span>
       </section>
-      <form className={styles.searchBox} role="search">
+      <form className={styles.searchBox} role="search" onSubmit={handleSearchSubmit}>
         <span aria-hidden="true" className={styles.searchIcon} style={{ backgroundImage: `url(${localAssetUrl("common.icon.search")})` }} />
-        <input name="keyword" placeholder="请输入商品名称搜索" type="search" />
+        <input name="keyword" placeholder="请输入商品名称搜索" type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
         <button type="submit">搜索</button>
       </form>
       <DropdownFilterBar
@@ -55,9 +177,11 @@ export function PromotionProductsScreen({ filter = "none" }: PromotionProductsSc
         onRequestClose={filterState.closeDropdown}
       />
       <main key={`${activeFilter}-${Object.values(selectedOptions).join("-")}`} className={styles.list} aria-label="推广商品列表">
-        {products.map((product) => (
+        {pageState.products.length === 0 && pageState.status !== "loading" ? <EmptyState className={styles.emptyState} text="暂无推广商品" /> : null}
+        {pageState.products.map((product) => (
           <PromotionProductCard key={product.id} bridge={bridge} product={product} />
         ))}
+        <PromotionProductsLoadMore state={pageState} onLoadMore={() => loadProducts({ append: true })} />
       </main>
     </StandardNavPage>
   );
@@ -131,8 +255,20 @@ function createFilterItems(filter: PromotionProductsFilter, selectedOptions: Rec
   ];
 }
 
-function getPromotionProducts(filter: PromotionProductsFilter, selectedOptions: Record<string, string>) {
-  const products = promotionProducts.map((product, index) => {
+function createInitialPromotionProductsPageState(products: PromotionProductItem[]): PromotionProductsPageState {
+  return {
+    page: {
+      current: 1,
+      hasMore: false,
+      size: PROMOTION_PRODUCTS_PAGE_SIZE
+    },
+    products,
+    status: "idle"
+  };
+}
+
+function getPromotionProducts(filter: PromotionProductsFilter, selectedOptions: Record<string, string>, sourceProducts: PromotionProductItem[]) {
+  const products = sourceProducts.map((product, index) => {
     const categoryText = selectedOptions.category && filter === "category" ? `${selectedOptions.category} · ` : "";
     const propertyBoost = filter === "property" && selectedOptions.property !== "全部商品" ? `【${selectedOptions.property}】` : "";
 
@@ -140,7 +276,7 @@ function getPromotionProducts(filter: PromotionProductsFilter, selectedOptions: 
       ...product,
       id: `${product.id}-${filter}-${selectedOptions.category}-${selectedOptions.commission}-${selectedOptions.property}-${selectedOptions.price}`,
       title: `${categoryText}${propertyBoost}${product.title}`,
-      sales: product.sales + (filter === "sales" ? (promotionProducts.length - index) * 18 : 0),
+      sales: product.sales + (filter === "sales" ? (sourceProducts.length - index) * 18 : 0),
       estimatedCommission: product.estimatedCommission + (filter === "commission" ? index * 4 : 0),
       userPrice: product.userPrice + (filter === "price" ? index * 12 : 0)
     };
@@ -165,11 +301,30 @@ function getPromotionProducts(filter: PromotionProductsFilter, selectedOptions: 
   return products;
 }
 
+export function mapPromotionProductsSort(filter: PromotionProductsFilter, selectedOptions: Record<string, string>) {
+  if (filter === "price") {
+    return selectedOptions.price === "price_desc" ? 2 : 3;
+  }
+  if (filter === "commission") {
+    if (selectedOptions.commission === "commission_amount_asc") {
+      return 5;
+    }
+    if (selectedOptions.commission === "commission_rate_desc") {
+      return 6;
+    }
+    if (selectedOptions.commission === "commission_rate_asc") {
+      return 7;
+    }
+    return 4;
+  }
+  return 1;
+}
+
 type PromotionShareBridge = Pick<ProtocolBridge, "emit" | "isAvailable">;
 
 export function buildPromotionSharePayload(product: PromotionProductItem): NativeEventMap["share"] {
   return {
-    productId: "1001",
+    productId: product.id,
     title: product.title,
     source: "promotion_products"
   };
@@ -185,11 +340,17 @@ export function sharePromotionProduct(product: PromotionProductItem, bridge: Pro
 }
 
 function PromotionProductCard({ bridge, product }: { bridge: PromotionShareBridge; product: PromotionProductItem }) {
+  const href = product.href ?? `/product/${product.id}`;
+
   return (
     <article className={styles.card}>
-      <ProductImagePlaceholder decorative className={styles.productImage} />
+      <HybridLink href={href} className={styles.productImageLink} title="商品详情">
+        {product.imageUrl ? <img className={styles.productImageReal} src={product.imageUrl} alt={product.title} /> : <ProductImagePlaceholder decorative className={styles.productImage} />}
+      </HybridLink>
       <div className={styles.cardInfo}>
-        <h2>{product.title}</h2>
+        <HybridLink href={href} className={styles.titleLink} title="商品详情">
+          <h2>{product.title}</h2>
+        </HybridLink>
         <p className={styles.sales}>销量：{product.sales}</p>
         <div className={styles.pricePanel}>
           <p>
@@ -208,10 +369,34 @@ function PromotionProductCard({ bridge, product }: { bridge: PromotionShareBridg
           </button>
           <button type="button">
             <span aria-hidden="true" className={styles.actionIcon} style={{ backgroundImage: `url(${localAssetUrl("promotion.icon.collect")})` }} />
-            收藏
+            {product.isFavorite ? "已收藏" : "收藏"}
           </button>
         </div>
       </div>
     </article>
   );
+}
+
+function PromotionProductsLoadMore({ onLoadMore, state }: { onLoadMore: () => void; state: PromotionProductsPageState }) {
+  if (state.products.length === 0 && state.status !== "loading") {
+    return null;
+  }
+  if (state.status === "loading") {
+    return <div className={styles.loadMore}>加载中...</div>;
+  }
+  if (state.status === "error" && state.page.hasMore) {
+    return (
+      <button className={styles.loadMoreButton} type="button" onClick={onLoadMore}>
+        继续加载
+      </button>
+    );
+  }
+  if (state.page.hasMore) {
+    return (
+      <button className={styles.loadMoreButton} type="button" onClick={onLoadMore}>
+        加载更多
+      </button>
+    );
+  }
+  return <div className={styles.loadMore}>没有更多了</div>;
 }

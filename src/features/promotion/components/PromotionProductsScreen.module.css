@@ -118,6 +118,20 @@
   border-radius: 6px;
 }
 
+.productImageLink {
+  display: block;
+  width: 88px;
+  height: 88px;
+}
+
+.productImageReal {
+  display: block;
+  width: 88px;
+  height: 88px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
 .cardInfo {
   min-width: 0;
 }
@@ -132,6 +146,11 @@
   line-height: 18px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.titleLink {
+  color: inherit;
+  text-decoration: none;
 }
 
 .sales {
@@ -220,4 +239,26 @@
 .actions button:last-child {
   border-color: rgb(var(--mm-color-brand-hover));
   background: rgb(var(--mm-color-brand-hover));
+}
+
+.loadMore,
+.loadMoreButton {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(var(--mm-color-fill-white));
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.loadMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyState {
+  min-height: 240px;
+  padding: 24px 16px 28px;
 }

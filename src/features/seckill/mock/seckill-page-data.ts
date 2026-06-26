@@ -1,5 +1,7 @@
 export type SeckillProduct = {
   id: string;
+  href?: string;
+  imageUrl?: string;
   title: string;
   price: number;
   originalPrice: number;

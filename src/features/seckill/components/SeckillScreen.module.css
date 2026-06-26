@@ -42,6 +42,19 @@
   height: 128px;
 }
 
+.visualLink {
+  display: block;
+  width: 128px;
+  height: 128px;
+}
+
+.visualImage {
+  display: block;
+  width: 128px;
+  height: 128px;
+  object-fit: cover;
+}
+
 .info {
   min-width: 0;
   padding: 8px 8px 8px 8px;
@@ -57,6 +70,11 @@
   line-height: 18px;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.titleLink {
+  color: inherit;
+  text-decoration: none;
 }
 
 .meta {
@@ -124,7 +142,7 @@
   background: repeating-linear-gradient(110deg, #ff2d50 0 7px, #ff6b85 7px 13px);
 }
 
-.actionPanel button {
+.seckillButton {
   display: flex;
   height: 40px;
   flex-direction: column;
@@ -133,16 +151,39 @@
   border: 0;
   background: linear-gradient(135deg, #ffdd5c 0 23%, #ff2d50 24% 100%);
   color: rgb(var(--mm-color-text-inverse));
+  text-decoration: none;
 }
 
-.actionPanel button strong {
+.seckillButton strong {
   font-size: 19px;
   font-weight: 900;
   line-height: 20px;
 }
 
-.actionPanel button span {
+.seckillButton span {
   font-size: 10px;
   font-weight: 600;
   line-height: 13px;
+}
+
+.loadMore,
+.loadMoreButton {
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: rgb(var(--mm-color-fill-white));
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.loadMore {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyState {
+  min-height: 240px;
+  padding: 24px 16px 28px;
 }
