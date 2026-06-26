@@ -3,7 +3,7 @@ import type { ApiError } from "@/lib/api/types";
 import type { ClientRequestContext } from "@/lib/http/client-context";
 import type { BackendApiResult, BackendRequestOptions } from "@/server/http/backend-client";
 import { getJavaResponseCodeMeta, mapJavaBusinessCodeToApiErrorCode } from "@/server/http/java-response-codes";
-import type { HomeExperienceData, HomeProductCard, HomeQuickCategory } from "../home-page-data";
+import { createEmptyHomeExperienceData, type HomeExperienceData, type HomeProductCard, type HomeQuickCategory } from "../home-page-data";
 
 type HomeBackendClient = {
   request<T>(options: BackendRequestOptions): Promise<BackendApiResult<T>>;
@@ -21,6 +21,7 @@ export type AppHomeVO = {
   banners?: AppBannerVO[];
   categoryTop8?: CategoryDto[];
   hotCategory?: ProdRankGroupDto | null;
+  navList?: AppHomeNavVO[];
   seckillModule?: AppSeckillModuleVO | null;
   [key: string]: unknown;
 };
@@ -50,6 +51,16 @@ export type ProdRankProdDto = {
   prodName?: string;
   rankNo?: number;
   soldNum?: number;
+  [key: string]: unknown;
+};
+
+export type AppHomeNavVO = {
+  categoryId?: number;
+  icon?: string;
+  keyword?: string;
+  navType?: number;
+  rankType?: number;
+  title?: string;
   [key: string]: unknown;
 };
 
@@ -120,6 +131,7 @@ export type HomeBffModules = {
   banners: AppBannerVO[];
   categoryTop8: CategoryDto[];
   hotCategory: ProdRankGroupDto | null;
+  navList: AppHomeNavVO[];
   seckillModule: AppSeckillModuleVO | null;
 };
 
@@ -186,7 +198,6 @@ export type FetchHomePagedProductsOptions = {
   backendClient: HomeBackendClient;
   clientContext?: ClientRequestContext;
   current?: number;
-  fallbackProducts: HomeProductCard[];
   includeDebugRaw?: boolean;
   javaOssAssetBaseUrl?: string;
   size?: number;
@@ -267,6 +278,7 @@ function createHomeBffModules({ aggregate }: { aggregate: AppHomeVO }): HomeBffM
     banners: aggregate.banners ?? [],
     categoryTop8: aggregate.categoryTop8 ?? [],
     hotCategory: aggregate.hotCategory ?? null,
+    navList: aggregate.navList ?? [],
     seckillModule: aggregate.seckillModule ?? null
   };
 }
@@ -304,7 +316,6 @@ async function fetchHomePagedProductsData({
   backendClient,
   clientContext,
   current = 1,
-  fallbackProducts,
   includeDebugRaw = false,
   javaOssAssetBaseUrl,
   size = 10,
@@ -338,7 +349,6 @@ async function fetchHomePagedProductsData({
   return {
     ok: true,
     data: createHomePagedProductsBffData({
-      fallbackProducts,
       javaOssAssetBaseUrl,
       page,
       pagedProducts: pagedProducts.data,
@@ -350,14 +360,12 @@ async function fetchHomePagedProductsData({
 }
 
 function createHomePagedProductsBffData({
-  fallbackProducts,
   javaOssAssetBaseUrl,
   page,
   pagedProducts,
   raw,
   source
 }: {
-  fallbackProducts: HomeProductCard[];
   javaOssAssetBaseUrl?: string;
   page: { current: number; size: number };
   pagedProducts: IPageAppRecommendProdVO;
@@ -379,7 +387,7 @@ function createHomePagedProductsBffData({
       ...(total === undefined ? {} : { total })
     },
     view: {
-      products: products.length > 0 ? products : fallbackProducts
+      products
     }
   };
 
@@ -414,13 +422,17 @@ export function mapHomeApiToExperienceData({
   javaOssAssetBaseUrl?: string;
 }): HomeExperienceData {
   const assetBaseUrl = javaOssAssetBaseUrl ?? process.env.JAVA_OSS_ASSET_BASE_URL;
-  const banner = mapBanner(aggregate.banners, fallback, assetBaseUrl);
-  const categories = mapCategories(aggregate.categoryTop8, assetBaseUrl);
+  const emptyData = createEmptyHomeExperienceData(fallback);
+  const banner = mapBanner(aggregate.banners, emptyData, assetBaseUrl);
+  const categories = mapCategories({
+    assetBaseUrl,
+    navList: aggregate.navList
+  });
 
   return {
-    ...fallback,
+    ...emptyData,
     banner,
-    categories: categories.length > 0 ? categories : fallback.categories
+    categories
   };
 }
 
@@ -499,15 +511,53 @@ function mapBannerHref(banner: AppBannerVO) {
   return "/promotion";
 }
 
-function mapCategories(categories: CategoryDto[] | undefined, assetBaseUrl?: string): HomeQuickCategory[] {
-  return (categories ?? [])
-    .filter((category) => category.categoryName && category.categoryId !== undefined)
-    .slice(0, 10)
-    .map((category) => ({
-      href: `/search?categoryId=${encodeURIComponent(String(category.categoryId))}`,
-      ...optionalImageUrl("iconUrl", resolveJavaImageUrl(category.icon ?? category.pic, assetBaseUrl)),
-      label: category.categoryName ?? ""
-    }));
+function mapCategories({
+  assetBaseUrl,
+  navList
+}: {
+  assetBaseUrl?: string;
+  navList: AppHomeNavVO[] | undefined;
+}): HomeQuickCategory[] {
+  return (navList ?? [])
+    .map((nav) => mapHomeNavItem(nav, assetBaseUrl))
+    .filter((category): category is HomeQuickCategory => category !== null);
+}
+
+function mapHomeNavItem(nav: AppHomeNavVO, assetBaseUrl?: string): HomeQuickCategory | null {
+  const label = normalizeText(nav.title ?? nav.keyword, "");
+  if (!label) {
+    return null;
+  }
+
+  if (nav.navType === 1) {
+    return {
+      href: "/search/ranking",
+      ...optionalImageUrl("iconUrl", resolveJavaImageUrl(nav.icon, assetBaseUrl)),
+      label
+    };
+  }
+
+  if (nav.navType === 2) {
+    if (nav.categoryId === undefined) {
+      return null;
+    }
+
+    return {
+      href: `/search?categoryId=${encodeURIComponent(String(nav.categoryId))}`,
+      ...optionalImageUrl("iconUrl", resolveJavaImageUrl(nav.icon, assetBaseUrl)),
+      label
+    };
+  }
+
+  if (nav.navType === 3) {
+    return {
+      href: "/category",
+      ...optionalImageUrl("iconUrl", resolveJavaImageUrl(nav.icon, assetBaseUrl)),
+      label
+    };
+  }
+
+  return null;
 }
 
 function mapProducts(products: AppRecommendProdVO[] | undefined, assetBaseUrl?: string): HomeProductCard[] {
@@ -552,6 +602,14 @@ function isAbsoluteAssetUrl(value: string) {
 
 function optionalImageUrl<Key extends string>(key: Key, imageUrl: string | undefined): Partial<Record<Key, string>> {
   return imageUrl ? ({ [key]: imageUrl } as Partial<Record<Key, string>>) : {};
+}
+
+function normalizeText(value: unknown, fallback: string) {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+
+  return String(value).trim() || fallback;
 }
 
 function formatPrice(value: number) {

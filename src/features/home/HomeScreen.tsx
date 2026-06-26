@@ -10,7 +10,7 @@ import { HomeSkeleton } from "./HomeSkeleton";
 import { getHomePreloadImages } from "./HomeModules";
 import { readHomeConfigCache } from "./home-cache";
 import { homeExperienceData } from "./mock/home-page-data";
-import type { HomeExperienceData } from "./home-page-data";
+import { createEmptyHomeExperienceData, type HomeExperienceData } from "./home-page-data";
 import type { HomeConfig, HomeConfigState, HomeEnvironment } from "./types";
 
 const DEFAULT_SKELETON_MIN_MS = 200;
@@ -25,7 +25,7 @@ type ResolveHomeConfigStateOptions = {
 
 type HomeExperienceState = {
   data: HomeExperienceData;
-  source: "default" | "remote";
+  source: "empty" | "error" | "remote";
 };
 
 type ResolveHomeExperienceStateOptions = {
@@ -62,8 +62,8 @@ export async function resolveHomeExperienceState({
     homeApi.getHome().catch(() => undefined),
     homeApi.getRecommendProducts?.({ current: 1, size: 10 }).catch(() => undefined) ?? Promise.resolve(undefined)
   ]);
-  let data = fallbackData;
-  let source: HomeExperienceState["source"] = "default";
+  let data = createEmptyHomeExperienceData(fallbackData);
+  let source: HomeExperienceState["source"] = homeResult?.success === false || homeResult === undefined ? "error" : "empty";
 
   if (homeResult?.success) {
     data = homeResult.data.view;
@@ -138,7 +138,20 @@ export function HomeScreen({ environment = "prod", releaseLabel }: { environment
     return <HomeSkeleton />;
   }
 
+  if (state.experience.source === "error") {
+    return <HomeErrorState />;
+  }
+
   return <HomeExperience data={state.experience.data} releaseLabel={releaseLabel} />;
+}
+
+function HomeErrorState() {
+  return (
+    <main className="min-h-screen bg-fill-page px-6 py-24 text-center text-text-primary">
+      <p className="text-base font-semibold">首页加载失败</p>
+      <p className="mt-2 text-sm text-text-secondary">请稍后重试</p>
+    </main>
+  );
 }
 
 function sleep(ms: number) {

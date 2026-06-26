@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { DropdownFilterBar, ProductImagePlaceholder, StandardNavPage, useDropdownFilterBarState } from "@/design-system";
+import { BackToTopButton, DropdownFilterBar, ProductImagePlaceholder, Skeleton, StandardNavPage, useDropdownFilterBarState } from "@/design-system";
 import { localAssetUrl } from "@/lib/assets";
 import { createH5Client } from "@/lib/http";
-import { buildClientHref } from "@/lib/navigation";
+import { HybridLink } from "@/lib/navigation";
 import type { HomeApi } from "../home-api";
 import { createHomeApi } from "../home-api";
 import type { HomeProductCard } from "../home-page-data";
@@ -32,10 +31,10 @@ const RECOMMEND_PRODUCTS_PAGE_SIZE = 10;
 
 export function HomeRecommendProductsScreen({
   homeApi,
-  initialProducts
+  initialProducts = []
 }: {
   homeApi?: Pick<HomeApi, "getForYouProducts">;
-  initialProducts: HomeProductCard[];
+  initialProducts?: HomeProductCard[];
 }) {
   const defaultHomeApi = useMemo(() => createHomeApi(createH5Client()), []);
   const api = homeApi ?? defaultHomeApi;
@@ -203,11 +202,14 @@ export function HomeRecommendProductsScreen({
         />
       </div>
       <main className={styles.grid} aria-label="相似推荐商品列表">
+        {pageState.products.length === 0 && pageState.status === "loading" ? <RecommendProductsSkeleton /> : null}
         {visibleProducts.map((product) => (
           <RecommendProductCard key={product.id} product={product} />
         ))}
       </main>
       <div ref={loadMoreRef} className={styles.loadMore} data-recommend-load-more="true">
+        {pageState.products.length === 0 ? null : (
+          <>
         {pageState.status === "loading" ? <span>加载中...</span> : null}
         {pageState.status === "idle" && pageState.page.hasMore ? (
           <button className={styles.loadMoreButton} type="button" onClick={loadMoreProducts}>
@@ -220,7 +222,10 @@ export function HomeRecommendProductsScreen({
             继续加载
           </button>
         ) : null}
+          </>
+        )}
       </div>
+      {shouldShowRecommendProductsBackToTop(pageState.page, pageState.products.length) ? <BackToTopButton /> : null}
     </StandardNavPage>
   );
 }
@@ -270,8 +275,33 @@ function createInitialRecommendProductsPageState(products: HomeProductCard[]): R
       size: RECOMMEND_PRODUCTS_PAGE_SIZE
     },
     products,
-    status: "idle"
+    status: products.length > 0 ? "idle" : "loading"
   };
+}
+
+function RecommendProductsSkeleton() {
+  return (
+    <>
+      {Array.from({ length: 6 }, (_, index) => (
+        <article key={index} className={styles.card} data-recommend-products-skeleton="true">
+          <Skeleton className={styles.skeletonVisual} />
+          <div className={styles.body}>
+            <Skeleton className={styles.skeletonTitle} />
+            <Skeleton className={styles.skeletonTitleShort} />
+            <div className={styles.skeletonMetaRow}>
+              <Skeleton className={styles.skeletonMeta} />
+              <Skeleton className={styles.skeletonMeta} />
+            </div>
+            <Skeleton className={styles.skeletonPrice} />
+          </div>
+        </article>
+      ))}
+    </>
+  );
+}
+
+export function shouldShowRecommendProductsBackToTop(page: Pick<RecommendProductsPageInfo, "current" | "size">, productCount: number) {
+  return page.current >= 2 || productCount > page.size;
 }
 
 function mergeProductsById(currentProducts: HomeProductCard[], nextProducts: HomeProductCard[]) {
@@ -290,11 +320,25 @@ function mergeProductsById(currentProducts: HomeProductCard[], nextProducts: Hom
 
 function RecommendProductCard({ product }: { product: HomeProductCard }) {
   return (
-    <Link className={styles.card} href={buildClientHref(product.href)}>
-      <ProductImagePlaceholder decorative className={styles.visual}>
-        {product.imageUrl ? <span aria-hidden="true" className={styles.image} style={{ backgroundImage: `url(${product.imageUrl})` }} /> : null}
-        <span className={styles.badge}>{product.badge}</span>
-      </ProductImagePlaceholder>
+    <HybridLink
+      className={styles.card}
+      data-hybrid-strategy="new-webview"
+      data-recommend-product-link="true"
+      href={product.href}
+      source="recommend-products"
+      strategy="new-webview"
+      title="商品详情"
+    >
+      {product.imageUrl ? (
+        <span aria-hidden="true" className={styles.visual}>
+          <span className={styles.image} style={{ backgroundImage: `url(${product.imageUrl})` }} />
+          <span className={styles.badge}>{product.badge}</span>
+        </span>
+      ) : (
+        <ProductImagePlaceholder decorative className={styles.visual}>
+          <span className={styles.badge}>{product.badge}</span>
+        </ProductImagePlaceholder>
+      )}
       <div className={styles.body}>
         <h3 className={styles.title}>{product.title}</h3>
         <div className={styles.meta}>
@@ -309,7 +353,7 @@ function RecommendProductCard({ product }: { product: HomeProductCard }) {
           <span className={styles.originalPrice}>￥{product.originalPrice}</span>
         </div>
       </div>
-    </Link>
+    </HybridLink>
   );
 }
 

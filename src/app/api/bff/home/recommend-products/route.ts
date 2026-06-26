@@ -1,4 +1,3 @@
-import { homeExperienceData } from "@/features/home/mock/home-page-data";
 import { fetchHomeRecommendProductsData } from "@/features/home/server/home-real-service";
 import { createApiError } from "@/lib/api/errors";
 import { createBffRequestContext } from "@/server/http/bff-context";
@@ -14,7 +13,6 @@ export async function GET(request: Request) {
       backendClient: context.backendClient,
       clientContext: context.clientContext,
       current: Number(url.searchParams.get("current") ?? 1),
-      fallbackProducts: homeExperienceData.products,
       includeDebugRaw: shouldIncludeDebugRaw(request),
       size: Number(url.searchParams.get("size") ?? 10)
     });

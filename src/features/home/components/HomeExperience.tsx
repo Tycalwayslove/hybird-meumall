@@ -4,7 +4,7 @@
 import type { RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { cn } from "@/design-system";
+import { BackToTopButton, cn } from "@/design-system";
 import { localAssetUrl } from "@/lib/assets";
 import { createH5Client } from "@/lib/http";
 import { HybridLink } from "@/lib/navigation";
@@ -96,13 +96,6 @@ export function HomeExperience({
     };
   }, [loadMoreProducts, recommendState.page.hasMore, recommendState.status]);
 
-  function handleBackToTop() {
-    window.scrollTo({
-      behavior: "smooth",
-      top: 0
-    });
-  }
-
   const pageData = useMemo(
     () => ({
       ...data,
@@ -121,11 +114,7 @@ export function HomeExperience({
           <ActivityGrid activities={pageData.activities} />
           <RecommendationSection data={pageData} loadMoreRef={loadMoreRef} onLoadMore={loadMoreProducts} recommendState={recommendState} />
         </div>
-        {shouldShowHomeBackToTop(recommendState) ? (
-          <button className={styles.backToTopButton} type="button" onClick={handleBackToTop}>
-            顶部
-          </button>
-        ) : null}
+        {shouldShowHomeBackToTop(recommendState) ? <BackToTopButton /> : null}
         <HomeDebugDrawer />
       </div>
     </main>
@@ -155,14 +144,35 @@ function HomeHeader({ data }: { data: HomeExperienceData }) {
 }
 
 function HomeBanner({ data }: { data: HomeExperienceData }) {
+  if (!data.banner.imageUrl && !data.banner.assetKey) {
+    return (
+      <div className={styles.bannerSkeleton} data-home-banner-skeleton="true" aria-label="首页 Banner 加载中">
+        <span className={styles.skeletonShine} aria-hidden="true" />
+      </div>
+    );
+  }
+
   return (
     <HybridLink className={styles.bannerLink} href={data.banner.href} strategy="switch-tab" tab="promotion" aria-label={data.banner.alt}>
-      <img className={styles.bannerImage} src={data.banner.imageUrl ?? localAssetUrl(data.banner.assetKey ?? "home.banner.springPlan")} alt={data.banner.alt} />
+      <img className={styles.bannerImage} src={data.banner.imageUrl ?? localAssetUrl(data.banner.assetKey!)} alt={data.banner.alt} />
     </HybridLink>
   );
 }
 
 function CategoryGrid({ data }: { data: HomeExperienceData }) {
+  if (data.categories.length === 0) {
+    return (
+      <nav className={styles.categoryGrid} aria-label="首页分类加载中" data-home-category-skeleton="true">
+        {Array.from({ length: 10 }, (_, index) => (
+          <span className={styles.categorySkeletonItem} key={index} aria-hidden="true">
+            <span className={styles.categorySkeletonIcon} />
+            <span className={styles.categorySkeletonLabel} />
+          </span>
+        ))}
+      </nav>
+    );
+  }
+
   return (
     <nav className={styles.categoryGrid} aria-label="首页分类">
       {data.categories.map((category) => (

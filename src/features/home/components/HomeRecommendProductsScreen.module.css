@@ -101,6 +101,9 @@
 
 .visual {
   position: relative;
+  display: block;
+  overflow: hidden;
+  width: 100%;
   aspect-ratio: 1 / 1;
 }
 
@@ -203,4 +206,37 @@
   font-weight: 600;
   line-height: 18px;
   padding: 7px 18px;
+}
+
+.skeletonVisual {
+  aspect-ratio: 1 / 1;
+  border-radius: 0;
+}
+
+.skeletonTitle {
+  height: 14px;
+}
+
+.skeletonTitleShort {
+  width: 72%;
+  height: 14px;
+  margin-top: 8px;
+}
+
+.skeletonMetaRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.skeletonMeta {
+  width: 44%;
+  height: 12px;
+}
+
+.skeletonPrice {
+  width: 52%;
+  height: 18px;
+  margin-top: 8px;
 }

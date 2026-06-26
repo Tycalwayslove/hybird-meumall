@@ -19,11 +19,51 @@ describe("home real api mapper", () => {
       imageUrl: "https://cdn.example.com/banner.png"
     });
     expect(data.categories[0]).toMatchObject({
+      href: "/search/ranking",
+      label: "喵呜热榜"
+    });
+    expect(data.categories[1]).toMatchObject({
       href: "/search?categoryId=10",
       iconUrl: "https://cdn.example.com/category.png",
       label: "零食饮料"
     });
-    expect(data.products).toBe(homeExperienceData.products);
+    expect(data.categories[2]).toMatchObject({
+      href: "/category",
+      label: "更多分类"
+    });
+    expect(data.products).toEqual([]);
+  });
+
+  test("does not fill missing home modules with local mock business data", () => {
+    const data = mapHomeApiToExperienceData({
+      aggregate: {
+        banners: [],
+        categoryTop8: [],
+        hotCategory: null,
+        navList: [],
+        seckillModule: null
+      },
+      fallback: homeExperienceData
+    });
+
+    expect(data.banner.imageUrl).toBeUndefined();
+    expect(data.banner.href).toBe("");
+    expect(data.categories).toEqual([]);
+    expect(data.activities).toEqual([
+      {
+        backgroundAssetKey: "home.activity.seckillBg",
+        href: "/seckill",
+        subtitle: "让实惠飞一会",
+        title: "限时秒杀"
+      },
+      {
+        backgroundAssetKey: "home.activity.promotionBg",
+        href: "/promotion/products",
+        subtitle: "佣金至高50%!",
+        title: "推广带货"
+      }
+    ]);
+    expect(data.products).toEqual([]);
   });
 
   test("prefixes Java relative image paths with OSS asset base url", () => {
@@ -38,11 +78,19 @@ describe("home real api mapper", () => {
             seq: 1
           }
         ],
-        categoryTop8: [
+        navList: [
+          {
+            icon: "/rank/hot-icon.png",
+            navType: 1,
+            rankType: 1,
+            title: "喵呜热榜"
+          },
           {
             categoryId: 10,
-            categoryName: "零食饮料",
-            icon: "/category/snack.png"
+            icon: "/category/snack.png",
+            keyword: "零食饮料",
+            navType: 2,
+            title: "零食饮料"
           }
         ]
       },
@@ -51,7 +99,47 @@ describe("home real api mapper", () => {
     });
 
     expect(data.banner.imageUrl).toBe("https://awu-mall-file.oss-cn-guangzhou.aliyuncs.com/banner/home.png");
-    expect(data.categories[0]?.iconUrl).toBe("https://awu-mall-file.oss-cn-guangzhou.aliyuncs.com/category/snack.png");
+    expect(data.categories[0]?.iconUrl).toBe("https://awu-mall-file.oss-cn-guangzhou.aliyuncs.com/rank/hot-icon.png");
+    expect(data.categories[1]?.iconUrl).toBe("https://awu-mall-file.oss-cn-guangzhou.aliyuncs.com/category/snack.png");
+  });
+
+  test("uses navList directly without concatenating hotCategory and categoryTop8", () => {
+    const data = mapHomeApiToExperienceData({
+      aggregate: {
+        ...makeAggregatePayload(),
+        categoryTop8: Array.from({ length: 12 }, (_, index) => ({
+          categoryId: index + 1,
+          categoryName: `分类${index + 1}`
+        })),
+        hotCategory: {
+          rankName: "旧热榜",
+          rankType: 1
+        },
+        navList: [
+          {
+            categoryId: 88,
+            keyword: "新类目",
+            navType: 2,
+            title: "新类目"
+          },
+          {
+            navType: 3,
+            title: "更多分类"
+          }
+        ]
+      },
+      fallback: homeExperienceData
+    });
+
+    expect(data.categories).toHaveLength(2);
+    expect(data.categories[0]).toMatchObject({
+      href: "/search?categoryId=88",
+      label: "新类目"
+    });
+    expect(data.categories[1]).toMatchObject({
+      href: "/category",
+      label: "更多分类"
+    });
   });
 });
 
@@ -94,6 +182,10 @@ describe("home BFF service", () => {
       expect(result.data.modules.categoryTop8[0]).toMatchObject({
         categoryId: 10,
         categoryName: "零食饮料"
+      });
+      expect(result.data.modules.navList[0]).toMatchObject({
+        navType: 1,
+        title: "喵呜热榜"
       });
       expect(result.data.modules.seckillModule).toMatchObject({
         products: [
@@ -139,7 +231,7 @@ describe("home BFF service", () => {
       expect(result.data.debugRaw?.homeIndex).toMatchObject({
         data: expect.objectContaining({
           banners: expect.any(Array),
-          hotCategory: expect.any(Object)
+          navList: expect.any(Array)
         }),
         version: "mall4j.v231225"
       });
@@ -158,7 +250,6 @@ describe("home BFF service", () => {
     const result = await fetchHomeForYouProductsData({
       backendClient: { request },
       current: 2,
-      fallbackProducts: homeExperienceData.products,
       size: 5
     });
 
@@ -200,6 +291,35 @@ describe("home BFF service", () => {
     );
   });
 
+  test("does not fall back to mock products when Java for-you products are empty", async () => {
+    const request = vi.fn(async ({ path }: BackendRequestOptions) => {
+      if (path === "/p/app/home/forYouProds?current=1&size=10") {
+        return makeBackendSuccess({
+          data: {
+            current: 1,
+            pages: 0,
+            records: [],
+            size: 10,
+            total: 0
+          }
+        });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    }) as unknown as <T>(options: BackendRequestOptions) => Promise<BackendApiResult<T>>;
+
+    const result = await fetchHomeForYouProductsData({
+      backendClient: { request },
+      current: 1,
+      size: 10
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view.products).toEqual([]);
+      expect(result.data.modules.forYouProducts).toEqual([]);
+    }
+  });
+
   test("requests Java home recommended products for the home first-screen product grid", async () => {
     const request = vi.fn(async ({ path }: BackendRequestOptions) => {
       if (path === "/p/app/home/recommendProds?current=1&size=10") {
@@ -211,7 +331,6 @@ describe("home BFF service", () => {
     const result = await fetchHomeRecommendProductsData({
       backendClient: { request },
       current: 1,
-      fallbackProducts: homeExperienceData.products,
       size: 10
     });
 
@@ -298,7 +417,7 @@ describe("home BFF service", () => {
 });
 
 describe("home experience state", () => {
-  test("falls back to local home data when BFF request fails", async () => {
+  test("does not fall back to local home data when BFF request fails", async () => {
     const state = await resolveHomeExperienceState({
       fallbackData: homeExperienceData,
       homeApi: {
@@ -312,8 +431,11 @@ describe("home experience state", () => {
       }
     });
 
-    expect(state.source).toBe("default");
-    expect(state.data).toBe(homeExperienceData);
+    expect(state.source).toBe("error");
+    expect(state.data.products).toEqual([]);
+    expect(state.data.categories).toEqual([]);
+    expect(state.data.activities.map((activity) => activity.title)).toEqual(["限时秒杀", "推广带货"]);
+    expect(state.data.banner.imageUrl).toBeUndefined();
   });
 
   test("uses mapped view data from the home BFF response", async () => {
@@ -336,6 +458,7 @@ describe("home experience state", () => {
                 banners: [{ imgUrl: "https://cdn.example.com/raw-banner.png" }],
                 categoryTop8: [],
                 hotCategory: null,
+                navList: [],
                 seckillModule: null
               },
               view: remoteView
@@ -392,6 +515,7 @@ describe("home experience state", () => {
                 banners: [],
                 categoryTop8: [],
                 hotCategory: null,
+                navList: [],
                 seckillModule: null
               },
               view: remoteView
@@ -439,6 +563,26 @@ function makeAggregatePayload() {
         }
       ]
     },
+    navList: [
+      {
+        icon: "rank/hot-icon.png",
+        navType: 1,
+        rankType: 1,
+        title: "喵呜热榜"
+      },
+      {
+        categoryId: 10,
+        icon: "https://cdn.example.com/category.png",
+        keyword: "零食饮料",
+        navType: 2,
+        title: "零食饮料"
+      },
+      {
+        icon: "category/more.png",
+        navType: 3,
+        title: "更多分类"
+      }
+    ],
     seckillModule: {
       products: [
         {

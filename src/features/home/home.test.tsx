@@ -8,6 +8,7 @@ import { getVisibleHomeModules, HomeModules } from "./HomeModules";
 import type { HomeApi } from "./home-api";
 import { resolveHomeConfigState } from "./HomeScreen";
 import { getHomeConfigCacheKey, readHomeConfigCache, writeHomeConfigCache } from "./home-cache";
+import { createEmptyHomeExperienceData } from "./home-page-data";
 import { homeExperienceData } from "./mock/home-page-data";
 import type { ActivitySectionModule, CategoryGridModule, HomeConfig } from "./types";
 
@@ -98,6 +99,15 @@ describe("home module rendering", () => {
     expect(html).toContain('href="/home/recommend-products"');
     expect(html).toContain("为您推荐");
     expect(html).toContain("更多");
+  });
+
+  test("renders banner and category skeletons when home business data is empty", () => {
+    const html = renderToStaticMarkup(<HomeExperience data={createEmptyHomeExperienceData(homeExperienceData)} />);
+
+    expect(html).toContain('data-home-banner-skeleton="true"');
+    expect(html).toContain('data-home-category-skeleton="true"');
+    expect(html).not.toContain("美妆个护");
+    expect(html).not.toContain("食品生鲜");
   });
 
   test("loads the next home recommendation page and appends products", async () => {

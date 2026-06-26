@@ -1,4 +1,4 @@
-import type { HomeExperienceData } from "../home-page-data";
+import { fixedHomeActivityCards, type HomeExperienceData } from "../home-page-data";
 
 export const homeExperienceData = {
   logoAssetKey: "home.logo",
@@ -20,20 +20,7 @@ export const homeExperienceData = {
     { label: "家电3C", href: "/category" },
     { label: "更多分类", href: "/category" }
   ],
-  activities: [
-    {
-      title: "限时秒杀",
-      subtitle: "让实惠飞一会",
-      href: "/seckill",
-      backgroundAssetKey: "home.activity.seckillBg"
-    },
-    {
-      title: "推广带货",
-      subtitle: "佣金至高50%!",
-      href: "/promotion/products",
-      backgroundAssetKey: "home.activity.promotionBg"
-    }
-  ],
+  activities: [...fixedHomeActivityCards],
   recommendationIconAssetKey: "home.recommend.icon",
   moreAssetKey: "home.more",
   talentPriceTagAssetKey: "home.talentPriceTag",

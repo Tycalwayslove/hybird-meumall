@@ -43,3 +43,36 @@ export type HomeExperienceData = {
   seckillLabelAssetKey: LocalAssetKey;
   products: HomeProductCard[];
 };
+
+export const fixedHomeActivityCards = [
+  {
+    title: "限时秒杀",
+    subtitle: "让实惠飞一会",
+    href: "/seckill",
+    backgroundAssetKey: "home.activity.seckillBg"
+  },
+  {
+    title: "推广带货",
+    subtitle: "佣金至高50%!",
+    href: "/promotion/products",
+    backgroundAssetKey: "home.activity.promotionBg"
+  }
+] as const satisfies readonly HomeActivityCard[];
+
+export function createEmptyHomeExperienceData(fallbackData: HomeExperienceData): HomeExperienceData {
+  return {
+    activities: [...fixedHomeActivityCards],
+    banner: {
+      alt: "",
+      href: ""
+    },
+    categories: [],
+    logoAssetKey: fallbackData.logoAssetKey,
+    messageAssetKey: fallbackData.messageAssetKey,
+    moreAssetKey: fallbackData.moreAssetKey,
+    products: [],
+    recommendationIconAssetKey: fallbackData.recommendationIconAssetKey,
+    seckillLabelAssetKey: fallbackData.seckillLabelAssetKey,
+    talentPriceTagAssetKey: fallbackData.talentPriceTagAssetKey
+  };
+}
