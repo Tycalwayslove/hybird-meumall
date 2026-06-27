@@ -9,7 +9,21 @@ import {
   talentBadgeAssetKeyByLevel
 } from "../theme/talent-theme";
 
-export function PromotionAvatar({ className = "" }: { className?: string }) {
+export function PromotionAvatar({ className = "", src }: { className?: string; src?: string | null }) {
+  if (src) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- avatar URL is returned by Java/CMS and may be a remote CDN URL.
+      <img
+        alt=""
+        className={`block rounded-full bg-fill-white object-cover ${className}`}
+        draggable={false}
+        height={112}
+        src={src}
+        width={112}
+      />
+    );
+  }
+
   return (
     <div className={`relative overflow-hidden rounded-full bg-fill-white ${className}`}>
       <div className="absolute inset-[6px] rounded-full" style={{ background: promotionAvatarTone.face }} />

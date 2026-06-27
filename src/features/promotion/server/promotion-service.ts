@@ -42,7 +42,7 @@ export function getPromotionRankCenter() {
   return rankCenter;
 }
 
-export function getPromotionRanking(type: RankingType, period?: string | null) {
+export function getPromotionRanking(type: Extract<RankingType, "sales" | "amount">, period?: string | null) {
   return buildRanking(type, normalizeRankingPeriod(period));
 }
 

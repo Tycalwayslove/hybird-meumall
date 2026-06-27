@@ -4,7 +4,7 @@ export type TalentLevel = "v1" | "v2" | "v3" | "v4" | "v5";
 
 export type TalentThemeName = "peach" | "blue" | "gold" | "purple" | "blackPurple";
 
-export type RankingType = "sales" | "amount";
+export type RankingType = "sales" | "amount" | "incentive";
 
 export type RankingPeriod = "day" | "week" | "month";
 
@@ -163,6 +163,7 @@ export type PromotionRewardRecordsData = {
 };
 
 export type RankCenterCard = {
+  disabled?: boolean;
   id: string;
   title: string;
   subtitle: string;

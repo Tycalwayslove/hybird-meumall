@@ -1,19 +1,28 @@
+import { headers } from "next/headers";
 import { PromotionHomeScreen } from "@/features/promotion/components/PromotionHomeScreen";
-import { getPromotionHome } from "@/features/promotion/server/promotion-service";
+import { PromotionErrorState } from "@/features/promotion/components/PromotionStates";
+import { fetchPromotionHomeOverviewData } from "@/features/promotion/server/promotion-home-real-service";
+import { createBffRequestContext } from "@/server/http/bff-context";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-type PromotionPageProps = {
-  searchParams?: Promise<{
-    level?: string;
-  }>;
-};
+export default async function PromotionPage() {
+  const requestHeaders = await headers();
+  const request = new Request("http://h5.local/api/bff/promotion/home", {
+    headers: new Headers(requestHeaders)
+  });
+  const context = createBffRequestContext(request);
+  const result = await fetchPromotionHomeOverviewData({
+    authRequired: true,
+    authToken: context.getAuthToken("java"),
+    backendClient: context.backendClient,
+    clientContext: context.clientContext
+  });
 
-export default async function PromotionPage({ searchParams }: PromotionPageProps) {
-  const params = await searchParams;
-  // const data = getPromotionHome("v1");
-  const data = getPromotionHome(params?.level);
+  if (!result.ok) {
+    return <PromotionErrorState description={result.error.message} />;
+  }
 
-  return <PromotionHomeScreen data={data} />;
+  return <PromotionHomeScreen data={result.data} />;
 }

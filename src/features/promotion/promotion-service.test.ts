@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { PromotionActivitiesScreen } from "./components/PromotionActivitiesScreen";
 import { PromotionActivityDetailScreen } from "./components/PromotionActivityDetailScreen";
+import { PromotionRankCenterScreen } from "./components/PromotionRankCenterScreen";
 import { PromotionRankingScreen } from "./components/PromotionRankingScreen";
 import { PromotionRewardRecordsScreen } from "./components/PromotionRewardRecordsScreen";
 import {
@@ -12,11 +13,19 @@ import {
   getPromotionActivityDetail,
   getPromotionBenefits,
   getPromotionHome,
+  getPromotionRankCenter,
   getPromotionRanking,
   getPromotionRewardRecords,
   normalizeRewardRecordTab,
   normalizeTalentLevel
 } from "./server/promotion-service";
+import { fetchPromotionHomeOverviewData } from "./server/promotion-home-real-service";
+import { fetchPromotionBenefitsData } from "./server/promotion-level-real-service";
+import {
+  createPromotionIncentiveRankingEmptyData,
+  fetchPromotionRankingData
+} from "./server/promotion-ranking-real-service";
+import type { BackendApiResult, BackendRequestOptions } from "@/server/http/backend-client";
 
 const versionBasePath = "/h5-v/v1.0.9";
 
@@ -93,6 +102,32 @@ describe("promotion service", () => {
     expect(amountHtml).toContain("¥9621374");
     expect(amountHtml).toContain("您未上榜");
     expectNoBareLocalAssetUrls(amountHtml);
+  });
+
+  it("renders incentive ranking as an empty state without current user bar", () => {
+    const html = withVersionBasePath(() =>
+      renderToStaticMarkup(createElement(PromotionRankingScreen, { data: createPromotionIncentiveRankingEmptyData("week") }))
+    );
+
+    expect(html).toContain("达人激励榜");
+    expect(html).toContain("达人激励榜暂未开放");
+    expect(html).toContain("<button");
+    expect(html).not.toContain("您未上榜");
+    expect(html).not.toContain("SoulKeeper");
+    expectNoBareLocalAssetUrls(html);
+  });
+
+  it("renders unavailable rank center cards disabled", () => {
+    const html = renderToStaticMarkup(createElement(PromotionRankCenterScreen, { data: getPromotionRankCenter() }));
+
+    expect(html).toContain('href="/promotion/ranking/sales"');
+    expect(html).toContain('href="/promotion/ranking/amount"');
+    expect(html).not.toContain('href="/promotion/ranking/incentive"');
+    expect(html).toContain("达人激励榜");
+    expect(html).toContain("战队销量榜");
+    expect(html).toContain("战队销售额榜");
+    expect(html.match(/aria-disabled="true"/g)?.length).toBe(3);
+    expect(html.match(/暂未开放/g)?.length).toBe(3);
   });
 
   it("returns activity center navigation targets", () => {
@@ -220,3 +255,275 @@ describe("promotion service", () => {
     ]);
   });
 });
+
+describe("promotion home real api service", () => {
+  it("requests Java promotion overview and maps it to the existing home view model", async () => {
+    const request = vi.fn(async ({ path }: BackendRequestOptions) => {
+      if (path === "/p/distribution/home/overview") {
+        return makeBackendSuccess({
+          code: "00000",
+          data: {
+            userInfo: {
+              nickName: "真实达人",
+              pic: "/avatar/me.png"
+            },
+            level: {
+              levelInfo: {
+                currentLevelName: "星钻达人",
+                currentLevelValue: 4,
+                gapOrderCount: 20,
+                nextLevelName: "至尊达人",
+                nextUpgradeOrderCount: 100
+              }
+            },
+            mySales: {
+              totalCommission: 128.5,
+              totalOrderAmount: 6789,
+              totalOrderCount: 12
+            },
+            ongoingIncentiveCount: 2,
+            salesStats: {
+              todayPromotionIncome: 8.5,
+              todayPromotionOrderCount: 3,
+              todayShopVisitCount: 9,
+              totalPromotionOrderCount: 88,
+              totalShopFavoriteCount: 6,
+              totalShopVisitCount: 999
+            }
+          },
+          msg: "ok",
+          success: true
+        });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    }) as unknown as <T>(options: BackendRequestOptions) => Promise<BackendApiResult<T>>;
+
+    const result = await fetchPromotionHomeOverviewData({
+      backendClient: { request },
+      javaOssAssetBaseUrl: "https://oss.example.com/"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.profile).toMatchObject({
+        avatar: "https://oss.example.com/avatar/me.png",
+        level: "v4",
+        levelName: "星钻达人",
+        nickname: "真实达人"
+      });
+      expect(result.data.profile.progress).toMatchObject({
+        current: 80,
+        target: 100
+      });
+      expect(result.data.summary).toEqual({
+        currency: "CNY",
+        totalCommission: 128.5,
+        totalSalesAmount: 6789
+      });
+      expect(result.data.quickEntries[0]?.subtitle).toBe("2个进行中");
+      expect(result.data.metrics).toEqual([
+        { id: "todayVisits", label: "今日店铺访问", value: "+9" },
+        { id: "todayOrders", label: "今日带货订单", value: "+3" },
+        { id: "todayIncome", label: "今日带货收益", value: "¥8.50" },
+        { id: "totalVisits", label: "累计店铺访问", value: "999" },
+        { id: "totalOrders", label: "累计带货订单", value: "88" },
+        { id: "totalFavorites", label: "累计店铺收藏", value: "6" }
+      ]);
+    }
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backend: "java",
+        method: "GET",
+        path: "/p/distribution/home/overview",
+        route: "/promotion"
+      })
+    );
+  });
+});
+
+describe("promotion benefits real api service", () => {
+  it("requests my level and level list, then maps switchable benefit levels", async () => {
+    const request = vi.fn(async ({ path }: BackendRequestOptions) => {
+      if (path === "/p/daren/level/myLevel") {
+        return makeBackendSuccess({
+          data: {
+            commissionMultiplier: 1.5,
+            currentLevelName: "黄金达人",
+            currentLevelValue: 3,
+            gapOrderCount: 4,
+            nextLevelName: "星钻达人",
+            nextUpgradeOrderCount: 20
+          },
+          success: true
+        });
+      }
+      if (path === "/p/daren/level/list") {
+        return makeBackendSuccess({
+          data: [
+            {
+              levelName: "新锐达人",
+              levelValue: 1,
+              displayBenefits: [{ benefitName: "基础佣金", benefitDesc: "V1权益", displayBenefitId: 1 }]
+            },
+            {
+              commissionMultiplier: 1.5,
+              darenBenefitItems: ["专属培训"],
+              levelName: "黄金达人",
+              levelValue: 3,
+              upgradeOrderCount: 20
+            },
+            {
+              benefitText: "头部达人权益",
+              levelName: "至尊达人",
+              levelValue: 5,
+              upgradeGmv: 10000
+            }
+          ],
+          success: true
+        });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    }) as unknown as <T>(options: BackendRequestOptions) => Promise<BackendApiResult<T>>;
+
+    const result = await fetchPromotionBenefitsData({
+      backendClient: { request }
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.activeLevel).toBe("v3");
+      expect(result.data.levels.map((level) => level.profile.level)).toEqual(["v1", "v3", "v5"]);
+      expect(result.data.levels[1]?.profile.progress).toMatchObject({
+        current: 16,
+        target: 20
+      });
+      expect(result.data.levels[1]?.commission.label).toBe("基础 * 150%");
+      expect(result.data.levels[1]?.memberBenefits[0]?.title).toBe("专属培训");
+    }
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ path: "/p/daren/level/myLevel", route: "/promotion/benefits" }));
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ path: "/p/daren/level/list", route: "/promotion/benefits" }));
+  });
+});
+
+describe("promotion ranking real api service", () => {
+  it("requests Java ranking list and maps my rank from the same response", async () => {
+    const request = vi.fn(async ({ path }: BackendRequestOptions) => {
+      if (path === "/p/distribution/rank/list?period=2&rankType=1&statPeriod=2026-W26") {
+        return makeBackendSuccess({
+          data: {
+            endTime: "2026-06-28 23:59:59",
+            myRank: {
+              nickName: "真实达人",
+              onRank: true,
+              pic: "/me.png",
+              rankNo: 8,
+              score: 7
+            },
+            period: 2,
+            rankList: [
+              { nickName: "第一达人", pic: "/a.png", rankNo: 1, score: 19 },
+              { nickName: "第二达人", rankNo: 2, score: 12 },
+              { nickName: "第三达人", rankNo: 3, score: 10 },
+              { nickName: "第四达人", rankNo: 4, score: 8 }
+            ],
+            rankType: 1,
+            startTime: "2026-06-22 00:00:00",
+            statPeriod: "2026-W26"
+          },
+          success: true
+        });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    }) as unknown as <T>(options: BackendRequestOptions) => Promise<BackendApiResult<T>>;
+
+    const result = await fetchPromotionRankingData({
+      backendClient: { request },
+      period: "week",
+      rankingType: "sales",
+      statPeriod: "2026-W26"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.activePeriod).toBe("week");
+      expect(result.data.periodText).toBe("榜单周期：2026-06-22 00:00:00 - 2026-06-28 23:59:59");
+      expect(result.data.rows[0]).toMatchObject({
+        avatar: "/a.png",
+        name: "第一达人",
+        rank: 1,
+        unit: "单",
+        value: "19"
+      });
+      expect(result.data.rows[3]).toMatchObject({
+        name: "第四达人",
+        rank: 4,
+        value: "8"
+      });
+      expect(result.data.currentUser).toMatchObject({
+        name: "真实达人",
+        onList: true,
+        rank: 8,
+        unit: "单",
+        value: "7"
+      });
+    }
+
+    expect(request).toHaveBeenCalledWith(expect.objectContaining({ path: "/p/distribution/rank/list?period=2&rankType=1&statPeriod=2026-W26" }));
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps amount ranking as empty real data without mock rows", async () => {
+    const request = vi.fn(async ({ path }: BackendRequestOptions) => {
+      if (path === "/p/distribution/rank/list?period=1&rankType=2") {
+        return makeBackendSuccess({
+          data: {
+            myRank: {
+              onRank: false,
+              score: 0
+            },
+            period: 1,
+            rankList: [],
+            rankType: 2
+          },
+          success: true
+        });
+      }
+      throw new Error(`Unexpected path ${path}`);
+    }) as unknown as <T>(options: BackendRequestOptions) => Promise<BackendApiResult<T>>;
+
+    const result = await fetchPromotionRankingData({
+      backendClient: { request },
+      period: "bad-period",
+      rankingType: "amount"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.activePeriod).toBe("day");
+      expect(result.data.rows).toEqual([]);
+      expect(result.data.currentUser).toMatchObject({
+        name: "喵呜达人",
+        onList: false,
+        rank: 0,
+        unit: "元",
+        value: "--"
+      });
+    }
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+});
+
+function makeBackendSuccess<T>(data: T): BackendApiResult<T> {
+  return {
+    data,
+    meta: {
+      appEnv: "test",
+      backend: "java",
+      h5Version: "test",
+      requestId: "req-promotion-home",
+      route: "/promotion"
+    },
+    ok: true
+  };
+}

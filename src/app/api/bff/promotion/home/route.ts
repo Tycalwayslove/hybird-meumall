@@ -1,7 +1,56 @@
-import { bffJson, getPromotionHome, requestIdFrom } from "@/features/promotion/server/promotion-service";
+import { fetchPromotionHomeOverviewData } from "@/features/promotion/server/promotion-home-real-service";
+import { createApiError } from "@/lib/api/errors";
+import { createBffRequestContext } from "@/server/http/bff-context";
+import { toBffResponse } from "@/server/http/bff-response";
 
-export function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
+export async function GET(request: Request) {
+  try {
+    const context = createBffRequestContext(request);
+    const result = await fetchPromotionHomeOverviewData({
+      authRequired: true,
+      authToken: context.getAuthToken("java"),
+      backendClient: context.backendClient,
+      clientContext: context.clientContext,
+      includeDebugRaw: shouldIncludeDebugRaw(request)
+    });
 
-  return bffJson(getPromotionHome(searchParams.get("level")), requestIdFrom(request, "promotion-home"));
+    return toBffResponse(result);
+  } catch (error) {
+    const requestId = request.headers.get("x-request-id") ?? undefined;
+    console.error("[h5-bff-route-error]", {
+      message: error instanceof Error ? error.message : "Promotion home BFF request failed.",
+      requestId,
+      route: "/api/bff/promotion/home"
+    });
+
+    return Response.json(
+      {
+        success: false,
+        code: "NETWORK_ERROR",
+        message: error instanceof Error ? error.message : "Promotion home BFF request failed.",
+        requestId,
+        recoverable: true
+      },
+      {
+        status: statusFromError(error)
+      }
+    );
+  }
+}
+
+function shouldIncludeDebugRaw(request: Request) {
+  if (new URL(request.url).searchParams.get("debugRaw") !== "1") {
+    return false;
+  }
+
+  const appEnv = process.env.APP_ENV;
+  return appEnv === "local" || appEnv === "test";
+}
+
+function statusFromError(error: unknown) {
+  const apiError = createApiError("NETWORK_ERROR", {
+    message: error instanceof Error ? error.message : undefined
+  });
+
+  return apiError.recoverable ? 502 : 500;
 }

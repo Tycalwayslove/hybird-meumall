@@ -22,7 +22,7 @@ export function TalentHero({ data }: { data: PromotionHomeData }) {
     >
       <div className="relative flex items-start gap-2">
         <div className="shrink-0">
-          <PromotionAvatar className="size-14" />
+          <PromotionAvatar className="size-14" src={profile.avatar} />
         </div>
         <div className="min-w-0 pt-[2px]">
           <p className={cn("truncate text-[21px] font-black leading-[26px]", isDark ? "text-text-inverse" : "text-text-primary")}>{profile.nickname}</p>
