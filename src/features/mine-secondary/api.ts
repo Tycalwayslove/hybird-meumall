@@ -8,6 +8,18 @@ import type {
   JavaAddress
 } from "./server/address-real-service";
 import type { AddressEntry } from "./mock/address-data";
+import type {
+  OrderDetailView,
+  OrderMutationData,
+  OrderStatus,
+  OrdersPageData,
+  OrderCardView,
+  RefundCardView,
+  RefundDetailView,
+  JavaOrder,
+  JavaPage,
+  JavaRefundOrder
+} from "./server/orders-real-service";
 
 type AddressHttpClient = {
   request<T>(path: string, options?: H5RequestOptions): Promise<H5BffResult<T>>;
@@ -47,3 +59,68 @@ export function createAddressApi(client: AddressHttpClient) {
 }
 
 export type AddressApi = ReturnType<typeof createAddressApi>;
+
+export type GetOrdersInput = {
+  current?: number;
+  keyword?: string;
+  size?: number;
+  status?: OrderStatus;
+};
+
+export type ContactMessageInput = {
+  messageContent: string;
+  orderNumber: string;
+  userMobile: string;
+};
+
+export function createOrdersApi(client: AddressHttpClient) {
+  return {
+    cancelOrder(orderNumber: string) {
+      return client.request<OrderMutationData>("/api/bff/orders/cancel", {
+        body: { orderNumber },
+        method: "PUT"
+      });
+    },
+    deleteOrder(orderNumber: string) {
+      return client.request<OrderMutationData>("/api/bff/orders/delete?" + new URLSearchParams({ orderNumber }).toString(), {
+        method: "DELETE"
+      });
+    },
+    getOrderDetail(orderNumber: string) {
+      return client.request<{ modules: { orderDetail: unknown }; view: OrderDetailView }>("/api/bff/orders/detail?" + new URLSearchParams({ orderNumber }).toString());
+    },
+    getOrders({ current = 1, keyword, size = 10, status = "all" }: GetOrdersInput = {}) {
+      const query = new URLSearchParams({
+        current: String(current),
+        size: String(size),
+        status
+      });
+      if (keyword) {
+        query.set("keyword", keyword);
+      }
+      return client.request<OrdersPageData<{ orderPage: JavaPage<JavaOrder> }> & { view: { orders: OrderCardView[] } }>(`/api/bff/orders?${query.toString()}`);
+    },
+    getRefundDetail(refundSn: string) {
+      return client.request<{ modules: { refundDetail: unknown }; view: RefundDetailView }>("/api/bff/orders/refund-detail?" + new URLSearchParams({ refundSn }).toString());
+    },
+    getRefundOrders({ current = 1, size = 10 }: Pick<GetOrdersInput, "current" | "size"> = {}) {
+      return client.request<OrdersPageData<{ refundPage: JavaPage<JavaRefundOrder> }> & { view: { refunds: RefundCardView[] } }>(
+        `/api/bff/orders/refunds?${new URLSearchParams({ current: String(current), size: String(size) }).toString()}`
+      );
+    },
+    receiptOrder(orderNumber: string) {
+      return client.request<OrderMutationData>("/api/bff/orders/receipt", {
+        body: { orderNumber },
+        method: "PUT"
+      });
+    },
+    submitContactMessage(input: ContactMessageInput) {
+      return client.request<OrderMutationData>("/api/bff/orders/contact-message", {
+        body: input,
+        method: "POST"
+      });
+    }
+  };
+}
+
+export type OrdersApi = ReturnType<typeof createOrdersApi>;

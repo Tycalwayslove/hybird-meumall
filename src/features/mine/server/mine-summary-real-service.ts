@@ -162,7 +162,7 @@ export function createMineSummaryBffData({
       { assetKey: "mine.order.pendingShipment", href: "/orders?status=pending-shipment", label: "待发货" },
       { assetKey: "mine.order.pendingReceipt", href: "/orders?status=pending-receipt", label: "待收货" },
       { assetKey: "mine.order.completed", href: "/orders?status=completed", label: "已完成" },
-      { assetKey: "mine.order.refund", href: "/orders?status=refund", label: "退货退款" }
+      { assetKey: "mine.order.refund", href: "/refunds", label: "退货退款" }
     ],
     ordersHref: "/orders",
     profile: {

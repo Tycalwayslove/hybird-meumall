@@ -25,7 +25,7 @@ export const minePageData = {
     { label: "待发货", href: "/orders?status=pending-shipment", assetKey: "mine.order.pendingShipment" },
     { label: "待收货", href: "/orders?status=pending-receipt", assetKey: "mine.order.pendingReceipt" },
     { label: "已完成", href: "/orders?status=completed", assetKey: "mine.order.completed" },
-    { label: "退货退款", href: "/orders?status=refund", assetKey: "mine.order.refund" }
+    { label: "退货退款", href: "/refunds", assetKey: "mine.order.refund" }
   ],
   banner: {
     assetKey: "mine.banner.springPlan",
