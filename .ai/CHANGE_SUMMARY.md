@@ -2232,3 +2232,47 @@
 ### 后续
 
 - 用 App 注入有效 `mallToken` 做真实环境联调，确认 Java 返回字段、图片、分页和分享 payload。
+
+## 2026-06-27 - 退货退款独立页面修正
+
+### 变更
+
+- 将退货退款从 `/orders?status=refund` 订单 tab 中拆出为独立 `/refunds` 页面。
+- 新增 `/refunds/[refundSn]` 退款详情路由；旧 `/orders/refunds/[refundSn]` 保留兼容重定向。
+- `/orders?status=refund` 服务端重定向到 `/refunds`，避免历史入口进入普通订单页。
+- 我的页真实 mapper 和 mock 入口均改为 `/refunds`。
+- 普通订单页只保留全部、待付款、待发货、待收货、已完成五个状态。
+- 订单详情页“查看物流”从 no-op 改为滚动到详情页物流信息区；独立物流详情页仍后置。
+- 更新 H5 文档、根级页面清单、任务、对接说明、API 契约，并同步飞书知识库。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/mine-secondary-pages.test.tsx src/features/mine-secondary/orders-real-service.test.ts src/features/mine-secondary/orders-api.test.ts` 通过，3 files / 12 tests。
+- `pnpm typecheck` 通过。
+- `git diff --check` 通过。
+- HTTP 冒烟：`/hybird/refunds` 200，`/hybird/refunds/RF20260627001` 200，`/hybird/orders?status=refund` 307 到 `/hybird/refunds`。
+
+### 后续
+
+- 评价、发票、退款申请、退款撤销、平台介入、修改退款金额、填写退货物流和独立物流详情页仍为后置范围。
+
+## 2026-06-27 - 我的收藏和我的足迹真实接口迁移
+
+### 变更
+
+- 新增收藏/足迹真实接口契约、对接说明和工作项。
+- 新增 `collections-real-service`，复刻旧 uni-app 收藏商品、取消收藏、足迹列表和删除足迹接口参数。
+- 新增 `/api/bff/favorites/products`、`/api/bff/favorites/products/cancel`、`/api/bff/footprints`、`/api/bff/footprints/delete`。
+- `/favorites/products` 和 `/footprints` 改为真实 BFF 数据源，移除本地 mock 兜底，保留编辑态选择、全选和确认删除。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/collections-real-service.test.ts src/features/mine-secondary/collections-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- `git diff --check` 通过。
+- HTTP 冒烟：`/hybird/favorites/products` 200，`/hybird/footprints` 200。
+- 飞书知识库已同步：页面清单 revision 38，API/BFF 对接说明 revision 10。
+
+### 后续
+
+- 用 App 注入的真实 `mallToken` 联调收藏/足迹列表和删除动作。

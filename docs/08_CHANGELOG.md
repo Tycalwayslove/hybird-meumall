@@ -26,6 +26,7 @@
 
 ### 新增
 
+- 新增并实施订单列表、退货退款和订单详情迁移方案：`docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md`，新增 `/orders`、`/orders/[orderNumber]`、独立 `/refunds`、`/refunds/[refundSn]` 和相关 BFF，明确退货退款不是订单 tab，普通订单列表请求 `/p/myOrder/myOrder`，退货退款列表请求 `/p/orderRefund/list`。
 - 新增推广排行榜销量榜、销售额榜真实 BFF：`/api/bff/promotion/rankings/sales` 和 `/api/bff/promotion/rankings/amount`，分别请求 Java `/p/distribution/rank/list?rankType=1/2`，我的排名来自同一响应内 `myRank`。
 - 新增达人激励榜 `/promotion/ranking/incentive` 空态页面，本阶段不请求 `rankType=4`。
 - 榜单中心 `/promotion/rank-center` 中达人激励榜、战队销量榜和战队销售额榜置灰为不可点击状态。
@@ -592,3 +593,21 @@
 - `pnpm typecheck` 通过。
 - `pnpm lint` 通过，0 errors，4 warnings；warning 均为既有 promotion 页面 `<img>` 规则提示。
 - 本地 SSR smoke：`/hybird/category` 首屏包含分类骨架，不包含 mock“一级分类/二级分类/三级分类”。
+
+## 2026-06-27 - 我的收藏和我的足迹真实接口迁移
+
+### 变更
+
+- 新增 `/api/bff/favorites/products`，调用 Java `/p/user/collection/prods` 并从 `records[0].products` 映射收藏商品卡。
+- 新增 `/api/bff/favorites/products/cancel`，浏览器端传 `{ prodId }`，BFF 按旧 uni-app 口径向 Java `/p/user/collection/addOrCancel` 发送原始 `prodId` body。
+- 新增 `/api/bff/footprints`，调用 Java `/p/prodBrowseLog/page` 映射浏览足迹商品卡，并保留 `prodBrowseLogId`。
+- 新增 `/api/bff/footprints/delete`，浏览器端传 `{ ids }`，BFF 按旧 uni-app 口径向 Java `/p/prodBrowseLog` 发送足迹 ID 数组 body。
+- `/favorites/products` 和 `/footprints` 移除本地 mock 兜底，首屏展示 loading，空数组展示通用 `EmptyState`，失败展示错误和重试；编辑态保留选择、全选和确认删除。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/collections-real-service.test.ts src/features/mine-secondary/collections-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- `git diff --check` 通过。
+- HTTP 冒烟：`/hybird/favorites/products` 200，`/hybird/footprints` 200。
+- 飞书知识库已同步：页面清单 revision 38，API/BFF 对接说明 revision 10。

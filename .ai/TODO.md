@@ -8,10 +8,12 @@ s
 - [ ] 接入正式线上日志平台后，将 `[h5-bff-backend-call]` 和 `[h5-bff-route-error]` 纳入可按 `requestId` 检索的日志索引。
 - [ ] 确认推广模块活动、榜单、权益、佣金明细和名片等剩余真实后端接口、达人等级规则、活动状态和榜单刷新策略；推广首页概览已接 `/p/distribution/home/overview`。
 - [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`）、`route_changed`、手势返回和 URL 白名单。
-- [ ] 确认 v1.2.0 搜索建议、推广商品分类 ID 来源、收藏接口、秒杀购买资格/活动时间接口和原生入口跳转参数；热门搜索词、热榜和搜索结果商品已分别接 `/search/hotSearch`、`/search/rankTabs`、`/search/rank/{rankType}`、`/p/app/prod/page`。
+- [ ] 确认 v1.2.0 搜索建议、推广商品分类 ID 来源、商品详情收藏状态接口、秒杀购买资格/活动时间接口和原生入口跳转参数；热门搜索词、热榜、搜索结果商品、我的收藏商品和我的足迹已分别接 `/search/hotSearch`、`/search/rankTabs`、`/search/rank/{rankType}`、`/p/app/prod/page`、`/p/user/collection/prods`、`/p/prodBrowseLog/page`。
 - [ ] 用 App 注入的有效 `mallToken` 验证推广首页 `/api/bff/promotion/home`、秒杀商品 `/api/bff/seckill/products` 和推广商品 `/api/bff/promotion/products` 的真实数据、分页、商品详情跳转和分享 payload。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 的真实数据链路。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
+- [ ] 用 App 注入的有效 `mallToken` 验证订单列表、退货退款列表、普通快递订单详情、退款详情和订单操作接口：`/p/myOrder/myOrder`、`/p/orderRefund/list`、`/p/myOrder/orderDetail`、`/p/myDelivery/orderInfo/{orderNumber}`、`/p/myOrder/cancel/{orderNumber}`、`/p/myOrder/receipt/{orderNumber}`、`/p/myOrder/{orderNumber}`、`/p/myOrder/submitMessage`。
+- [ ] 用 App 注入的有效 `mallToken` 验证我的收藏和我的足迹接口：`/p/user/collection/prods`、`/p/user/collection/addOrCancel`、`/p/prodBrowseLog/page`、`/p/prodBrowseLog`。
 - [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取、真正确认付款 `/p/order/pay` 和支付 Bridge/支付结果页对接口径。
 - [ ] 为 App 正式地址数据源接入 `rpc/address.*`，并补齐 `address.chooseLocation` 真实定位/地图选点和真实 App WebView token 联调验证。
 - [ ] 用 App 注入的有效 `mallToken` 验证真实商品 `content` 富文本中的详情图、表格和链接展示效果。
@@ -37,6 +39,8 @@ s
 - [ ] 将 server-meumall 部署到生产/测试环境后，补充权限控制、审批流、审计日志、发布人记录和 WebView 访问策略验证。
 
 ## Done
+
+- [x] 按 `docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md` 完成订单列表、退货退款列表、普通快递订单详情和退款详情真实接口迁移，新增相关 BFF、页面、mapper 和操作按钮。
 
 - [x] 创建 AI 工作流文档脚手架。
 - [x] 创建项目级 Codex Skills。

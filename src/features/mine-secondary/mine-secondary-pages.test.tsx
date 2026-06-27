@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
 
 import { CouponsScreen } from "./components/CouponsScreen";
-import { OrdersScreen } from "./components/OrdersScreen";
+import { OrderEmptyState, OrdersScreen } from "./components/OrdersScreen";
+import { RefundsEmptyState, RefundsScreen } from "./components/RefundsScreen";
 import { ProductCollectionScreen } from "./components/ProductCollectionScreen";
 import { WalletScreen } from "./components/WalletScreen";
 
@@ -24,19 +25,20 @@ describe("mine secondary pages", () => {
     const html = renderToStaticMarkup(<ProductCollectionScreen mode="favorites" initialEditing />);
 
     expect(html).toContain("我的收藏");
-    expect(html).toContain("夏季纯棉短袖T恤");
+    expect(html).toContain("商品列表加载中");
     expect(html).toContain("全选");
-    expect(html).toContain("已选8条");
+    expect(html).toContain("已选<span>0</span>条");
     expect(html).toContain("删除");
-    expect(html).not.toContain("确认删除");
+    expect(html).not.toContain("夏季纯棉短袖T恤");
   });
 
-  test("renders footprints with the same product list structure", () => {
+  test("renders footprints in real-api loading state without mock products", () => {
     const html = renderToStaticMarkup(<ProductCollectionScreen mode="footprints" />);
 
     expect(html).toContain("我的足迹");
     expect(html).toContain("编辑");
-    expect(html).toContain("已售: 1w+");
+    expect(html).toContain("商品列表加载中");
+    expect(html).not.toContain("已售: 1w+");
   });
 
   test("renders coupon cards", () => {
@@ -48,14 +50,38 @@ describe("mine secondary pages", () => {
     expect(html).toContain("去使用");
   });
 
-  test("renders orders by status and empty state", () => {
+  test("renders orders tabs in real-api loading state without after-sales refund tab", () => {
     const receivingHtml = renderToStaticMarkup(<OrdersScreen initialStatus="pending-receipt" />);
-    const emptyHtml = renderToStaticMarkup(<OrdersScreen initialStatus="empty" />);
 
     expect(receivingHtml).toContain("订单列表");
     expect(receivingHtml).toContain("待收货");
-    expect(receivingHtml).toContain("继续付款");
-    expect(emptyHtml).toContain("这里空空如也~");
+    expect(receivingHtml).not.toContain("退货退款");
+    expect(receivingHtml).not.toContain("夏季纯棉短袖");
     expect(receivingHtml).not.toContain("/orders?status=");
+  });
+
+  test("uses the shared empty state component for order empty state", () => {
+    const html = renderToStaticMarkup(<OrderEmptyState text="这里空空如也~" />);
+
+    expect(html).toContain('data-empty-state="true"');
+    expect(html).toContain("/hybird/assets/placeholders/empty-state-mascot.png");
+    expect(html).not.toContain("boxTop");
+    expect(html).not.toContain("boxBody");
+  });
+
+  test("renders refunds as a standalone page", () => {
+    const refundHtml = renderToStaticMarkup(<RefundsScreen />);
+
+    expect(refundHtml).toContain("退货退款");
+    expect(refundHtml).toContain("退款记录加载中");
+    expect(refundHtml).not.toContain("待付款");
+  });
+
+  test("uses the shared empty state component for refund list empty state", () => {
+    const html = renderToStaticMarkup(<RefundsEmptyState />);
+
+    expect(html).toContain('data-empty-state="true"');
+    expect(html).toContain("/hybird/assets/placeholders/empty-state-mascot.png");
+    expect(html).toContain("暂无退货退款记录");
   });
 });

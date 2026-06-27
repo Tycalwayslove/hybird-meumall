@@ -950,6 +950,114 @@ type OrderPayInfoData = {
 - `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
 - `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber` 和 `/sys/config/info/getSysPaySwitch` 后展示金额、倒计时、支付状态和支付方式。本期确认付款流程暂不迁移：点击“确定支付”只在 H5 本地提示“已发起支付”，不调用 Java `/p/order/pay`，不请求支付 Bridge，不进入支付结果页。
 
+### 订单列表、退货退款和订单详情
+
+订单列表、退货退款和订单详情真实接口迁移当前为 `implemented，待 App token 联调验证`。详细实施结果见 `docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md`，根级契约见 `.ai-workspace/contracts/api/h5-order-list-detail-real-api-contract.md`。
+
+已新增 H5 BFF：
+
+```http
+GET /api/bff/orders?status=all&current=1&size=10&keyword=
+GET /api/bff/orders/refunds?current=1&size=10
+GET /api/bff/orders/detail?orderNumber=<orderNumber>
+PUT /api/bff/orders/cancel
+PUT /api/bff/orders/receipt
+DELETE /api/bff/orders/delete?orderNumber=<orderNumber>
+POST /api/bff/orders/contact-message
+GET /api/bff/orders/refund-detail?refundSn=<refundSn>
+```
+
+状态映射：
+
+| H5 `status` | 页面入口 | Java 接口与参数 |
+| --- | --- | --- |
+| `all` | 全部订单 | `/p/myOrder/myOrder status=0` |
+| `pending-payment` | 待付款 | `/p/myOrder/myOrder status=1` |
+| `pending-shipment` | 待发货 | `/p/myOrder/myOrder status=2` |
+| `pending-receipt` | 待收货 | `/p/myOrder/myOrder status=3` |
+| `completed` | 已完成 | `/p/myOrder/myOrder status=5` |
+| `refund` | 退货退款 | `/p/orderRefund/list` |
+
+普通订单列表 Java 参数：
+
+```ts
+{
+  current: number;
+  size: number;
+  status: 0 | 1 | 2 | 3 | 5;
+  prodName?: string;
+}
+```
+
+退货退款列表 Java 参数：
+
+```ts
+{
+  current: number;
+  size: number;
+  startTime: string;
+  endTime: string;
+}
+```
+
+普通订单详情会聚合 Java `/p/myOrder/orderDetail?orderNumber=<orderNumber>` 和 `/p/myDelivery/orderInfo/{orderNumber}`。首期只覆盖普通快递订单；旧项目中 `orderMold === 1` 虚拟订单和 `dvyType === 2` 自提订单会跳专属页面，H5 首期展示后置提示或兼容状态，不误渲染为普通快递详情。
+
+页面路由：
+
+```http
+GET /orders?status=all
+GET /orders?status=pending-payment
+GET /orders?status=pending-shipment
+GET /orders?status=pending-receipt
+GET /orders?status=completed
+GET /refunds
+GET /orders/<orderNumber>
+GET /refunds/<refundSn>
+```
+
+首批操作接口：
+
+| 动作 | Java 接口 | 参数 |
+| --- | --- | --- |
+| 取消订单 | `PUT /p/myOrder/cancel/{orderNumber}` | 当前订单号 |
+| 确认收货 | `PUT /p/myOrder/receipt/{orderNumber}` | 当前订单号 |
+| 删除订单 | `DELETE /p/myOrder/{orderNumber}` | 当前订单号 |
+| 联系商家留言 | `POST /p/myOrder/submitMessage` | `orderNumber/userMobile/messageContent` |
+| 继续付款 | 复用 `/api/bff/order-pay-info` | `orderNumbers/orderType/dvyType` |
+| 退款详情 | `GET /p/orderRefund/info` | `refundSn` |
+
+注意：退货退款是独立页面 `/refunds`，不是 `/orders` 的 tab；`refund` 也不是 `/p/myOrder/myOrder` 的普通订单状态。
+
+### 我的收藏和我的足迹
+
+我的收藏商品和我的足迹真实接口迁移当前为 `implemented，待 App token 联调验证`。根级契约见 `.ai-workspace/contracts/api/h5-favorites-footprints-real-api-contract.md`。
+
+已新增 H5 BFF：
+
+```http
+GET /api/bff/favorites/products?current=1&size=20
+POST /api/bff/favorites/products/cancel
+GET /api/bff/footprints?current=1&size=20
+DELETE /api/bff/footprints/delete
+```
+
+Java 接口和参数：
+
+| 页面/动作 | Java 接口 | 参数 |
+| --- | --- | --- |
+| 我的收藏商品列表 | `GET /p/user/collection/prods` | `current/size` |
+| 取消商品收藏 | `POST /p/user/collection/addOrCancel` | body 为原始 `prodId` |
+| 我的足迹列表 | `GET /p/prodBrowseLog/page` | `current/size` |
+| 批量删除足迹 | `DELETE /p/prodBrowseLog` | body 为 `prodBrowseLogId` 数组 |
+
+实现口径：
+
+- `/favorites/products` 首屏只展示 loading，成功后渲染 Java `records[0].products` 映射的商品卡；接口失败展示错误和重试，空数组展示通用 `EmptyState`。
+- `/footprints` 首屏只展示 loading，成功后渲染 Java `records` 映射的足迹商品卡；BFF 保留 `prodBrowseLogId` 作为页面选择和删除 ID。
+- 商品卡统一进入 `/product/<prodId>`，商品图缺失时使用 `ProductImagePlaceholder`。
+- 编辑态支持选择、全选和确认删除；收藏页会逐个调用取消收藏接口，足迹页会一次传 ID 数组删除。
+- 联调阶段不使用 `collectionProducts` mock 兜底。
+
 ### 收货地址模块
 
 地址模块优先通过 App Native Bridge 接入地址能力；Bridge 不可用或老版本 App 不支持时，通过 H5 BFF 接入旧 Java 地址接口。地址和省市区数据必须来自 Bridge、H5 BFF 或 Java 接口；接口无数据时展示空态、错误或空选项，不使用本地业务数据兜底：
