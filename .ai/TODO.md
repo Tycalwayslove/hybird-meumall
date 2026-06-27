@@ -4,11 +4,12 @@ s
 - [ ] 与原生 App 确认 H5 可获取的 App 名称、App 版本、build 号、系统版本、设备型号和 WebView 版本来源。
 - [ ] 与 Java / Python 后端确认接收、记录、透传和返回 `x-request-id`，并在入口日志记录 App / 设备 / 系统上下文。
 - [ ] 用 App 注入的有效 `mallToken` 验证首页 `/api/bff/home`、首页推荐 `/api/bff/home/recommend-products`、相似推荐 `/api/bff/home/for-you-products` 均能返回真实数据，并确认 banner `jumpType` 最终跳转语义。
+- [ ] 用 App 注入的有效 `mallToken` 验证我的页 `/api/bff/mine/summary` 和权益中心 `/api/bff/promotion/benefits` 的真实数据、当前等级、等级切换和权益展示。
 - [ ] 接入正式线上日志平台后，将 `[h5-bff-backend-call]` 和 `[h5-bff-route-error]` 纳入可按 `requestId` 检索的日志索引。
-- [ ] 确认推广模块真实后端接口、达人等级规则、活动状态和榜单刷新策略。
+- [ ] 确认推广模块活动、榜单、权益、佣金明细和名片等剩余真实后端接口、达人等级规则、活动状态和榜单刷新策略；推广首页概览已接 `/p/distribution/home/overview`。
 - [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`）、`route_changed`、手势返回和 URL 白名单。
 - [ ] 确认 v1.2.0 搜索建议、推广商品分类 ID 来源、收藏接口、秒杀购买资格/活动时间接口和原生入口跳转参数；热门搜索词、热榜和搜索结果商品已分别接 `/search/hotSearch`、`/search/rankTabs`、`/search/rank/{rankType}`、`/p/app/prod/page`。
-- [ ] 用 App 注入的有效 `mallToken` 验证秒杀商品 `/api/bff/seckill/products` 和推广商品 `/api/bff/promotion/products` 的真实数据、分页、商品详情跳转和分享 payload。
+- [ ] 用 App 注入的有效 `mallToken` 验证推广首页 `/api/bff/promotion/home`、秒杀商品 `/api/bff/seckill/products` 和推广商品 `/api/bff/promotion/products` 的真实数据、分页、商品详情跳转和分享 payload。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 的真实数据链路。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
 - [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取、真正确认付款 `/p/order/pay` 和支付 Bridge/支付结果页对接口径。
@@ -79,6 +80,7 @@ s
 - [x] 修复客户端静态资源 basePath 丢失问题，并为 `assetUrl()` 增加动态 env 读取防回归测试。
 - [x] 按最新 Figma 重做达人销量榜和达人销售额榜，接入本地领奖台/皇冠资源并完成移动端 375 视口验证。
 - [x] 将我的页、奖励记录和排行榜的浅绿顶部背景收敛为共享资源，并修正排行榜皇冠和领奖台布局。
+- [x] 将推广排行榜销量榜和销售额榜接入 Java `/p/distribution/rank/list`、`/p/distribution/rank/myReport`；达人激励榜暂时展示空态。
 - [x] 建立 H5 与原生路由跳转基础闭环，完成 H5 统一导航封装、入口改造和 route_changed 上报。
 - [x] 完成 v1.2.0 搜索、推广商品和限时秒杀首批静态高保真页面。
 - [x] 接入限时秒杀页和推广商品页真实分页 BFF，链调阶段不拼接本地 mock。

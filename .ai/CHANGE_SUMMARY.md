@@ -1,5 +1,74 @@
 # 变更摘要
 
+## 2026-06-27 - 推广排行榜真实接口联调
+
+### 变更
+
+- `/promotion/rank-center` 榜单中心将达人激励榜、战队销量榜、战队销售额榜置灰为不可点击状态，仅达人销量榜和达人销售额榜可进入真实榜单。
+- 通过 Apifox 项目 `4403987` main 分支确认“达人推广排行榜接口 / 推广排行榜接口”，榜单页只依赖 Java `/p/distribution/rank/list`。
+- `/promotion/ranking/sales` 与 `/api/bff/promotion/rankings/sales` 接入 Java `/p/distribution/rank/list?rankType=1`，我的排名来自同一响应内 `myRank`。
+- `/promotion/ranking/amount` 与 `/api/bff/promotion/rankings/amount` 接入 Java `/p/distribution/rank/list?rankType=2`，我的排名来自同一响应内 `myRank`。
+- `period=day/week/month` 映射 Java `period=1/2/3`，可选 `statPeriod` 透传；真实空榜展示空态，不回退 mock 榜单。
+- 榜单类型和周期切换改为页面内 state + BFF 请求，不再修改 URL 或追加 WebView history，避免 App 返回和滑动返回被 tab 切换污染。
+- 少量数据展示调整：0 条展示空态，1-3 条只展示领奖台并给出“更多排名统计中”，切换加载时展示骨架。
+- 修复页面内切换时直接请求 `/api/...` 未拼接 H5 basePath 的问题，改用 `buildH5ApiPath()`，避免版本路径下切换榜单误报“榜单加载失败”。
+- 排行榜页面内切换请求进一步收敛为 `createPromotionApi(createH5Client())`，复用统一 BFF 客户端的 `credentials: include`、`x-request-id` 和客户端上下文 header，避免手写 fetch 造成 BFF 日志和鉴权链路不完整。
+- 推广商品页也从独立 `createPromotionProductsApi` 收敛到统一 `createPromotionApi(createH5Client())`，并删除独立 promotion products API 文件；推广模块客户端 BFF 调用统一从 `src/features/promotion/api.ts` 出口管理。
+- 切换榜单和周期时不再把 tab 文案改成“加载中”，只在内容区展示骨架占位。
+- 新增 `/promotion/ranking/incentive`，达人激励榜本阶段固定展示空态，不请求 `rankType=4`。
+- 同步新增根级任务、对接说明和 API 契约，并更新页面清单、H5 API 规范、项目状态和 TODO。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-service.test.ts src/features/promotion/api.test.ts src/lib/http/h5-client.test.ts`：通过，3 files / 26 tests。
+- `pnpm typecheck`：通过。
+
+### 后续
+
+- 需要在 App WebView 中用有效 `mallToken` 验证销量榜、销售额榜和两个 BFF 的真实返回。
+
+## 2026-06-27 - 我的页与权益中心真实接口联调
+
+### 变更
+
+- 通过 Apifox 项目 `4403987` main 分支确认三个接口：`GET /p/app/profile/summary`、`GET /p/daren/level/myLevel`、`GET /p/daren/level/list`。
+- 新增 `/api/bff/mine/summary`，聚合个人中心概览和我的达人等级，`/mine` 不再直接渲染 `minePageData` mock。
+- `/mine` 映射真实钱包余额、今年已省、可用优惠券、当前达人等级和个人中心 banner；权益中心入口携带当前等级。
+- `/api/bff/promotion/benefits` 和 `/promotion/benefits` 改为真实我的等级 + 等级列表数据，继续支持左右滑、箭头和等级轨道切换。
+- 同步新增根级任务、对接说明和 API 契约，并更新页面清单、H5 API 规范、项目状态和 TODO。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine/mine-real-api.test.tsx src/features/promotion/promotion-service.test.ts src/features/promotion/api.test.ts`：通过，3 files / 20 tests。
+- `pnpm typecheck`：通过。
+- `pnpm run ai:check-docs-sync --strict`：通过。
+- `pnpm lint -- src/features/mine src/app/mine/page.tsx src/app/api/bff/mine/summary/route.ts src/features/promotion/server/promotion-level-real-service.ts src/app/api/bff/promotion/benefits/route.ts src/app/promotion/benefits/page.tsx src/features/promotion/components/PromotionBenefitsCarousel.tsx src/features/promotion/api.ts src/features/promotion/promotion-service.test.ts`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+
+### 后续
+
+- 需要在 App WebView 中用有效 `mallToken` 验证 `/mine`、`/promotion/benefits` 和两个 BFF 的真实返回。
+
+## 2026-06-27 - 推广首页概览真实接口联调
+
+### 变更
+
+- 通过 Apifox 项目 `4403987` main 分支确认“达人主页接口 / 推广页概览”为 Java `GET /p/distribution/home/overview`。
+- 新增推广首页真实接口 mapper，映射 `userInfo`、`level`、`mySales`、`salesStats` 和 `ongoingIncentiveCount` 到现有推广首页 view model。
+- `/api/bff/promotion/home` 和 `/promotion` 已切真实接口；token 缺失、鉴权失败或接口失败展示错误态，不回退本地 mock。
+- 用户头像支持真实远程 URL；头像缺失仍使用 H5 默认头像占位。
+- 同步新增根级任务、对接说明和 API 契约，并更新页面清单、H5 API 规范、项目状态和 TODO。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-products.test.tsx`：通过，3 files / 27 tests。
+- `pnpm typecheck`：通过。
+- `pnpm run ai:check-docs-sync --strict`：通过。
+- `pnpm lint -- src/features/promotion/server/promotion-home-real-service.ts src/app/api/bff/promotion/home/route.ts src/app/promotion/page.tsx src/features/promotion/components/PromotionAssetPlaceholder.tsx src/features/promotion/components/TalentHero.tsx src/features/promotion/promotion-service.test.ts`：通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+
+### 后续
+
+- 需要在 App WebView 中用有效 `mallToken` 验证 `/promotion` 和 `/api/bff/promotion/home` 真实返回。
+
 ## 2026-06-26 - 收银台支付信息展示链路
 
 ### 变更

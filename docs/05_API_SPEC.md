@@ -440,6 +440,14 @@ type HomeBffData = {
 
 首页“限时秒杀”和“推广带货”入口卡是 H5 固定 UI，不再由 `/p/app/home/index` 或首页配置控制。两个入口分别固定跳转 `/seckill` 和 `/promotion/products`；进入对应页面后再由 `/api/bff/seckill/products` 和 `/api/bff/promotion/products` 请求真实商品列表。
 
+推广首页 `/promotion` 已接入真实概览 BFF：浏览器端或 SSR 统一消费 `/api/bff/promotion/home`，BFF 调 Java `/p/distribution/home/overview`。接口返回 `userInfo`、`level`、`mySales`、`salesStats` 和 `ongoingIncentiveCount`，H5 mapper 映射为推广首页现有 `profile/theme/summary/quickEntries/metrics/tools` view model，并保留 `modules.overview` 便于联调排查。联调阶段 token 缺失、鉴权失败、接口失败或 `data` 缺失时展示错误态，不回退本地 mock 推广首页数据。
+
+我的页 `/mine` 已接入真实概览 BFF：SSR 消费 `/api/bff/mine/summary`，BFF 聚合 Java `/p/app/profile/summary` 和 `/p/daren/level/myLevel`。`walletBalance/yearSavedAmount/couponCount` 映射为我的页三项指标，`banners` 取 `seq` 最小的一张作为个人中心 banner，当前等级映射为权益中心入口 `/promotion/benefits?level=<v>`。联调阶段接口失败、token 缺失或 `data` 缺失时展示错误态，不回退 `minePageData` mock。
+
+权益中心 `/promotion/benefits` 已接入真实等级 BFF：SSR 消费 `/api/bff/promotion/benefits`，BFF 聚合 Java `/p/daren/level/myLevel` 和 `/p/daren/level/list`。`myLevel` 用于当前等级、进度和佣金倍率，`level/list` 用于可切换等级列表和权益项。页面继续支持左右滑、箭头和等级轨道切换；等级列表为空或接口失败展示错误态，不回退本地 mock。Apifox description 中仍写旧 `/p/distribution/level/...`，当前 OpenAPI path 为 `/p/daren/level/...`，H5 以 OpenAPI path 为准。
+
+推广排行榜销量榜和销售额榜已接入真实 BFF：`/promotion/ranking/sales` 和 `/api/bff/promotion/rankings/sales` 调 Java `/p/distribution/rank/list?rankType=1`；`/promotion/ranking/amount` 和 `/api/bff/promotion/rankings/amount` 调 Java `/p/distribution/rank/list?rankType=2`。H5 `period=day/week/month` 映射 Java `period=1/2/3`，可选 `statPeriod` 按原值透传；我的排名来自同一响应内 `myRank`。接口成功后只渲染真实 `rankList/myRank`，空数组展示榜单空态，失败或 token 缺失展示错误态，不回退 mock 榜单。榜单类型和周期切换只更新页面 state 与 BFF 请求，不调用 router、不更新 query、不追加 WebView history。达人激励榜当前路由为 `/promotion/ranking/incentive`，本阶段固定展示空态，不请求 `rankType=4`。
+
 首页推荐商品分页 BFF 返回：
 
 ```ts

@@ -75,7 +75,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - 本地开发 token 兜底已建立：仅 `APP_ENV=local` 且 Cookie 缺失时，BFF 使用 `.env.local` 中的 `H5_LOCAL_JAVA_TOKEN` / `H5_LOCAL_PYTHON_TOKEN`；测试和正式环境忽略该兜底。
 - 独立 H5 调试 Token 登录页已建立：浏览器独立打开且缺少 `mallToken` / `pythonToken` 时可进入 `/debug-login` 手动写入 Java Token 和 Python Token；检测到 `statusHeight`、`meu_page_config`、App/WebView header 或 `x-platform=ios/android` 时返回 404，避免在原生 App WebView 内展示。
 - 首页原生传参展示面板：通过 `/api/bff/runtime/context` 展示完整 Cookie 值、`pythonToken`、`mallToken`、`statusHeight`、`meu_page_config`、URL 参数和环境信息；该面板仅限当前内部调试，正式开放前必须删除或关闭。
-- 推广模块首批页面：已实现推广首页五档达人主题、活动中心、榜单中心、达人销量榜、达人销售额榜和达人权益中心；已建立 H5 BFF mock、server service、状态兜底和测试。
+- 推广模块首批页面：已实现推广首页五档达人主题、活动中心、榜单中心、达人销量榜、达人销售额榜和达人权益中心；推广首页 `/promotion` 已接入真实概览 BFF `/api/bff/promotion/home` -> Java `/p/distribution/home/overview`，活动、榜单、权益等二级页仍保留 H5 BFF mock。
 - 推广首页已重构为 `pages/PromotionHomePage` + 业务 section components + `theme/talent-theme`，作为后续页面工程化样板。
 - 推广二级页已按 design-system 模式迁移：活动中心、榜单中心、榜单详情和权益中心的常规颜色使用 token，业务视觉参数集中到 `theme/promotion-page-theme.ts`。
 - 达人徽章、推广首页达人背景、汇总卡背景 V1-V5 已接入本地 PNG 静态资源，路径位于 `public/assets/promotion/talent-badges/`，并通过 `src/lib/assets/local-assets.ts` 的资源 key 统一解析。
@@ -85,7 +85,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - 达人销量榜和达人销售额榜已按 2026-06-05 最新 Figma 节点重做为浅绿渐变头图、三榜 tab、绿色分段周期控件、三列领奖台、白底列表和底部当前用户栏；领奖台背景和皇冠继续通过本地资源 registry 与 `localAssetUrl()` 引用。
 - 我的页、奖励记录和排行榜已复用共享浅绿顶部背景 `shared.greenHeroBg`，业务 key `mine.hero.background`、`promotion.rewardRecordsBg`、`promotion.rankingHeroBg` 均解析到 `public/assets/shared/green-hero-bg.png`。
 - 我的页用户昵称后的 V1-V5 达人等级已接入独立横条 PNG 资源，路径位于 `public/assets/mine/level-badges/`，并通过 `mine.levelBadge.v1-v5` 资源 key 与 `localAssetUrl()` 解析。
-- 个人中心二级页首批静态高保真已完成：`/wallet`、`/favorites/products`、`/footprints`、`/coupons` 和 `/orders` 均使用本地 mock 数据展示钱包、收藏/足迹编辑态、优惠券和订单列表/空态；`/mine` 钱包余额、优惠券和足迹入口已连接到对应页面。
+- 我的页 `/mine` 已接入真实 BFF `/api/bff/mine/summary` -> Java `/p/app/profile/summary`、`/p/daren/level/myLevel`，展示真实钱包余额、今年已省、可用优惠券和当前达人等级；权益中心入口携带当前等级。个人中心二级页首批静态高保真已完成：`/wallet`、`/favorites/products`、`/footprints`、`/coupons` 和 `/orders` 仍使用本地 mock 数据展示钱包、收藏/足迹编辑态、优惠券和订单列表/空态。
 - 收货地址模块已完成页面、真实 BFF 和 App Bridge 优先接入：新增 `/address` 地址列表和 `/address/edit` 新增/编辑地址页，地址空态图和定位图标复制自旧 uni-app 项目并注册到 `localAssetUrl()`；我的页“地址管理”入口已连接到 `/address`；订单确认页地址卡可进入 `/address?select=1` 并保留商品、SKU、数量和地址参数。H5 已新增 `rpc/address.*` typed Bridge adapter，地址列表、详情、新增、编辑、设默认和删除优先通过 App Bridge，Bridge 不可用时回退 `/api/bff/address/*` 和 Java `/p/address/*`；商品详情页会通过 Bridge 默认地址刷新配送行和商品详情 BFF 的 `addrId`；订单确认无地址参数时也会先通过 Bridge 获取默认地址。交易链路仍用 Java `/p/address/addrInfo/{addrId}` 做服务端校验。新增/编辑地址页省市区通过 `/api/bff/address/regions` -> Java `/p/area/listByPid` 获取；地址列表、省市区接口无数据时展示空态、错误提示或空选项，不使用本地轻量业务数据兜底。定位按钮预留 `address.chooseLocation` Bridge 并输出 `[MeuMall][address-location]` 调试日志，App 未接入时只提示等待接入。
 - 排行榜领奖台已收敛为 360px 容器内三卡贴合居中布局，皇冠固定在头像顶部右侧；排行榜顶部导航确认使用 `TransparentNavPage` / `TopNavigation` 公共组件。
 - Figma 品牌色常规 `#A8F156` 已补充为 design-system `brand.normal` token，用于排行榜周期控件描边等场景。
@@ -151,7 +151,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - GitHub Actions workflow 已切回 SSR/standalone 产物归档，并支持可选注册 candidate release，但尚未在远端仓库环境中验证，仍需配置 `H5_SERVICE_BASE_URL`、`H5_RELEASE_SERVER_URL` 等 GitHub Secrets 和受保护环境。
 - 本地 Jenkins 依赖 Mac Studio 的 Docker Desktop、Java 17、SSH key 和 `/Users/mac/person_code/meu-mall/meumall-ci` 工作目录；迁移到新机器时需要恢复这些本地运行条件。
 - 当前 Jenkins release 注册通过 SSH tunnel 访问服务器内网 FastAPI；后续接入外部 CI 时应补充独立 CI token 鉴权。
-- 推广模块真实后端接口尚未完成，首批页面将先基于 H5 BFF mock 开发；达人月销量、月 GMV、福利细则和榜单刷新规则仍需后续确认。
+- 推广首页概览真实接口已接入，联调阶段不回退本地 mock；推广活动、榜单、权益、佣金明细和名片等真实后端接口仍待确认，达人月销量、月 GMV、福利细则和榜单刷新规则仍需后续确认。
 - 本地稳定图片资源可以随 H5 发版，但运营可替换图片、商品图、用户头像仍应由后台或 CMS 返回 CDN URL。
 - 新增 H5 页面如果绕过 `localAssetUrl()` 直接写 `/assets/...`，或在资源工具中用动态 `process.env[key]` 读取客户端配置，线上 `/h5-v/<version>` 页面会丢失版本前缀并导致图片 404；新增页面提交前必须通过扫描、渲染测试或构建产物检查确认无裸本地资源路径。
 - 本地开发如果只设置 `H5_BASE_PATH` 而漏掉 `NEXT_PUBLIC_H5_BASE_PATH`，客户端组件 hydrate 后仍可能把图片改成裸 `/assets/...`；根目录 `dev:h5` 和 `dev-all.sh` 已修复，手动启动时也必须同步设置两者。
@@ -160,10 +160,12 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - H5 顶部导航已建立公共组件和页面预设；后续页面若继续手写状态栏、返回按钮或固定透明导航，会重新带来滚动容器和状态栏口径不一致风险。
 - H5 已按 App 内嵌页面口径禁止页面级缩放；后续如果引入第三方组件、地图、富文本或 iframe，需要确认它们不会重新开启局部缩放或阻断单指滚动。
 - 排行榜头像当前仍为 H5 mock 渐变头像，占位效果用于页面框架和样式验证；后续真实用户头像应由后端或 CMS 返回远程 URL。
+- 推广排行榜销量榜和销售额榜已接入真实 BFF：`/api/bff/promotion/rankings/sales` -> Java `/p/distribution/rank/list?rankType=1`，`/api/bff/promotion/rankings/amount` -> Java `/p/distribution/rank/list?rankType=2`；我的排名来自同一响应内 `myRank`；支持日/周/月和 `statPeriod`，空榜展示空态，失败或 token 缺失不回退 mock；榜单类型和周期切换只更新页面 state 与 BFF 请求，不修改 URL。达人激励榜 `/promotion/ranking/incentive` 当前固定空态，不请求 `rankType=4`。
+- 榜单中心 `/promotion/rank-center` 当前仅达人销量榜和达人销售额榜可点击；达人激励榜、战队销量榜、战队销售额榜均置灰不可点击。
 - 首页和商品详情普通商品快递链路已接入首批真实接口，但真实数据展示依赖 App/WebView 注入有效 `mallToken`；无 token 时 Java 返回 `A00004 Unauthorized`，H5 展示错误/空业务态或可恢复错误，不回退本地 mock 业务数据。
 - `/debug-login` 会在浏览器独立 H5 中写入 JS 可读调试 Cookie，仅用于当前线上/测试联调；原生 App 正式路径仍必须由 App 写入 `mallToken` / `pythonToken`，不要把该页面扩展成正式账号登录或在 App 内作为补偿登录入口。
-- v1.2.0 搜索首页热门词、搜索热榜、搜索结果商品和商品分类页已接真实接口；推广商品列表和限时秒杀列表已接真实分页，但推广商品分类 ID 来源、收藏接口、搜索建议、秒杀购买资格、秒杀下单、拼团、自提、同城和支付仍需后续补齐 BFF service 和接口契约。
-- 个人中心二级页当前仍有多处为静态 mock 页面，钱包流水、收藏/足迹删除、优惠券领取/使用和订单操作尚未接真实接口或真实业务动作；地址管理已接真实 BFF 和 Bridge 优先层，新增/编辑页已有轻量省市区下拉，但完整区域树和 App 定位/地图选点仍后置。
+- v1.2.0 搜索首页热门词、搜索热榜、搜索结果商品和商品分类页已接真实接口；推广商品列表、推广首页、权益中心、我的页和限时秒杀列表已接真实 BFF，但推广商品分类 ID 来源、收藏接口、搜索建议、秒杀购买资格、秒杀下单、拼团、自提、同城和支付仍需后续补齐 BFF service 和接口契约。
+- 个人中心二级页当前仍有多处为静态 mock 页面，钱包流水、收藏/足迹删除、优惠券领取/使用和订单操作尚未接真实接口或真实业务动作；我的页顶部概览已接真实 BFF；地址管理已接真实 BFF 和 Bridge 优先层，新增/编辑页已有轻量省市区下拉，但完整区域树和 App 定位/地图选点仍后置。
 
 ## 下一步建议
 
@@ -173,7 +175,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 4. 确认首批需要内置的原生兜底页。
 5. 基于现有 feature API adapter 和 BFF mock 输出真实后端接口契约，确认活动、榜单、权益和达人等级数据字段。
 6. 为 v1.2.0 搜索结果页补搜索建议、收藏状态和 App WebView token 联调验收。
-7. 用 App 注入的真实 `mallToken` 验证首页 `/api/bff/home`、首页推荐 `/api/bff/home/recommend-products`、相似推荐商品页 `/api/bff/home/for-you-products`、秒杀商品 `/api/bff/seckill/products`、推广商品 `/api/bff/promotion/products`、商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 能返回真实数据。
+7. 用 App 注入的真实 `mallToken` 验证首页 `/api/bff/home`、首页推荐 `/api/bff/home/recommend-products`、相似推荐商品页 `/api/bff/home/for-you-products`、我的页 `/api/bff/mine/summary`、推广首页 `/api/bff/promotion/home`、权益中心 `/api/bff/promotion/benefits`、秒杀商品 `/api/bff/seckill/products`、推广商品 `/api/bff/promotion/products`、商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 能返回真实数据。
 8. 为 App 正式地址数据源接入 `rpc/address.*`，补齐 `address.chooseLocation` 真实定位/地图选点和真实 App WebView token 联调验证。
 9. 为后续 manifest、Bridge、theme runtime 和 API client 任务补充对应测试。
 10. 后续新增 H5 页面优先套用 `StandardNavPage`、`TransparentNavPage` 或 `TransparentActionNavPage`，复杂导航变体先扩展 design-system，再接入业务页。

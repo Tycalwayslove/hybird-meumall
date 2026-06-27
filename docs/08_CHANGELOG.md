@@ -26,6 +26,9 @@
 
 ### 新增
 
+- 新增推广排行榜销量榜、销售额榜真实 BFF：`/api/bff/promotion/rankings/sales` 和 `/api/bff/promotion/rankings/amount`，分别请求 Java `/p/distribution/rank/list?rankType=1/2`，我的排名来自同一响应内 `myRank`。
+- 新增达人激励榜 `/promotion/ranking/incentive` 空态页面，本阶段不请求 `rankType=4`。
+- 榜单中心 `/promotion/rank-center` 中达人激励榜、战队销量榜和战队销售额榜置灰为不可点击状态。
 - 新增 H5 HTTP 请求观测第一阶段：客户端上下文 header、BFF 到后端透传和 backend call logger hook。
 - 新增 H5 请求诊断、BFF request context、首页 Runtime feature API adapter 和推广模块 API adapter，形成后续真实接口接入模板。
 - 新增首页真实接口首批接入：`/api/bff/home` 负责 Java 首页核心聚合接口，`/api/bff/home/recommend-products` 负责首页“为您推荐”商品分页，`/api/bff/home/for-you-products` 负责相似推荐商品更多页分页；正式联调不保留本地业务 mock fallback。
@@ -268,6 +271,45 @@
 - 已验证 `http://118.196.24.12/hybird`、`/hybird/`、`/` 不再出现无限重定向。
 - 已通过 `src/lib/bridge/protocol-bridge.test.ts`、`pnpm typecheck` 和 `pnpm build` 验证首页 Bridge 调试面板。
 - 已通过推广模块渲染测试、资源 URL 测试、design token 测试、类型检查、lint、生产构建和 CDP 375x812 移动端 smoke 验证最新版排行榜页面。
+## 2026-06-27 - 我的页与权益中心真实接口
+
+### 新增
+
+- 新增 `/api/bff/mine/summary`，BFF 聚合 Java `/p/app/profile/summary` 和 `/p/daren/level/myLevel`，为 `/mine` 提供真实钱包余额、今年已省、优惠券和当前达人等级。
+- `/api/bff/promotion/benefits` 改为聚合 Java `/p/daren/level/myLevel` 和 `/p/daren/level/list`，为权益中心提供我的等级与可切换等级列表。
+- 新增根级任务、对接说明和 API 契约：`TASK-2026-0627-002-h5-mine-benefits-real-api.md`、`BRIEF-2026-0627-002-h5-mine-benefits-real-api.md`、`h5-mine-benefits-real-api-contract.md`。
+
+### 变更
+
+- `/mine` 不再直接渲染 `minePageData` mock，接口失败、token 缺失或鉴权失败展示错误态，不回退本地 mock。
+- `/promotion/benefits` 使用真实等级列表，继续支持左右滑、箭头和等级轨道切换；等级列表为空展示错误态。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine/mine-real-api.test.tsx src/features/promotion/promotion-service.test.ts src/features/promotion/api.test.ts` 通过。
+- `pnpm typecheck` 通过。
+- `pnpm run ai:check-docs-sync --strict` 通过。
+- `pnpm lint -- src/features/mine src/app/mine/page.tsx src/app/api/bff/mine/summary/route.ts src/features/promotion/server/promotion-level-real-service.ts src/app/api/bff/promotion/benefits/route.ts src/app/promotion/benefits/page.tsx src/features/promotion/components/PromotionBenefitsCarousel.tsx src/features/promotion/api.ts src/features/promotion/promotion-service.test.ts` 通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+
+## 2026-06-27 - 推广首页概览真实接口
+
+### 新增
+
+- 新增 `/api/bff/promotion/home` 真实接口消费路径，BFF 调 Java `/p/distribution/home/overview` 获取用户信息、达人等级、我的带货和六宫格数据。
+- 新增根级任务、对接说明和 API 契约：`TASK-2026-0627-001-h5-promotion-home-overview-real-api.md`、`BRIEF-2026-0627-001-h5-promotion-home-overview-real-api.md`、`h5-promotion-home-overview-real-api-contract.md`。
+
+### 变更
+
+- `/promotion` 推广首页首屏切到真实概览接口，接口失败、token 缺失或鉴权失败展示错误态，不回退本地 mock。
+- 推广首页头像支持 Java 返回的远程头像 URL，缺失时继续展示 H5 默认头像占位。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-products.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- `pnpm run ai:check-docs-sync --strict` 通过。
+- `pnpm lint -- src/features/promotion/server/promotion-home-real-service.ts src/app/api/bff/promotion/home/route.ts src/app/promotion/page.tsx src/features/promotion/components/PromotionAssetPlaceholder.tsx src/features/promotion/components/TalentHero.tsx src/features/promotion/promotion-service.test.ts` 通过，0 errors，4 warnings；warning 均为 promotion 模块既有 `<img>` 规则提示。
+
 ## 2026-05-15 - 归档任务
 
 ### 变更
