@@ -33,6 +33,10 @@
   font-weight: 500;
 }
 
+.editButton:disabled {
+  color: #a8abb2;
+}
+
 .editIcon {
   position: relative;
   width: 14px;
@@ -80,6 +84,19 @@
   border-radius: 10px;
   background: #fff;
   padding: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.productThumb {
+  width: 88px;
+  height: 88px;
+}
+
+.productThumbImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .productInfo {
@@ -114,6 +131,20 @@
   padding: 0 4px;
 }
 
+.browseTime {
+  display: inline-flex;
+  height: 20px;
+  align-items: center;
+  margin-left: 6px;
+  margin-top: 4px;
+  border-radius: 4px;
+  background: #f2f4f7;
+  color: #6f6f6f;
+  font-size: 12px;
+  line-height: 16px;
+  padding: 0 4px;
+}
+
 .productMeta {
   display: flex;
   min-width: 0;
@@ -128,10 +159,6 @@
   font-size: 20px;
   font-weight: 800;
   line-height: 22px;
-}
-
-.price span {
-  font-size: 16px;
 }
 
 .productMeta del {
@@ -243,6 +270,91 @@
   padding: 14px 16px;
   transform: translate(-50%, -50%);
   white-space: nowrap;
+}
+
+.notice {
+  margin: 0 12px 10px;
+  border-radius: 8px;
+  background: #f6ffeb;
+  color: #247a2f;
+  font-size: 13px;
+  line-height: 18px;
+  padding: 10px 12px;
+}
+
+.errorBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 12px 0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.errorBox p {
+  margin: 0;
+  color: #575757;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.errorBox button {
+  height: 34px;
+  min-width: 92px;
+  border: 0;
+  border-radius: 17px;
+  background: #a8f156;
+  color: #111;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.emptyState {
+  min-height: 360px;
+  padding: 28px 20px;
+}
+
+.loadingBlock,
+.loadingLine {
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef0f5 0%, #f8f9fb 42%, #eef0f5 78%);
+  background-size: 220% 100%;
+  animation: collectionShimmer 1.3s ease-in-out infinite;
+}
+
+.loadingLine {
+  height: 14px;
+}
+
+.loadingLineTitle {
+  width: 88%;
+  margin-top: 4px;
+}
+
+.loadingLineTag {
+  width: 48%;
+  margin-top: 12px;
+}
+
+.loadingLinePrice {
+  width: 62%;
+  height: 18px;
+  margin-top: 14px;
+}
+
+@keyframes collectionShimmer {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }
 
 .confirmOverlay {

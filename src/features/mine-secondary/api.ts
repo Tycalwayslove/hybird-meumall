@@ -20,6 +20,7 @@ import type {
   JavaPage,
   JavaRefundOrder
 } from "./server/orders-real-service";
+import type { CollectionMutationData, CollectionsPageData, JavaFavoriteProductGroup, JavaFootprintProduct } from "./server/collections-real-service";
 
 type AddressHttpClient = {
   request<T>(path: string, options?: H5RequestOptions): Promise<H5BffResult<T>>;
@@ -124,3 +125,37 @@ export function createOrdersApi(client: AddressHttpClient) {
 }
 
 export type OrdersApi = ReturnType<typeof createOrdersApi>;
+
+export type GetCollectionProductsInput = {
+  current?: number;
+  size?: number;
+};
+
+export function createCollectionsApi(client: AddressHttpClient) {
+  return {
+    cancelFavoriteProduct(prodId: string) {
+      return client.request<CollectionMutationData>("/api/bff/favorites/products/cancel", {
+        body: { prodId },
+        method: "POST"
+      });
+    },
+    deleteFootprints(ids: string[]) {
+      return client.request<CollectionMutationData>("/api/bff/footprints/delete", {
+        body: { ids },
+        method: "DELETE"
+      });
+    },
+    getFavoriteProducts({ current = 1, size = 20 }: GetCollectionProductsInput = {}) {
+      return client.request<CollectionsPageData<{ favoritePage: JavaFavoriteProductGroup[] }>>(
+        `/api/bff/favorites/products?${new URLSearchParams({ current: String(current), size: String(size) }).toString()}`
+      );
+    },
+    getFootprints({ current = 1, size = 20 }: GetCollectionProductsInput = {}) {
+      return client.request<CollectionsPageData<{ footprintPage: JavaFootprintProduct[] }>>(
+        `/api/bff/footprints?${new URLSearchParams({ current: String(current), size: String(size) }).toString()}`
+      );
+    }
+  };
+}
+
+export type CollectionsApi = ReturnType<typeof createCollectionsApi>;
