@@ -210,7 +210,7 @@ function HeroSection({
       }}
     >
       <div className="equity-animated-hero relative mt-4 flex items-center gap-[10px]">
-        <PromotionAvatar className="size-12" />
+        <PromotionAvatar className="size-12" src={profile.avatar} />
         <div className="min-w-0">
           <div className="flex items-center gap-1">
             <p className="truncate text-[17px] font-black leading-6">{profile.nickname}</p>

@@ -1,4 +1,4 @@
-import { fetchPromotionBenefitsData } from "@/features/promotion/server/promotion-level-real-service";
+import { fetchMineSummaryData } from "@/features/mine/server/mine-summary-real-service";
 import { createApiError } from "@/lib/api/errors";
 import { createBffRequestContext } from "@/server/http/bff-context";
 import { toBffResponse } from "@/server/http/bff-response";
@@ -6,7 +6,7 @@ import { toBffResponse } from "@/server/http/bff-response";
 export async function GET(request: Request) {
   try {
     const context = createBffRequestContext(request);
-    const result = await fetchPromotionBenefitsData({
+    const result = await fetchMineSummaryData({
       authRequired: true,
       authToken: context.getAuthToken("java"),
       backendClient: context.backendClient,
@@ -18,16 +18,16 @@ export async function GET(request: Request) {
   } catch (error) {
     const requestId = request.headers.get("x-request-id") ?? undefined;
     console.error("[h5-bff-route-error]", {
-      message: error instanceof Error ? error.message : "Promotion benefits BFF request failed.",
+      message: error instanceof Error ? error.message : "Mine summary BFF request failed.",
       requestId,
-      route: "/api/bff/promotion/benefits"
+      route: "/api/bff/mine/summary"
     });
 
     return Response.json(
       {
         success: false,
         code: "NETWORK_ERROR",
-        message: error instanceof Error ? error.message : "Promotion benefits BFF request failed.",
+        message: error instanceof Error ? error.message : "Mine summary BFF request failed.",
         requestId,
         recoverable: true
       },

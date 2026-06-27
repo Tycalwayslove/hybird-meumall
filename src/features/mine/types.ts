@@ -32,7 +32,8 @@ export type MineProfile = {
 
 export type MineBanner = {
   href?: string;
-  assetKey: LocalAssetKey;
+  assetKey?: LocalAssetKey;
+  imageUrl?: string;
   alt: string;
 };
 
@@ -46,6 +47,6 @@ export type MinePageData = {
   ordersHref: string;
   metrics: MineMetric[];
   orders: MineOrderEntry[];
-  banner: MineBanner;
+  banner?: MineBanner;
   tools: MineToolEntry[];
 };

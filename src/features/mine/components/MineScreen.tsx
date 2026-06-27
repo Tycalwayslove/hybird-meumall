@@ -69,7 +69,9 @@ function BenefitCard({ data }: MineScreenProps) {
     <section className={styles.benefitCard} aria-label="达人权益">
       <div className={styles.benefitPattern} />
       <div className={styles.benefitTop}>
-        <span className={styles.validText}>喵呜达人有效期至{data.profile.membershipValidUntil}</span>
+        <span className={styles.validText}>
+          {data.profile.membershipValidUntil ? `喵呜达人有效期至${data.profile.membershipValidUntil}` : "喵呜达人权益"}
+        </span>
         <HybridLink className={styles.benefitButton} href={data.benefitsHref} source="mine" strategy="new-webview" title="权益中心">
           权益中心
           <span aria-hidden="true">›</span>
@@ -133,10 +135,19 @@ function OrderCard({ data }: MineScreenProps) {
 }
 
 function SpringPlanBanner({ data }: MineScreenProps) {
+  if (!data.banner) {
+    return null;
+  }
+
+  const bannerImage = data.banner.imageUrl ?? (data.banner.assetKey ? localAssetUrl(data.banner.assetKey) : undefined);
+  if (!bannerImage) {
+    return null;
+  }
+
   return (
     <div className={styles.bannerWrap}>
       <div className={styles.bannerLink} aria-label={data.banner.alt}>
-        <img className={styles.bannerImage} src={localAssetUrl(data.banner.assetKey)} alt={data.banner.alt} />
+        <img className={styles.bannerImage} src={bannerImage} alt={data.banner.alt} />
       </div>
     </div>
   );
