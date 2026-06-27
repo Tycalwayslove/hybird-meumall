@@ -1,15 +1,19 @@
-import Link from "next/link";
+"use client";
+
+import { useMemo, useState } from "react";
 
 import { TransparentNavPage } from "@/design-system";
 import { localAssetUrl, type LocalAssetKey } from "@/lib/assets";
+import { createH5Client } from "@/lib/http";
 
+import { createPromotionApi } from "../api";
 import type { RankingData, RankingPeriod, RankingRow, RankingType } from "../types";
 import { PromotionEmptyState } from "./PromotionStates";
 
-const rankingTabs: Array<{ id: RankingType | "incentive"; title: string; href: string }> = [
+const rankingTabs: Array<{ id: RankingType; title: string; href: string }> = [
   { id: "sales", title: "达人销量榜", href: "/promotion/ranking/sales" },
   { id: "amount", title: "达人销售额榜", href: "/promotion/ranking/amount" },
-  { id: "incentive", title: "达人激励榜", href: "/promotion/rank-center" }
+  { id: "incentive", title: "达人激励榜", href: "/promotion/ranking/incentive" }
 ];
 
 const periods: Array<{ id: RankingPeriod; label: string }> = [
@@ -95,11 +99,53 @@ function rawRankValue(value: string, unit: "单" | "元") {
   return unit === "元" ? `¥${value}` : `${value}${unit}`;
 }
 
-export function PromotionRankingScreen({ data }: { data: RankingData }) {
-  const currentPath = data.rankingType === "sales" ? "/promotion/ranking/sales" : "/promotion/ranking/amount";
+type PromotionRankingScreenProps = {
+  data: RankingData;
+  statPeriod?: string | null;
+};
+
+export function PromotionRankingScreen({ data: initialData, statPeriod }: PromotionRankingScreenProps) {
+  const promotionApi = useMemo(() => createPromotionApi(createH5Client()), []);
+  const [rankingData, setRankingData] = useState(initialData);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  const [errorText, setErrorText] = useState<string | null>(null);
+
+  const loadRanking = async (rankingType: RankingType, activePeriod: RankingPeriod) => {
+    setErrorText(null);
+
+    if (rankingType === "incentive") {
+      setRankingData(createIncentiveEmptyData(rankingData, activePeriod));
+      return;
+    }
+
+    const requestKey = `${rankingType}-${activePeriod}`;
+    setLoadingKey(requestKey);
+    try {
+      const result = await promotionApi.getRanking(rankingType, {
+        period: activePeriod,
+        statPeriod: statPeriod?.trim()
+      });
+
+      if (!result.success) {
+        setErrorText(result.message || "榜单加载失败");
+        return;
+      }
+
+      setRankingData(result.data);
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : "榜单加载失败");
+    } finally {
+      setLoadingKey(null);
+    }
+  };
+
+  const data = rankingData;
   const podium = data.rows.slice(0, 3);
   const rest = data.rows.slice(3);
   const rankingHeroBackground = localAssetUrl("promotion.rankingHeroBg");
+  const isEmpty = data.rows.length === 0;
+  const isLoading = loadingKey !== null;
+  const emptyTitle = data.rankingType === "incentive" ? "达人激励榜暂未开放" : "暂无榜单数据";
 
   return (
     <TransparentNavPage
@@ -117,38 +163,51 @@ export function PromotionRankingScreen({ data }: { data: RankingData }) {
           backgroundSize: "100% 100%"
         }}
       >
-        <RankingTypeTabs activeType={data.rankingType} />
-        <RankingPeriodTabs activePeriod={data.activePeriod} currentPath={currentPath} periodText={data.periodText} />
+        <RankingTypeTabs activeType={data.rankingType} onChange={(rankingType) => loadRanking(rankingType, data.activePeriod)} />
+        <RankingPeriodTabs
+          activePeriod={data.activePeriod}
+          isLoading={isLoading}
+          onChange={(period) => loadRanking(data.rankingType, period)}
+          periodText={data.periodText}
+        />
 
-        {podium.length === 0 ? (
-          <div className="absolute inset-x-4 top-[calc(var(--meu-top-bar-height)+166px)]">
-            <PromotionEmptyState title="暂无榜单数据" />
-          </div>
-        ) : (
+        {isLoading || isEmpty ? null : (
           <div className="absolute left-1/2 top-[var(--meu-top-bar-height)] h-[299px] w-[360px] -translate-x-1/2">
             {[podium[1], podium[0], podium[2]].map((row) => (row ? <PodiumCard key={row.rank} row={row} /> : null))}
           </div>
         )}
       </section>
 
-      <section className="relative -mt-px rounded-t-[14px] bg-fill-white px-3 pb-6 pt-[18px]">
-        {rest.length === 0 ? (
-          <PromotionEmptyState title="暂无榜单数据" />
-        ) : (
+      <section className="relative -mt-px min-h-[220px] rounded-t-[14px] bg-fill-white px-3 pb-6 pt-[18px]">
+        {errorText ? (
+          <PromotionEmptyState title="榜单加载失败" description={errorText} />
+        ) : isLoading ? (
+          <RankingListSkeleton />
+        ) : isEmpty ? (
+          <PromotionEmptyState title={emptyTitle} />
+        ) : rest.length > 0 ? (
           <div className="flex flex-col gap-3">
             {rest.map((row) => (
               <RankingListRow key={row.rank} row={row} />
             ))}
           </div>
+        ) : (
+          <p className="rounded-[12px] bg-fill-muted px-3 py-4 text-center text-[13px] leading-5 text-text-tertiary">更多排名统计中</p>
         )}
       </section>
 
-      <CurrentUserBar currentUser={data.currentUser} />
+      {data.rankingType === "incentive" ? null : <CurrentUserBar currentUser={data.currentUser} />}
     </TransparentNavPage>
   );
 }
 
-function RankingTypeTabs({ activeType }: { activeType: RankingType }) {
+function RankingTypeTabs({
+  activeType,
+  onChange
+}: {
+  activeType: RankingType;
+  onChange: (rankingType: RankingType) => void;
+}) {
   return (
     <nav
       aria-label="排行榜类型"
@@ -157,11 +216,12 @@ function RankingTypeTabs({ activeType }: { activeType: RankingType }) {
       {rankingTabs.map((tab) => {
         const active = tab.id === activeType;
         return (
-          <Link
+          <button
             key={tab.id}
             aria-current={active ? "page" : undefined}
-            className="relative flex h-[26px] min-w-0 shrink-0 items-start justify-center px-1.5"
-            href={tab.href}
+            className="relative flex h-[26px] min-w-0 shrink-0 items-start justify-center px-1.5 transition-transform active:scale-[0.98]"
+            onClick={() => onChange(tab.id)}
+            type="button"
           >
             <span
               className={active ? "text-[16px] font-semibold leading-[22px] text-text-primary" : "text-[15px] font-medium leading-[22px] text-text-secondary"}
@@ -169,7 +229,7 @@ function RankingTypeTabs({ activeType }: { activeType: RankingType }) {
               {tab.title}
             </span>
             {active ? <span aria-hidden="true" className="absolute bottom-0 left-1/2 h-[3px] w-6 -translate-x-1/2 rounded-pill bg-brand-action" /> : null}
-          </Link>
+          </button>
         );
       })}
     </nav>
@@ -178,11 +238,13 @@ function RankingTypeTabs({ activeType }: { activeType: RankingType }) {
 
 function RankingPeriodTabs({
   activePeriod,
-  currentPath,
+  isLoading,
+  onChange,
   periodText
 }: {
   activePeriod: RankingPeriod;
-  currentPath: string;
+  isLoading: boolean;
+  onChange: (period: RankingPeriod) => void;
   periodText: string;
 }) {
   return (
@@ -192,20 +254,36 @@ function RankingPeriodTabs({
           {periods.map((period) => {
             const active = period.id === activePeriod;
             return (
-              <Link
+              <button
                 key={period.id}
                 aria-current={active ? "page" : undefined}
-                className="flex h-[30px] min-w-0 flex-1 items-center justify-center rounded-[10px] px-2 text-[14px] leading-none text-text-primary"
-                href={`${currentPath}?period=${period.id}`}
+                className="flex h-[30px] min-w-0 flex-1 items-center justify-center rounded-[10px] px-2 text-[14px] leading-none text-text-primary transition-transform active:scale-[0.98] disabled:opacity-60"
+                disabled={isLoading}
+                onClick={() => onChange(period.id)}
                 style={active ? { background: "rgb(var(--mm-color-brand-hover))", fontWeight: 600 } : undefined}
+                type="button"
               >
                 {period.label}
-              </Link>
+              </button>
             );
           })}
         </div>
       </div>
       <p className="w-full text-center text-[13px] font-normal leading-none text-text-primary">{periodText}</p>
+    </div>
+  );
+}
+
+function RankingListSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[0, 1, 2].map((item) => (
+        <div key={item} className="flex min-h-[54px] animate-pulse items-center gap-2.5 rounded-[12px] bg-fill-muted px-2.5 py-[9px]">
+          <span className="size-8 rounded-full bg-fill-white" />
+          <span className="h-3 flex-1 rounded-pill bg-fill-white" />
+          <span className="h-3 w-14 rounded-pill bg-fill-white" />
+        </div>
+      ))}
     </div>
   );
 }
@@ -295,4 +373,28 @@ function RankAvatar({ row, className = "" }: { row: Pick<RankingRow, "rank" | "n
       </span>
     </span>
   );
+}
+
+function createIncentiveEmptyData(baseData: RankingData, activePeriod: RankingPeriod): RankingData {
+  const labelByPeriod: Record<RankingPeriod, string> = {
+    day: "本日",
+    month: "本月",
+    week: "本周"
+  };
+
+  return {
+    activePeriod,
+    currentUser: {
+      avatar: null,
+      name: "喵呜达人",
+      onList: false,
+      rank: 0,
+      unit: "元",
+      value: "--"
+    },
+    periodText: `榜单周期：${labelByPeriod[activePeriod]}`,
+    rankingType: "incentive",
+    rows: [],
+    tabs: baseData.tabs
+  };
 }

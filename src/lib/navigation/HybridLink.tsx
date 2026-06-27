@@ -32,7 +32,7 @@ export function HybridLink({
 }: HybridLinkProps) {
   if (strategy === "push") {
     return (
-      <Link href={href} onClick={onClick} {...props}>
+      <Link href={href} onClick={onClick} prefetch={false} {...props}>
         {children}
       </Link>
     );

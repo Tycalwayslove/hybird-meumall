@@ -21,10 +21,11 @@ export const rankCenter: RankCenterData = {
           theme: "gold"
         },
         {
+          disabled: true,
           id: "talent-incentive",
           title: "达人激励榜",
-          subtitle: "每日更新",
-          href: "/promotion/rank-center",
+          subtitle: "暂未开放",
+          href: "/promotion/ranking/incentive",
           theme: "pink"
         }
       ]
@@ -34,16 +35,18 @@ export const rankCenter: RankCenterData = {
       title: "战队榜",
       items: [
         {
+          disabled: true,
           id: "team-sales",
           title: "战队销量榜",
-          subtitle: "每日更新",
+          subtitle: "暂未开放",
           href: "/promotion/rank-center",
           theme: "green"
         },
         {
+          disabled: true,
           id: "team-amount",
           title: "战队销售额榜",
-          subtitle: "每日更新",
+          subtitle: "暂未开放",
           href: "/promotion/rank-center",
           theme: "purple"
         }
@@ -54,7 +57,7 @@ export const rankCenter: RankCenterData = {
 
 const names = ["SoulKeeper", "暖阳如初", "云养猫大师", "吃瓜路过", "咖啡因上瘾", "NightWalker_", "夜猫子传说", "温柔乡主_", "浮生若梦_", "LightAngel_"];
 
-export function buildRanking(type: RankingType, period: RankingPeriod): RankingData {
+export function buildRanking(type: Extract<RankingType, "sales" | "amount">, period: RankingPeriod): RankingData {
   const unit = type === "sales" ? "单" : "元";
   const values =
     type === "sales"
@@ -67,7 +70,8 @@ export function buildRanking(type: RankingType, period: RankingPeriod): RankingD
     periodText: "榜单周期：2026.7.1-2026.7.31",
     tabs: [
       { id: "sales", title: "达人销量榜", href: "/promotion/ranking/sales" },
-      { id: "amount", title: "达人销售额榜", href: "/promotion/ranking/amount" }
+      { id: "amount", title: "达人销售额榜", href: "/promotion/ranking/amount" },
+      { id: "incentive", title: "达人激励榜", href: "/promotion/ranking/incentive" }
     ],
     rows: values.map((value, index) => ({
       rank: index + 1,

@@ -11,15 +11,14 @@ import { localAssetUrl } from "@/lib/assets";
 import { createH5Client } from "@/lib/http";
 import { HybridLink } from "@/lib/navigation";
 
-import type { PromotionProductsApi } from "../promotion-products-api";
-import { createPromotionProductsApi } from "../promotion-products-api";
+import { createPromotionApi, type PromotionApi } from "../api";
 import { promotionProductFilters, type PromotionProductItem, type PromotionProductsFilter } from "../mock/products";
 import styles from "./PromotionProductsScreen.module.css";
 
 type PromotionProductsScreenProps = {
   filter?: PromotionProductsFilter;
   initialProducts?: PromotionProductItem[];
-  promotionProductsApi?: Pick<PromotionProductsApi, "getProducts">;
+  promotionProductsApi?: Pick<PromotionApi, "getProducts">;
 };
 
 type PromotionProductsPageState = {
@@ -38,7 +37,7 @@ const PROMOTION_PRODUCTS_PAGE_SIZE = 10;
 
 export function PromotionProductsScreen({ filter = "none", initialProducts = [], promotionProductsApi }: PromotionProductsScreenProps) {
   const bridge = useMemo(() => createWindowProtocolBridge(), []);
-  const defaultPromotionProductsApi = useMemo(() => createPromotionProductsApi(createH5Client()), []);
+  const defaultPromotionProductsApi = useMemo(() => createPromotionApi(createH5Client()), []);
   const api = promotionProductsApi ?? defaultPromotionProductsApi;
   const filterState = useDropdownFilterBarState<PromotionProductsFilter>({
     initialActiveKey: filter === "none" ? "sales" : filter,
