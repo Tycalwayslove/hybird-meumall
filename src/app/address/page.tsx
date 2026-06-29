@@ -1,4 +1,5 @@
 import { AddressListScreen } from "@/features/mine-secondary/components/AddressScreens";
+import { parseAddressFlowContext } from "@/features/mine-secondary/address-flow";
 
 type AddressPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -9,16 +10,12 @@ export const revalidate = 0;
 
 export default async function AddressPage({ searchParams }: AddressPageProps) {
   const params = await searchParams;
-  const select = normalizeParam(params?.select);
   const state = normalizeParam(params?.state);
-  const productId = normalizeParam(params?.productId);
-  const quantity = normalizeParam(params?.quantity);
-  const skuId = normalizeParam(params?.skuId);
+  const flowContext = parseAddressFlowContext(params ?? {});
 
   return (
     <AddressListScreen
-      mode={select === "1" ? "select" : "manage"}
-      returnParams={{ productId, quantity, skuId }}
+      flowContext={flowContext}
       state={state === "empty" ? "empty" : "normal"}
     />
   );

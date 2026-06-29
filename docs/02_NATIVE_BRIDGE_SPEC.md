@@ -143,6 +143,7 @@ H5 业务页面不要直接拼 Bridge 信封。正式页面跳转统一从 `src/
 - 二级页面内部继续下钻：默认使用普通 Next Link 或 `strategy="push"`，在当前 WebView 内 push。
 - 二级页面返回 Tab 根页面：调用 `router/navigate route=tab` 并让原生关闭当前二级 WebView，不在当前 WebView 内直接打开根路由。
 - 导航栏返回：`TopNavigation` 通过 `router/navigate route=back` 交给原生；原生优先执行当前 WebView history back，退不动再关闭当前 WebView。
+- 地址选择流不新增 Bridge 方法。商品详情和订单确认进入 `/address?select=1&from=<source>&flowId=<id>` 时使用普通 H5 push；用户选择地址后 H5 写入一次性 `sessionStorage` 结果并执行 `history.back()`，来源页消费结果后用 `history.replaceState` 修正 URL 和重新请求接口。App 导航栏返回和系统手势返回继续沿用 `route=back` / WebView history 语义，不需要原生拦截地址选择。
 
 ## router/navigate 路由清单
 
@@ -222,6 +223,33 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 `Address` 字段沿用旧 Java 地址对象核心字段：`addrId`、`receiver`、`mobile`、`province`、`provinceId`、`city`、`cityId`、`area`、`areaId`、`addr`、`commonAddr`、`lat`、`lng`。订单确认和提交 BFF 仍会调用 Java `/p/address/addrInfo/{addrId}` 校验地址，不能只信任 Bridge 快照。
 
 `address.chooseLocation` 当前只做 Bridge 能力预留：H5 发起 RPC 并输出 `[MeuMall][address-location]` console 日志；App 未接入时页面提示“定位能力等待 App Bridge 接入”，不会伪造定位结果。
+
+### 地址选择流路由约定
+
+地址页同时服务“我的地址管理”和“交易链路选择地址”。H5 通过 URL query 保存轻量上下文：
+
+```text
+/address
+/address?select=1&from=order-confirm&flowId=<id>&productId=<id>&skuId=<id>&quantity=<n>&addressId=<addrId>
+/address?select=1&from=product-detail&flowId=<id>&productId=<id>&addressId=<addrId>
+/address/edit?select=1&from=<source>&flowId=<id>&...
+```
+
+字段说明：
+
+| 字段 | 说明 |
+| --- | --- |
+| `select=1` | 选择态，地址卡展示“使用”。缺省为管理态。 |
+| `from` | 来源页，当前支持 `order-confirm`、`product-detail`、`mine`。 |
+| `flowId` | 当前地址流稳定 ID，用于一次性选择结果隔离。 |
+| `productId/skuId/quantity` | 订单确认返回时重新校验商品/SKU/数量。 |
+| `addressId` | 当前已选地址，用于列表高亮、返回 fallback 和来源页重新请求。 |
+
+选择态行为：
+
+- 从订单确认进入地址列表，选择地址后来源页重新调用 `/api/bff/order-confirm`，再由提交订单链路调用 Java `/p/address/addrInfo/{addrId}` 做服务端校验。
+- 从商品详情进入地址列表，选择地址后商品详情重新调用 `/api/bff/product-detail?prodId=<id>&addrId=<addrId>` 刷新配送文案。
+- 新增/编辑地址保存成功后先回到地址列表并刷新，用户仍需明确点击“使用”才切换交易地址。
 
 ## 首批方法
 

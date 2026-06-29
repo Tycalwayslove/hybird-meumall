@@ -1,5 +1,29 @@
 # 变更摘要
 
+## 2026-06-29 - 地址模块路由选择流优化
+
+### 变更
+
+- 新增 `src/features/mine-secondary/address-flow.ts`，统一生成和解析地址选择流上下文：`select/from/flowId/productId/skuId/quantity/addressId`。
+- `/address` 和 `/address/edit` 保留来源上下文；选择态点击“使用”写入一次性 `sessionStorage` 结果并 `history.back()` 回来源页。
+- 地址列表删除非默认地址时新增 H5 确认弹层，用户确认后才调用删除接口。
+- 商品详情配送行进入 `from=product-detail` 地址选择流，消费地址结果后更新 URL 并按 `addrId` 重拉商品详情。
+- 订单确认地址卡进入 `from=order-confirm` 地址选择流，消费地址结果后更新 URL 并按 `addrId` 重拉订单确认。
+- 同步更新 Native Bridge 规范、API 规范、changelog、项目状态、TODO 和根级页面盘点。
+- 已同步飞书知识库：页面清单 `WgaqwTRRUitnRNkCtNPcOcDnnre` revision 39；H5 与原生 App 路由跳转对接说明 `OJk1wa43PiR9lTkYs2YcW8llnmf` revision 88。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/address-flow.test.ts src/features/mine-secondary/address-pages.test.tsx src/features/mine-secondary/address-hybrid-api.test.ts src/features/product/product-detail.test.tsx src/features/product/order-confirm.test.tsx src/features/product/product-real-flow.test.tsx`：通过，6 files / 37 tests。
+- `pnpm exec vitest run src/features/mine-secondary/address-pages.test.tsx src/features/mine-secondary/address-flow.test.ts src/features/mine-secondary/address-hybrid-api.test.ts`：通过，3 files / 12 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/mine-secondary/address-flow.ts src/features/mine-secondary/address-flow.test.ts src/features/mine-secondary/components/AddressScreens.tsx src/app/address/page.tsx src/app/address/edit/page.tsx src/features/product/components/ProductDetailScreen.tsx src/features/product/components/OrderConfirmScreen.tsx 'src/app/product/[id]/page.tsx'`：通过。
+- `pnpm exec eslint src/features/mine-secondary/components/AddressScreens.tsx src/features/mine-secondary/address-pages.test.tsx`：通过。
+
+### 后续
+
+- 需要在 App WebView 内验证系统手势返回、H5 导航栏返回、选择地址、新增地址后返回列表等真实容器行为。
+
 ## 2026-06-27 - 推广排行榜真实接口联调
 
 ### 变更

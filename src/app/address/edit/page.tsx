@@ -1,4 +1,5 @@
 import { AddressEditScreen } from "@/features/mine-secondary/components/AddressScreens";
+import { parseAddressFlowContext } from "@/features/mine-secondary/address-flow";
 
 type AddressEditPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -11,7 +12,7 @@ export default async function AddressEditPage({ searchParams }: AddressEditPageP
   const params = await searchParams;
   const addrId = normalizeParam(params?.addrId);
 
-  return <AddressEditScreen addrId={addrId} mode={addrId ? "edit" : "add"} />;
+  return <AddressEditScreen addrId={addrId} flowContext={parseAddressFlowContext(params ?? {})} mode={addrId ? "edit" : "add"} />;
 }
 
 function normalizeParam(value: string | string[] | undefined) {

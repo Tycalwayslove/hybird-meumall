@@ -943,10 +943,10 @@ type OrderPayInfoData = {
 - 售后保障按 Java `afterSaleType`、`afterSaleContent` 映射；资质条按 `prodCertificateRecordDtoList` 映射；无字段时不展示静态兜底。
 - 商品主数据成功后，BFF 会尽量聚合店铺头部、评论统计和评论分页；店铺头部仅保留在 modules，详情页不展示店铺卡片；评论辅助接口失败时展示评价空态，不影响商品基础信息、SKU 和立即购买。
 - 评论分页只用于首屏概要，`view.reviewSummary.reviews` 最多保留前两条；完整评论列表后续单独实现。
-- 商品详情页会先通过 Bridge `address.getDefault` 获取默认地址，有 `addrId` 时传给 `/api/bff/product-detail` 刷新配送相关状态；Bridge 不可用时继续用 BFF 默认 `addrId=0`。
+- 商品详情页会先通过 URL `addressId` 或地址选择流结果确认选中地址；没有选中地址时再通过 Bridge `address.getDefault` 获取默认地址，有 `addrId` 时传给 `/api/bff/product-detail` 刷新配送相关状态；Bridge 不可用时继续用 BFF 默认 `addrId=0`。
 - 购买弹窗确认时携带 `productId`、`skuId`、`quantity`，不携带价格快照。
 - `/order-confirm` 会先通过 Bridge `address.getDefault` 获取默认地址；再通过 `getOrderConfirm()` 请求 Java `/p/address/addrInfo/{addrId|0}` 解析默认/选中收货地址，重新请求商品详情校验 SKU、库存和价格，并调用 Java `/p/order/confirm` 生成后端确认上下文；如果 URL 中包含 `addressId`，会优先作为 `addrId` 传给 BFF；校验失败或无收货地址时禁止继续交易。普通快递链路对齐旧 uni-app，不因确认响应 `submitOrder=0` 在 H5 层置灰或阻断。
-- `/order-confirm` 地址卡会跳转 `/address?select=1&productId=<productId>&skuId=<skuId>&quantity=<quantity>`，地址列表“使用”会回到 `/order-confirm?addressId=<addrId>` 并保留商品参数。
+- `/order-confirm` 地址卡会跳转 `/address?select=1&from=order-confirm&flowId=<flowId>&productId=<productId>&skuId=<skuId>&quantity=<quantity>&addressId=<addrId>`；地址列表“使用”会写入一次性地址选择结果并 `history.back()` 回订单确认页，订单确认页消费结果后用 `history.replaceState` 更新为 `/order-confirm?...&addressId=<addrId>` 并重新请求确认接口。无 JS 或无法回退 history 时，地址卡 href 兜底到同等参数的 `/order-confirm`。
 - `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
 - `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber` 和 `/sys/config/info/getSysPaySwitch` 后展示金额、倒计时、支付状态和支付方式。本期确认付款流程暂不迁移：点击“确定支付”只在 H5 本地提示“已发起支付”，不调用 Java `/p/order/pay`，不请求支付 Bridge，不进入支付结果页。
 
@@ -1064,16 +1064,19 @@ Java 接口和参数：
 
 ```http
 GET /address
-GET /address?select=1&productId=<productId>&skuId=<skuId>&quantity=<quantity>
+GET /address?select=1&from=order-confirm&flowId=<flowId>&productId=<productId>&skuId=<skuId>&quantity=<quantity>&addressId=<addrId>
+GET /address?select=1&from=product-detail&flowId=<flowId>&productId=<productId>&addressId=<addrId>
 GET /address/edit
 GET /address/edit?addrId=<addrId>
+GET /address/edit?select=1&from=<source>&flowId=<flowId>&...
 ```
 
 当前实现：
 
 - `/address` 展示地址列表、默认地址、编辑、删除和新增入口；进入页面后优先请求 Bridge `address.getList`，失败时请求 `/api/bff/address/list` 同步真实地址；Bridge/BFF 都没有返回地址时展示空态，不展示本地样例地址。
-- `/address?select=1` 展示“使用”按钮，用于订单确认页选择地址。
-- `/address/edit` 展示收货人、手机号码、所在地区、详细地址、定位、设为默认地址和保存按钮；省市区通过 `/api/bff/address/regions` -> Java `/p/area/listByPid` 获取，接口未返回时不展示本地选项；回填和保存优先调用 Bridge `address.getInfo/address.save`，失败时调用 `/api/bff/address/info` 和 `/api/bff/address/save`。
+- `/address?select=1` 展示“使用”按钮，用于订单确认页和商品详情页选择地址；query 通过 `from/flowId/productId/skuId/quantity/addressId` 保存来源上下文。
+- 地址列表“使用”会写入 `sessionStorage` 一次性选择结果并执行 `history.back()`；来源页消费后用 `history.replaceState` 更新当前 URL，再重新请求商品详情或订单确认接口。该设计兼容 App 导航栏返回和系统手势返回，不新增 Native Bridge 方法。
+- `/address/edit` 展示收货人、手机号码、所在地区、详细地址、定位、设为默认地址和保存按钮；省市区通过 `/api/bff/address/regions` -> Java `/p/area/listByPid` 获取，接口未返回时不展示本地选项；回填和保存优先调用 Bridge `address.getInfo/address.save`，失败时调用 `/api/bff/address/info` 和 `/api/bff/address/save`。新增/编辑地址保存成功后先回到地址列表并刷新，用户仍需明确点击“使用”才切换交易地址。
 - 定位按钮预留 Bridge `address.chooseLocation`，本地会输出 `[MeuMall][address-location]` console 日志；App 未接入时提示“定位能力等待 App Bridge 接入”，不写入假地址。
 - 地址空态图和定位图标来自旧 uni-app 项目，并注册为 `address.empty`、`address.location` 本地资源 key。
 - 我的页“地址管理”入口已指向 `/address`。

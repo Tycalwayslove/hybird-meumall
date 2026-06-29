@@ -4,8 +4,15 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ProductImagePlaceholder, Skeleton, StandardNavPage } from "@/design-system";
+import {
+  consumeAddressFlowResult,
+  createAddressListHref,
+  createStableAddressFlowId,
+  type AddressFlowContext
+} from "@/features/mine-secondary/address-flow";
 import { createWindowProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createH5Client } from "@/lib/http";
+import { buildClientHref } from "@/lib/navigation";
 
 import { createAddressApi } from "@/features/mine-secondary/api";
 import { createHybridAddressApi } from "@/features/mine-secondary/address-hybrid-api";
@@ -20,6 +27,7 @@ import { ProductRichContent } from "./ProductRichContent";
 
 type ProductDetailScreenProps = {
   data: ProductDetailData;
+  initialAddressId?: string;
 };
 
 type SwipePoint = {
@@ -44,7 +52,18 @@ export function resolveMediaSwipeDirection({
   return deltaX < 0 ? 1 : -1;
 }
 
-export function mergeProductAddressSelectionRows(rows: ProductSelectionItem[], address: AddressEntry | null): ProductSelectionItem[] {
+export function mergeProductAddressSelectionRows(
+  rows: ProductSelectionItem[],
+  address: AddressEntry | null,
+  flowContext?: AddressFlowContext
+): ProductSelectionItem[] {
+  const addressHref = flowContext
+    ? createAddressListHref({
+        ...flowContext,
+        addressId: address?.addrId ?? flowContext.addressId
+      })
+    : undefined;
+
   return rows.map((row) => {
     if (row.action !== "address" && row.label !== "配送") {
       return row;
@@ -59,7 +78,7 @@ export function mergeProductAddressSelectionRows(rows: ProductSelectionItem[], a
     return {
       ...row,
       action: "address",
-      href: row.href ?? "/address",
+      href: addressHref ?? row.href ?? "/address",
       value
     };
   });
@@ -76,14 +95,47 @@ function getDeliveryTailText(row: ProductSelectionItem) {
   return parts.at(-1) ?? "";
 }
 
-export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
+export function ProductDetailScreen({ data, initialAddressId }: ProductDetailScreenProps) {
   const [displayData, setDisplayData] = useState(data);
   const [defaultAddress, setDefaultAddress] = useState<AddressEntry | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState(initialAddressId);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const addressFlowContext: AddressFlowContext = {
+    addressId: defaultAddress?.addrId ?? selectedAddressId,
+    flowId: createStableAddressFlowId({ from: "product-detail", productId: data.id }),
+    from: "product-detail",
+    mode: "select",
+    productId: data.id
+  };
 
   useEffect(() => {
     recordProductDetailFlow({ productId: data.id });
+  }, [data.id]);
+
+  useEffect(() => {
+    function consumeSelectedAddress() {
+      const result = consumeAddressFlowResult(createStableAddressFlowId({ from: "product-detail", productId: data.id }));
+      if (!result?.addressId) {
+        return;
+      }
+
+      setSelectedAddressId(result.addressId);
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", buildClientHref(`/product/${data.id}?${new URLSearchParams({ addressId: result.addressId }).toString()}`));
+      }
+    }
+
+    consumeSelectedAddress();
+    window.addEventListener("pageshow", consumeSelectedAddress);
+    window.addEventListener("focus", consumeSelectedAddress);
+    window.addEventListener("popstate", consumeSelectedAddress);
+
+    return () => {
+      window.removeEventListener("pageshow", consumeSelectedAddress);
+      window.removeEventListener("focus", consumeSelectedAddress);
+      window.removeEventListener("popstate", consumeSelectedAddress);
+    };
   }, [data.id]);
 
   useEffect(() => {
@@ -94,7 +146,9 @@ export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
     });
 
     async function loadDefaultAddress() {
-      const result = await addressApi.getDefaultAddress().catch(() => undefined);
+      const result = selectedAddressId
+        ? await addressApi.getAddressInfo(selectedAddressId).catch(() => undefined)
+        : await addressApi.getDefaultAddress().catch(() => undefined);
       if (disposed || !result?.success) {
         return;
       }
@@ -106,7 +160,7 @@ export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [selectedAddressId]);
 
   useEffect(() => {
     if (!/^\d+$/.test(data.id)) {
@@ -149,7 +203,10 @@ export function ProductDetailScreen({ data }: ProductDetailScreenProps) {
         {!isLoadingProduct && !isUnavailableProduct ? (
           <>
             <ProductHero data={displayData} />
-            <ProductInfoCard data={{ ...displayData, selectionRows: mergeProductAddressSelectionRows(displayData.selectionRows, defaultAddress) }} onOpenPurchaseSheet={() => setShowPurchaseSheet(true)} />
+            <ProductInfoCard
+              data={{ ...displayData, selectionRows: mergeProductAddressSelectionRows(displayData.selectionRows, defaultAddress, addressFlowContext) }}
+              onOpenPurchaseSheet={() => setShowPurchaseSheet(true)}
+            />
             <ReviewSection data={displayData} />
             <DetailSection data={displayData} />
           </>

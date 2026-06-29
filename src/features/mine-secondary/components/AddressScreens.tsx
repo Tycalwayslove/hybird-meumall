@@ -7,20 +7,24 @@ import { StandardNavPage } from "@/design-system";
 import { localAssetUrl } from "@/lib/assets/local-assets";
 import { createWindowProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createH5Client } from "@/lib/http";
+import { buildClientHref } from "@/lib/navigation";
 
 import { createAddressApi } from "../api";
+import {
+  createAddressBackHref,
+  createAddressEditHref,
+  createAddressListHref,
+  createAddressReturnHref,
+  writeAddressFlowResult,
+  type AddressFlowContext
+} from "../address-flow";
 import { createHybridAddressApi } from "../address-hybrid-api";
 import { hydrateAddressEditRegions, type AddressRegionOption } from "../address-region-hydration";
 import { formatAddressLine, type AddressEntry } from "../mock/address-data";
 import styles from "./AddressScreens.module.css";
 
 type AddressListScreenProps = {
-  mode?: "manage" | "select";
-  returnParams?: {
-    productId?: string;
-    quantity?: string;
-    skuId?: string;
-  };
+  flowContext: AddressFlowContext;
   state?: "empty" | "normal";
 };
 
@@ -28,10 +32,11 @@ const localAssetOptions = {
   basePath: process.env.NEXT_PUBLIC_H5_BASE_PATH || process.env.H5_BASE_PATH || "/hybird"
 };
 
-export function AddressListScreen({ mode = "manage", returnParams, state = "normal" }: AddressListScreenProps) {
+export function AddressListScreen({ flowContext, state = "normal" }: AddressListScreenProps) {
   const [addresses, setAddresses] = useState<AddressEntry[]>([]);
   const [statusText, setStatusText] = useState(state === "empty" ? "" : "正在同步地址...");
   const [isMutating, setIsMutating] = useState(false);
+  const [pendingDeleteAddress, setPendingDeleteAddress] = useState<AddressEntry | null>(null);
   const addressApi = useMemo(
     () =>
       createHybridAddressApi({
@@ -40,7 +45,7 @@ export function AddressListScreen({ mode = "manage", returnParams, state = "norm
       }),
     []
   );
-  const title = mode === "select" ? "选择收货地址" : "收货地址";
+  const title = flowContext.mode === "select" ? "选择收货地址" : "收货地址";
 
   useEffect(() => {
     if (state === "empty") {
@@ -101,8 +106,18 @@ export function AddressListScreen({ mode = "manage", returnParams, state = "norm
     setIsMutating(false);
   };
 
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteAddress) {
+      return;
+    }
+
+    const addrId = pendingDeleteAddress.addrId;
+    setPendingDeleteAddress(null);
+    await handleDelete(addrId);
+  };
+
   return (
-    <StandardNavPage title={title} backHref="/mine" className={styles.screen} contentClassName={styles.content}>
+    <StandardNavPage title={title} backHref={createAddressBackHref(flowContext)} className={styles.screen} contentClassName={styles.content}>
       {statusText ? <p className={styles.statusText}>{statusText}</p> : null}
       {addresses.length > 0 ? (
         <div className={styles.addressList}>
@@ -111,10 +126,10 @@ export function AddressListScreen({ mode = "manage", returnParams, state = "norm
               address={address}
               isMutating={isMutating}
               key={address.addrId}
-              onDelete={handleDelete}
+              onDeleteRequest={setPendingDeleteAddress}
               onSetDefault={handleSetDefault}
-              returnParams={returnParams}
-              selectable={mode === "select"}
+              flowContext={flowContext}
+              selectable={flowContext.mode === "select"}
             />
           ))}
         </div>
@@ -122,13 +137,29 @@ export function AddressListScreen({ mode = "manage", returnParams, state = "norm
         <AddressEmptyState />
       )}
       <div className={styles.footerButton}>
-        <Link href="/address/edit">新增收货地址</Link>
+        <Link href={createAddressEditHref(flowContext)}>新增收货地址</Link>
       </div>
+      {pendingDeleteAddress ? (
+        <AddressDeleteConfirmDialog
+          address={pendingDeleteAddress}
+          isDeleting={isMutating}
+          onCancel={() => setPendingDeleteAddress(null)}
+          onConfirm={() => void handleConfirmDelete()}
+        />
+      ) : null}
     </StandardNavPage>
   );
 }
 
-export function AddressEditScreen({ addrId, mode = "add" }: { addrId?: string; mode?: "add" | "edit" }) {
+export function AddressEditScreen({
+  addrId,
+  flowContext,
+  mode = "add"
+}: {
+  addrId?: string;
+  flowContext: AddressFlowContext;
+  mode?: "add" | "edit";
+}) {
   const title = mode === "edit" ? "编辑收货地址" : "新增收货地址";
   const addressApi = useMemo(
     () =>
@@ -365,11 +396,11 @@ export function AddressEditScreen({ addrId, mode = "add" }: { addrId?: string; m
     }
 
     setStatusText(result.data.view.message);
-    navigateToAddressList();
+    navigateToAddressList(flowContext, result.data.view.addrId || addrId);
   };
 
   return (
-    <StandardNavPage title={title} backHref="/address" className={styles.screen} contentClassName={styles.content}>
+    <StandardNavPage title={title} backHref={createAddressListHref(flowContext)} className={styles.screen} contentClassName={styles.content}>
       <form className={styles.formCard} onSubmit={handleSubmit}>
         <FieldRow id="receiver" label="收货人">
           <input id="receiver" name="receiver" onChange={(event) => updateForm("receiver", event.target.value)} placeholder="请填写收货人姓名" value={form.receiver} />
@@ -434,13 +465,21 @@ export function AddressEditScreen({ addrId, mode = "add" }: { addrId?: string; m
   );
 }
 
-function navigateToAddressList() {
+function navigateToAddressList(flowContext: AddressFlowContext, addressId?: string) {
   if (typeof window === "undefined") {
     return;
   }
 
-  const basePath = localAssetOptions.basePath.replace(/\/+$/g, "");
-  window.location.href = `${basePath}/address`;
+  if (addressId) {
+    writeAddressFlowResult({ addressId, flowId: flowContext.flowId, type: "save" });
+  }
+
+  if (window.history.length > 1) {
+    window.history.back();
+    return;
+  }
+
+  window.location.replace(buildClientHref(createAddressListHref(flowContext)));
 }
 
 function normalizeFormText(value: unknown) {
@@ -449,22 +488,41 @@ function normalizeFormText(value: unknown) {
 
 function AddressCard({
   address,
+  flowContext,
   isMutating,
-  onDelete,
+  onDeleteRequest,
   onSetDefault,
-  returnParams,
   selectable
 }: {
   address: AddressEntry;
+  flowContext: AddressFlowContext;
   isMutating: boolean;
-  onDelete: (addrId: string) => void;
+  onDeleteRequest: (address: AddressEntry) => void;
   onSetDefault: (addrId: string) => void;
-  returnParams?: AddressListScreenProps["returnParams"];
   selectable: boolean;
 }) {
+  const mainHref = selectable ? createAddressReturnHref(flowContext, address.addrId) : createAddressEditHref(flowContext, address.addrId);
+
   return (
     <article className={styles.addressCard}>
-      <Link className={styles.addressMain} href={selectable ? createOrderConfirmHref(address.addrId, returnParams) : `/address/edit?addrId=${address.addrId}`}>
+      <Link
+        className={styles.addressMain}
+        href={mainHref}
+        onClick={(event) => {
+          if (!selectable || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+            return;
+          }
+
+          event.preventDefault();
+          writeAddressFlowResult({ addressId: address.addrId, flowId: flowContext.flowId, type: "select" });
+          if (window.history.length > 1) {
+            window.history.back();
+            return;
+          }
+
+          window.location.href = buildClientHref(mainHref);
+        }}
+      >
         <p className={styles.addressRegion}>{formatAddressLine(address)}</p>
         <p className={styles.addressDetail}>{address.addr}</p>
         <p className={styles.addressPerson}>
@@ -486,11 +544,11 @@ function AddressCard({
         </span>
         <span className={styles.actionButtons}>
           {address.commonAddr !== 1 ? (
-            <button className={styles.textButton} disabled={isMutating} onClick={() => onDelete(address.addrId)} type="button">
+            <button className={styles.textButton} disabled={isMutating} onClick={() => onDeleteRequest(address)} type="button">
               删除
             </button>
           ) : null}
-          <Link className={styles.textButton} href={`/address/edit?addrId=${address.addrId}`}>
+          <Link className={styles.textButton} href={createAddressEditHref(flowContext, address.addrId)}>
             编辑
           </Link>
         </span>
@@ -499,22 +557,38 @@ function AddressCard({
   );
 }
 
-function createOrderConfirmHref(addressId: string, returnParams?: AddressListScreenProps["returnParams"]) {
-  const query = new URLSearchParams({
-    addressId
-  });
-
-  if (returnParams?.productId) {
-    query.set("productId", returnParams.productId);
-  }
-  if (returnParams?.skuId) {
-    query.set("skuId", returnParams.skuId);
-  }
-  if (returnParams?.quantity) {
-    query.set("quantity", returnParams.quantity);
-  }
-
-  return `/order-confirm?${query.toString()}`;
+export function AddressDeleteConfirmDialog({
+  address,
+  isDeleting,
+  onCancel,
+  onConfirm
+}: {
+  address: AddressEntry;
+  isDeleting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className={styles.confirmOverlay} role="presentation">
+      <section aria-labelledby="address-delete-title" aria-modal="true" className={styles.confirmDialog} role="dialog">
+        <h2 id="address-delete-title">确认删除收货地址</h2>
+        <p>
+          删除后将无法恢复，请确认是否删除
+          <strong>{address.receiver}</strong>
+          的收货地址：
+          <span>{formatAddressLine(address) + address.addr}</span>
+        </p>
+        <div className={styles.confirmActions}>
+          <button className={styles.confirmCancelButton} disabled={isDeleting} type="button" onClick={onCancel}>
+            取消
+          </button>
+          <button className={styles.confirmDeleteButton} disabled={isDeleting} type="button" onClick={onConfirm}>
+            {isDeleting ? "删除中" : "确认删除"}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function AddressEmptyState() {

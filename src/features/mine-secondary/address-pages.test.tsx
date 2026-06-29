@@ -4,6 +4,8 @@ import { describe, expect, test } from "vitest";
 import AddressEditPage from "@/app/address/edit/page";
 import AddressPage from "@/app/address/page";
 import OrderConfirmPage from "@/app/order-confirm/page";
+import { AddressDeleteConfirmDialog } from "./components/AddressScreens";
+import type { AddressEntry } from "./mock/address-data";
 
 function expectNoBareLocalAssetUrls(html: string) {
   expect(html).not.toContain('src="/assets/');
@@ -16,6 +18,11 @@ describe("address pages", () => {
     const html = renderToStaticMarkup(
       await AddressPage({
         searchParams: Promise.resolve({
+          flowId: "order-p-1001-shirt-m-1",
+          from: "order-confirm",
+          productId: "p-1001",
+          quantity: "1",
+          skuId: "shirt-m",
           select: "1"
         })
       })
@@ -30,7 +37,9 @@ describe("address pages", () => {
     expect(html).not.toContain("使用");
     expect(html).not.toContain("删除");
     expect(html).toContain("新增收货地址");
-    expect(html).toContain("/address/edit");
+    expect(html).toContain(
+      "/address/edit?select=1&amp;from=order-confirm&amp;flowId=order-p-1001-shirt-m-1&amp;productId=p-1001&amp;skuId=shirt-m&amp;quantity=1"
+    );
     expectNoBareLocalAssetUrls(html);
   });
 
@@ -51,11 +60,19 @@ describe("address pages", () => {
   test("renders the add address form with recipient, phone, area and default controls", async () => {
     const html = renderToStaticMarkup(
       await AddressEditPage({
-        searchParams: Promise.resolve({})
+        searchParams: Promise.resolve({
+          flowId: "order-p-1001-shirt-m-1",
+          from: "order-confirm",
+          productId: "p-1001",
+          quantity: "1",
+          select: "1",
+          skuId: "shirt-m"
+        })
       })
     );
 
     expect(html).toContain("新增收货地址");
+    expect(html).toContain("返回");
     expect(html).toContain("收货人");
     expect(html).toContain("手机号码");
     expect(html).toContain("所在地区");
@@ -80,8 +97,38 @@ describe("address pages", () => {
       })
     );
 
-    expect(html).toContain("/address?select=1");
+    expect(html).toContain(
+      "/address?select=1&amp;from=order-confirm&amp;flowId=order-p-1001-shirt-m-4&amp;productId=p-1001&amp;skuId=shirt-m&amp;quantity=4&amp;addressId=10001"
+    );
     expect(html).toContain("更换收货地址");
     expectNoBareLocalAssetUrls(html);
   });
+
+  test("renders a confirmation dialog before deleting an address", () => {
+    const html = renderToStaticMarkup(
+      <AddressDeleteConfirmDialog
+        address={sampleAddress}
+        isDeleting={false}
+        onCancel={() => undefined}
+        onConfirm={() => undefined}
+      />
+    );
+
+    expect(html).toContain("确认删除收货地址");
+    expect(html).toContain("秦先生");
+    expect(html).toContain("广东省广州市越秀区东风中路268号");
+    expect(html).toContain("取消");
+    expect(html).toContain("确认删除");
+  });
 });
+
+const sampleAddress: AddressEntry = {
+  addr: "东风中路268号",
+  addrId: "3001",
+  area: "越秀区",
+  city: "广州市",
+  commonAddr: 0,
+  mobile: "1827267737",
+  province: "广东省",
+  receiver: "秦先生"
+};

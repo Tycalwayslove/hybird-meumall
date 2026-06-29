@@ -5,10 +5,17 @@ import { useEffect, useState } from "react";
 
 import { ProductImagePlaceholder, StandardNavPage } from "@/design-system";
 import { createAddressApi } from "@/features/mine-secondary/api";
+import {
+  consumeAddressFlowResult,
+  createAddressListHref,
+  createStableAddressFlowId,
+  type AddressFlowContext
+} from "@/features/mine-secondary/address-flow";
 import { createHybridAddressApi } from "@/features/mine-secondary/address-hybrid-api";
 import { createCashierHrefFromSubmitResult } from "@/features/payment/cashier-links";
 import { createWindowProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createH5Client } from "@/lib/http";
+import { buildClientHref } from "@/lib/navigation";
 
 import { createProductApi } from "../api";
 import { createOrderSubmitFlowLogParam, recordOrderConfirmFlow } from "../order-flow-log";
@@ -32,6 +39,33 @@ export function OrderConfirmRuntimeScreen({
 }) {
   const [data, setData] = useState<OrderConfirmData | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState(addressId);
+  const flowId = createStableAddressFlowId({ from: "order-confirm", productId, quantity: quantity || "1", skuId });
+
+  useEffect(() => {
+    function consumeSelectedAddress() {
+      const result = consumeAddressFlowResult(flowId);
+      if (!result?.addressId) {
+        return;
+      }
+
+      setSelectedAddressId(result.addressId);
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", buildClientHref(createOrderConfirmHref({ addressId: result.addressId, productId, quantity: quantity || "1", skuId })));
+      }
+    }
+
+    consumeSelectedAddress();
+    window.addEventListener("pageshow", consumeSelectedAddress);
+    window.addEventListener("focus", consumeSelectedAddress);
+    window.addEventListener("popstate", consumeSelectedAddress);
+
+    return () => {
+      window.removeEventListener("pageshow", consumeSelectedAddress);
+      window.removeEventListener("focus", consumeSelectedAddress);
+      window.removeEventListener("popstate", consumeSelectedAddress);
+    };
+  }, [flowId, productId, quantity, skuId]);
 
   useEffect(() => {
     let disposed = false;
@@ -43,7 +77,7 @@ export function OrderConfirmRuntimeScreen({
     });
 
     async function loadOrderConfirm() {
-      let resolvedAddressId = addressId;
+      let resolvedAddressId = selectedAddressId;
       if (!resolvedAddressId) {
         const addressResult = await addressApi.getDefaultAddress().catch(() => undefined);
         if (addressResult?.success && addressResult.data?.addrId) {
@@ -76,7 +110,7 @@ export function OrderConfirmRuntimeScreen({
     return () => {
       disposed = true;
     };
-  }, [addressId, productId, quantity, skuId]);
+  }, [selectedAddressId, productId, quantity, skuId]);
 
   if (data) {
     return <OrderConfirmScreen data={data} />;
@@ -265,16 +299,34 @@ function SubmitBar({ data }: { data: OrderConfirmData }) {
 }
 
 function createAddressSelectHref(data: OrderConfirmData) {
-  const query = new URLSearchParams({
-    select: "1",
+  const flowContext: AddressFlowContext = {
+    addressId: data.selectedAddressId || undefined,
+    flowId: createStableAddressFlowId({
+      from: "order-confirm",
+      productId: data.productId,
+      quantity: String(data.totalQuantity),
+      skuId: data.selectedSkuId
+    }),
+    from: "order-confirm",
+    mode: "select",
     productId: data.productId,
     quantity: String(data.totalQuantity),
     skuId: data.selectedSkuId
-  });
+  };
 
-  if (data.selectedAddressId) {
-    query.set("addressId", data.selectedAddressId);
-  }
+  return createAddressListHref(flowContext);
+}
 
-  return `/address?${query.toString()}`;
+function createOrderConfirmHref({
+  addressId,
+  productId,
+  quantity,
+  skuId
+}: {
+  addressId: string;
+  productId: string;
+  quantity: string;
+  skuId: string;
+}) {
+  return `/order-confirm?${new URLSearchParams({ productId, skuId, quantity, addressId }).toString()}`;
 }

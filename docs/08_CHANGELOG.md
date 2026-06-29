@@ -26,6 +26,11 @@
 
 ### 新增
 
+- 新增地址选择流统一 helper `src/features/mine-secondary/address-flow.ts`，用 `select/from/flowId/productId/skuId/quantity/addressId` 描述从商品详情或订单确认进入地址列表的上下文。
+- 地址列表选择态支持一次性 `sessionStorage` 结果 + `history.back()` 返回来源页，来源页消费后通过 `history.replaceState` 修正 URL 并重新请求商品详情或订单确认接口，兼容 App 导航栏返回和系统手势返回。
+- 地址列表删除非默认地址时新增 H5 确认弹层，用户确认后才调用删除接口，避免误删收货地址。
+- 商品详情配送行支持进入 `/address?select=1&from=product-detail...`，选择地址后按 `addrId` 重拉 `/api/bff/product-detail` 刷新配送状态。
+- 订单确认地址卡支持进入 `/address?select=1&from=order-confirm...`，选择地址后按 `addrId` 重拉 `/api/bff/order-confirm`，提交订单仍由 BFF 调 Java `/p/address/addrInfo/{addrId}` 做服务端校验。
 - 新增并实施订单列表、退货退款和订单详情迁移方案：`docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md`，新增 `/orders`、`/orders/[orderNumber]`、独立 `/refunds`、`/refunds/[refundSn]` 和相关 BFF，明确退货退款不是订单 tab，普通订单列表请求 `/p/myOrder/myOrder`，退货退款列表请求 `/p/orderRefund/list`。
 - 新增推广排行榜销量榜、销售额榜真实 BFF：`/api/bff/promotion/rankings/sales` 和 `/api/bff/promotion/rankings/amount`，分别请求 Java `/p/distribution/rank/list?rankType=1/2`，我的排名来自同一响应内 `myRank`。
 - 新增达人激励榜 `/promotion/ranking/incentive` 空态页面，本阶段不请求 `rankType=4`。

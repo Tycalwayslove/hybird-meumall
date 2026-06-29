@@ -30,19 +30,26 @@ describe("product detail page", () => {
         mobile: "1827267737",
         province: "广东省",
         receiver: "秦先生"
+      },
+      {
+        addressId: "3001",
+        flowId: "product-p-1001",
+        from: "product-detail",
+        mode: "select",
+        productId: "p-1001"
       }
     );
 
     expect(rows[1]).toMatchObject({
       action: "address",
-      href: "/address",
+      href: "/address?select=1&from=product-detail&flowId=product-p-1001&productId=p-1001&addressId=3001",
       value: "快递配送  |  广东省广州市越秀区东风中路268号  |  包邮"
     });
 
     const emptyRows = mergeProductAddressSelectionRows(rows, null);
     expect(emptyRows[1]).toMatchObject({
       action: "address",
-      href: "/address",
+      href: "/address?select=1&from=product-detail&flowId=product-p-1001&productId=p-1001&addressId=3001",
       value: "快递配送  |  请选择收货地址"
     });
   });
@@ -79,6 +86,7 @@ describe("product detail page", () => {
     expect(html).toContain("衣服质量如何？");
     expect(html).toContain('href="/consult"');
     expect(html).toContain("立即购买");
+    expect(html).toContain("/address?select=1&amp;from=product-detail&amp;flowId=product-p-1001&amp;productId=p-1001");
     expect(html).not.toContain('href="#selection"');
     expect(html).not.toContain('href="#address"');
     expectNoBareLocalAssetUrls(html);
