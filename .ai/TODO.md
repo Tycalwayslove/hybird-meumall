@@ -17,9 +17,9 @@ s
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
 - [ ] 用 App 注入的有效 `mallToken` 验证订单列表、退货退款列表、普通快递订单详情、退款详情和订单操作接口：`/p/myOrder/myOrder`、`/p/orderRefund/list`、`/p/myOrder/orderDetail`、`/p/myDelivery/orderInfo/{orderNumber}`、`/p/myOrder/cancel/{orderNumber}`、`/p/myOrder/receipt/{orderNumber}`、`/p/myOrder/{orderNumber}`、`/p/myOrder/submitMessage`。
 - [ ] 用 App 注入的有效 `mallToken` 验证我的收藏和我的足迹接口：`/p/user/collection/prods`、`/p/user/collection/addOrCancel`、`/p/prodBrowseLog/page`、`/p/prodBrowseLog`。
-- [ ] 用 App 注入的有效 `mallToken` 和真实待支付订单验证收银台 `/api/bff/order-pay-info`、`/api/bff/order-pay`、通联支付宝 `/p/allinpay/order/getAliAppPayUrl`、`/api/bff/allinpay-order-status` 与 `/pay-result` 全链路。
-- [ ] 与 iOS / Android 完成正式支付 Bridge 联调：`rpc/payment.pay` 拉起支付宝/微信 SDK，`rpc/payment.openUrl` 打开通联支付 URL，并统一返回 `success/paid/cancelled/failed/unknown` 状态。
-- [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取和通联微信支付返回字段口径。
+- [ ] 用 App 注入的有效 `mallToken` 和真实待支付订单验证收银台 `/api/bff/order-pay-info`、`/api/bff/order-pay`、通联支付宝 `/p/allinpay/order/getAliAppPayUrl`、通联微信小程序收银台 `paymentMode=wechat-mini-program`、`/api/bff/allinpay-order-status` 与 `/pay-result` 全链路。
+- [ ] 与 iOS / Android 完成正式支付 Bridge 联调：`rpc/payment.pay` 拉起普通支付宝/微信 SDK；`provider=allinpay + paymentMode=wechat-mini-program` 时打开微信小程序收银台；`rpc/payment.openUrl` 打开通联支付宝支付 URL；并统一返回 `success/paid/cancelled/failed/unknown` 状态。
+- [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取和通联微信支付真机回调口径。
 - [ ] 为 App 正式地址数据源接入 `rpc/address.*`，并补齐 `address.chooseLocation` 真实定位/地图选点和真实 App WebView token 联调验证。
 - [ ] 用 App 注入的有效 `mallToken` 验证真实商品 `content` 富文本中的详情图、表格和链接展示效果。
 - [ ] 用线上 `/debug-login` 写入 Java / Python 调试 token 后，验证浏览器独立 H5 首页、商品详情和订单确认真实接口链路。

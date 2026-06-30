@@ -55,10 +55,21 @@ export type BridgeAddressLocation = Omit<BridgeAddress, "addrId" | "commonAddr" 
 };
 
 export type BridgePaymentPayRequest = {
+  bizOrderNo?: string;
+  miniProgram?: {
+    appId: string;
+    originalId: string;
+    path: string;
+    query: Record<string, string>;
+    queryString: string;
+    type: "wechat";
+  };
   orderNumbers: string;
   payType: 7 | 8;
-  provider: "alipay" | "wechat";
+  paymentMode?: "app-sdk" | "wechat-mini-program";
+  provider: "alipay" | "wechat" | "allinpay";
   sdkPayload: unknown;
+  settlementProvider?: "allinpay";
 };
 
 export type BridgePaymentPayResponse = {

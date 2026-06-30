@@ -1,5 +1,23 @@
 # 变更摘要
 
+## 2026-06-30 - 通联微信支付 Native Bridge 对接
+
+### 变更
+
+- `/api/bff/order-pay` 在 `paySettlementType=1 + payType=8` 时，会把 Java `/p/order/pay` 返回的通联小程序支付字段归一化为 `execution.type="native-sdk"`、`provider="allinpay"`、`settlementProvider="allinpay"`、`paymentMode="wechat-mini-program"`。
+- `payment.pay` Bridge payload 新增 `miniProgram`、`paymentMode`、`settlementProvider` 和 `bizOrderNo`，H5 会传 `miniProgram.originalId=gh_e64a1a89a0ad` 与 `miniProgram.path=pages/orderDetail/orderDetail?...` 给 App 使用微信 OpenSDK 打开通联小程序收银台。
+- 通联微信打开成功但支付结果未知时，App 可返回 `status=unknown`，H5 进入 `/pay-result` 并按 `bizOrderNo` 回查订单状态。
+- 收紧通联微信参数识别：只有命中 `miniprogramPayInfo_VSP` 等显式字段或顶层通联小程序关键字段时，才生成小程序收银台 payload。
+- 同步更新 H5 Native Bridge 规范、API 规范、根级 Native Bridge/API 契约、支付对接说明、任务和页面盘点。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 19 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/payment src/app/pay-way/page.tsx src/app/pay-result/page.tsx src/app/api/bff/order-pay/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/lib/bridge/protocol-bridge.ts`：通过。
+- `pnpm run ai:check-docs-sync --strict`：通过，15 个 H5 文档文件同步检查通过。
+- 飞书同步：H5 与原生 App 对接说明 `OJk1wa43PiR9lTkYs2YcW8llnmf` revision 90；H5 BFF/API 对接说明 `GPhdwjQ87iQAQskeS6lc9bMOnte` revision 13；页面清单 `WgaqwTRRUitnRNkCtNPcOcDnnre` revision 42。
+
 ## 2026-06-30 - 收银台支付调试日志
 
 ### 变更

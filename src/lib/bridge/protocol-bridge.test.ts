@@ -272,6 +272,82 @@ describe("protocol bridge", () => {
     });
   });
 
+  it("posts allinpay WeChat mini program cashier payloads through payment rpc", async () => {
+    const messages: unknown[] = [];
+    const bridge = createProtocolBridge({
+      postMessage: (message) => {
+        messages.push(message);
+      },
+      createCallbackId: () => "cb_allinpay_wechat",
+      timeoutMs: 100
+    });
+
+    const promise = bridge.rpc("payment.pay", {
+      bizOrderNo: "TL202606300001",
+      miniProgram: {
+        appId: "wxef277996acc166c3",
+        originalId: "gh_e64a1a89a0ad",
+        path: "pages/orderDetail/orderDetail?cusid=990581007426001&appid=002",
+        query: {
+          appid: "002",
+          cusid: "990581007426001"
+        },
+        queryString: "cusid=990581007426001&appid=002",
+        type: "wechat"
+      },
+      orderNumbers: "O202606300001",
+      paymentMode: "wechat-mini-program",
+      payType: 8,
+      provider: "allinpay",
+      sdkPayload: {
+        appid: "002",
+        cusid: "990581007426001"
+      },
+      settlementProvider: "allinpay"
+    });
+
+    expect(messages).toEqual([
+      {
+        module: "rpc",
+        action: "payment.pay",
+        callbackId: "cb_allinpay_wechat",
+        payload: {
+          bizOrderNo: "TL202606300001",
+          miniProgram: {
+            appId: "wxef277996acc166c3",
+            originalId: "gh_e64a1a89a0ad",
+            path: "pages/orderDetail/orderDetail?cusid=990581007426001&appid=002",
+            query: {
+              appid: "002",
+              cusid: "990581007426001"
+            },
+            queryString: "cusid=990581007426001&appid=002",
+            type: "wechat"
+          },
+          orderNumbers: "O202606300001",
+          paymentMode: "wechat-mini-program",
+          payType: 8,
+          provider: "allinpay",
+          sdkPayload: {
+            appid: "002",
+            cusid: "990581007426001"
+          },
+          settlementProvider: "allinpay"
+        }
+      }
+    ]);
+
+    bridge.reply.resolve("cb_allinpay_wechat", {
+      status: "unknown",
+      message: "mini program launched"
+    });
+
+    await expect(promise).resolves.toEqual({
+      status: "unknown",
+      message: "mini program launched"
+    });
+  });
+
   it("posts payment openUrl rpc messages through the shared envelope", async () => {
     const messages: unknown[] = [];
     const bridge = createProtocolBridge({

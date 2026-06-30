@@ -192,7 +192,7 @@ describe("cashier real flow service", () => {
     ]);
   });
 
-  it("submits WeChat payment requests to Java with payType 8", async () => {
+  it("submits allinpay WeChat requests to Java and maps them to mini program cashier payloads", async () => {
     const backendClient = createFakeBackendClient({
       "/sys/config/paySettlementType": {
         code: "00000",
@@ -202,13 +202,8 @@ describe("cashier real flow service", () => {
       "/p/order/pay": {
         code: "00000",
         data: {
-          appId: "wx-app-id",
-          nonceStr: "nonce",
-          packageValue: "Sign=WXPay",
-          partnerId: "partner",
-          prepayId: "prepay",
-          sign: "sign",
-          timeStamp: "1770000000"
+          bizOrderNo: "TL202606300001",
+          miniprogramPayInfo_VSP: "{\"cusid\":\"990581007426001\",\"appid\":\"002\",\"trxamt\":\"12990\",\"reqsn\":\"O202606300001\"}"
         },
         success: true
       }
@@ -229,8 +224,30 @@ describe("cashier real flow service", () => {
         paySettlementType: 1,
         payType: 8,
         execution: {
+          bizOrderNo: "TL202606300001",
+          miniProgram: {
+            appId: "wxef277996acc166c3",
+            originalId: "gh_e64a1a89a0ad",
+            path: "pages/orderDetail/orderDetail?cusid=990581007426001&appid=002&trxamt=12990&reqsn=O202606300001",
+            query: {
+              appid: "002",
+              cusid: "990581007426001",
+              reqsn: "O202606300001",
+              trxamt: "12990"
+            },
+            queryString: "cusid=990581007426001&appid=002&trxamt=12990&reqsn=O202606300001",
+            type: "wechat"
+          },
+          paymentMode: "wechat-mini-program",
+          paymentPayload: {
+            appid: "002",
+            cusid: "990581007426001",
+            reqsn: "O202606300001",
+            trxamt: "12990"
+          },
           payType: 8,
-          provider: "wechat",
+          provider: "allinpay",
+          settlementProvider: "allinpay",
           type: "native-sdk"
         }
       });

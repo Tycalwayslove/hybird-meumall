@@ -78,10 +78,14 @@ export type CashierViewData = {
 export type PaymentExecution =
   | {
       type: "native-sdk";
+      bizOrderNo?: string;
+      miniProgram?: PaymentMiniProgramPayload;
       orderNumbers: string;
+      paymentMode?: "app-sdk" | "wechat-mini-program";
       payType: 7 | 8;
       paymentPayload: unknown;
-      provider: "alipay" | "wechat";
+      provider: "alipay" | "wechat" | "allinpay";
+      settlementProvider?: "allinpay";
     }
   | {
       type: "open-url";
@@ -95,6 +99,15 @@ export type PaymentExecution =
       orderNumbers: string;
       reason: "pure-points";
     };
+
+export type PaymentMiniProgramPayload = {
+  appId: string;
+  originalId: string;
+  path: string;
+  query: Record<string, string>;
+  queryString: string;
+  type: "wechat";
+};
 
 export type OrderPaymentData = {
   debugRaw?: {
@@ -656,6 +669,21 @@ function normalizePaymentExecution({
   payType: 7 | 8;
 }): PaymentExecution {
   const provider = payType === 7 ? "alipay" : "wechat";
+  const allinpayWechatMiniProgram = paySettlementType === 1 && payType === 8 ? createAllinpayWechatMiniProgramPayload(payResult) : undefined;
+  if (allinpayWechatMiniProgram) {
+    return {
+      bizOrderNo: extractBizOrderNo(payResult),
+      miniProgram: allinpayWechatMiniProgram.miniProgram,
+      orderNumbers,
+      paymentMode: "wechat-mini-program",
+      paymentPayload: allinpayWechatMiniProgram.rawPayload,
+      payType,
+      provider: "allinpay",
+      settlementProvider: "allinpay",
+      type: "native-sdk"
+    };
+  }
+
   if (typeof payResult === "string" && looksLikeUrl(payResult)) {
     return {
       orderNumbers,
@@ -681,10 +709,84 @@ function normalizePaymentExecution({
   return {
     orderNumbers,
     paymentPayload: payType === 8 ? normalizeWechatAppPayInfo(payResult) : payResult,
+    paymentMode: "app-sdk",
     payType,
     provider,
     type: "native-sdk"
   };
+}
+
+function createAllinpayWechatMiniProgramPayload(payResult: JavaOrderPayResult) {
+  const rawPayload = extractAllinpayWechatPayload(payResult);
+  if (!rawPayload) {
+    return undefined;
+  }
+
+  const query = normalizeStringRecord(rawPayload);
+  const queryString = new URLSearchParams(query).toString();
+  return {
+    rawPayload,
+    miniProgram: {
+      appId: "wxef277996acc166c3",
+      originalId: "gh_e64a1a89a0ad",
+      path: queryString ? `pages/orderDetail/orderDetail?${queryString}` : "pages/orderDetail/orderDetail",
+      query,
+      queryString,
+      type: "wechat" as const
+    }
+  };
+}
+
+function extractAllinpayWechatPayload(payResult: JavaOrderPayResult) {
+  if (!isRecord(payResult)) {
+    return undefined;
+  }
+  const explicitCandidate =
+    payResult.miniprogramPayInfo_VSP ??
+    payResult.miniprogramPayInfo ??
+    payResult.miniProgramPayInfo ??
+    payResult.payInfo ??
+    payResult.wxPayInfo;
+  const parsedExplicitCandidate = parsePaymentObject(explicitCandidate);
+  if (parsedExplicitCandidate) {
+    return parsedExplicitCandidate;
+  }
+
+  return hasAllinpayMiniProgramKeys(payResult) ? payResult : undefined;
+}
+
+function parsePaymentObject(value: unknown): Record<string, unknown> | undefined {
+  if (isRecord(value)) {
+    return value;
+  }
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return isRecord(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeStringRecord(value: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, entryValue]) => entryValue !== undefined && entryValue !== null && entryValue !== "")
+      .map(([key, entryValue]) => [key, typeof entryValue === "string" ? entryValue : String(entryValue)])
+  );
+}
+
+function hasAllinpayMiniProgramKeys(value: Record<string, unknown>) {
+  return ["cusid", "appid", "trxamt", "reqsn"].some((key) => value[key] !== undefined && value[key] !== null);
+}
+
+function extractBizOrderNo(payResult: JavaOrderPayResult) {
+  if (!isRecord(payResult)) {
+    return undefined;
+  }
+  return normalizeOptionalText(payResult.bizOrderNo ?? payResult.orderNo ?? payResult.orderNumber);
 }
 
 function normalizeWechatAppPayInfo(payResult: JavaOrderPayResult): unknown {

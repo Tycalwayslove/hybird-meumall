@@ -971,7 +971,17 @@ type OrderPaymentData = {
       | {
           type: "native-sdk";
           provider: "alipay" | "wechat" | "allinpay";
-          sdkPayload: unknown;
+          paymentMode?: "app-sdk" | "wechat-mini-program";
+          paymentPayload: unknown;
+          miniProgram?: {
+            appId: string;
+            originalId: string;
+            path: string;
+            query: Record<string, string>;
+            queryString: string;
+            type: "wechat";
+          };
+          settlementProvider?: "allinpay";
           bizOrderNo?: string;
         }
       | {
@@ -1026,8 +1036,9 @@ type AllinpayOrderStatusData = {
 - `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
 - `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber`、`/sys/config/info/getSysPaySwitch` 和 `/sys/config/paySettlementType` 后展示金额、倒计时、支付状态、支付方式和结算通道。
 - `/pay-way` 点击“确定支付”调用 `/api/bff/order-pay`。BFF 传 Java `/p/order/pay` 的基础参数为 `payType/orderNumbers/returnUrl/systemType`；`systemType` 按客户端平台映射，Android 为 `4`，iOS/默认 App 为 `5`；当 `paySettlementType=1` 时补 `allinPaySystemType=1`。
-- 普通支付宝/微信支付返回 `execution.type="native-sdk"`，H5 通过 `rpc/payment.pay` 把 `provider/payType/orderNumbers/sdkPayload` 交给 App 拉起 SDK；Bridge 返回后进入 `/pay-result` 展示结果。
+- 普通支付宝/微信支付返回 `execution.type="native-sdk"` 和 `paymentMode="app-sdk"`，H5 通过 `rpc/payment.pay` 把 `provider/payType/orderNumbers/sdkPayload` 交给 App 拉起 SDK；Bridge 返回后进入 `/pay-result` 展示结果。
 - 测试环境当前 `paySettlementType=1`，通联支付宝返回 `execution.type="open-url"` 时，H5 通过 `rpc/payment.openUrl` 请求 App 打开支付 URL，随后进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>` 并调用 `/api/bff/allinpay-order-status` 回查结果。
+- 测试环境当前 `paySettlementType=1` 且选择微信 `payType=8` 时，H5 会把 `/p/order/pay` 返回的通联小程序支付字段归一化为 `execution.type="native-sdk"`、`provider="allinpay"`、`settlementProvider="allinpay"`、`paymentMode="wechat-mini-program"`，并在 `miniProgram` 中提供 `appId=wxef277996acc166c3`、`originalId=gh_e64a1a89a0ad`、`path=pages/orderDetail/orderDetail?...`。H5 通过 `rpc/payment.pay` 交给 App 使用微信 OpenSDK 拉起通联小程序收银台；App 若只能确认已打开，返回 `status=unknown` 即可，H5 进入 `/pay-result` 回查。
 
 ### 订单列表、退货退款和订单详情
 
