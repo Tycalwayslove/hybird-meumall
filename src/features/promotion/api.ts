@@ -8,6 +8,10 @@ import type {
   RankingType
 } from "./types";
 import type { PromotionBenefitsBffData } from "./server/promotion-level-real-service";
+import type {
+  PromotionIncentiveActivityDetailBffData,
+  PromotionIncentiveRewardDetailBffData
+} from "./server/promotion-incentive-activities-real-service";
 import type { PromotionProductsBffData } from "./server/promotion-products-real-service";
 
 export type PromotionHttpClient = {
@@ -32,10 +36,28 @@ export type PromotionProductsParams = {
   sort?: number;
 };
 
+export type PromotionActivityListParams = {
+  current?: number;
+  orderBy?: string;
+  size?: number;
+};
+
 export function createPromotionApi(client: PromotionHttpClient) {
   return {
-    getActivities() {
-      return client.request<PromotionActivitiesData>("/api/bff/promotion/activities");
+    getActivities(params: PromotionActivityListParams = {}) {
+      return client.request<PromotionActivitiesData>(
+        withQuery("/api/bff/promotion/activities", {
+          current: params.current ?? 1,
+          orderBy: params.orderBy,
+          size: params.size ?? 10
+        })
+      );
+    },
+    getActivityDetail(activityId: string | number) {
+      return client.request<PromotionIncentiveActivityDetailBffData>(`/api/bff/promotion/activities/${activityId}`);
+    },
+    getActivityReward(activityId: string | number) {
+      return client.request<PromotionIncentiveRewardDetailBffData>(`/api/bff/promotion/activities/${activityId}/reward`);
     },
     getBenefits(options: PromotionLevelOptions = {}) {
       return client.request<PromotionBenefitsBffData>(withQuery("/api/bff/promotion/benefits", options));

@@ -88,10 +88,9 @@ export type PromotionActivitiesData = {
   items: PromotionActivity[];
 };
 
-export type ActivityDetailSlug = "open-order-july" | "pk-july" | "pk-june";
-
 export type PromotionActivityDetailData = {
-  slug: ActivityDetailSlug;
+  id: string;
+  bannerUrl?: string;
   title: {
     prefix: string;
     highlight: string;
@@ -104,6 +103,7 @@ export type PromotionActivityDetailData = {
   statusText: string;
   statusKind: "primary" | "neutral";
   actionHref?: string;
+  canReceiveReward?: boolean;
   periodText: string;
   metrics:
     | {
@@ -131,6 +131,19 @@ export type PromotionActivityDetailData = {
     columns: [string, string];
     rows: Array<[string, string]>;
   };
+  rewards?: Array<{
+    id: string;
+    title: string;
+    statusText: string;
+    receiveRecordId?: string;
+    canReceive: boolean;
+    prizes: Array<{
+      id: string;
+      name: string;
+      stateText: string;
+      typeText: string;
+    }>;
+  }>;
 };
 
 export type RewardRecordSummary = {

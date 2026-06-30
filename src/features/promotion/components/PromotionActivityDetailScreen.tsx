@@ -41,7 +41,7 @@ export function PromotionActivityDetailScreen({ data }: { data: PromotionActivit
             width: designWidth
           }}
         >
-          <img alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" src={localAssetUrl(data.heroBackgroundAssetKey)} />
+          <img alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" src={data.bannerUrl ?? localAssetUrl(data.heroBackgroundAssetKey)} />
 
           <ActivityHeroTitle data={data} />
           <HeroBadge text={data.badgeText} />
@@ -64,6 +64,12 @@ export function PromotionActivityDetailScreen({ data }: { data: PromotionActivit
             <p className="text-[13px] leading-[18px] text-text-primary">{data.rules.description}</p>
             <RulesTable rules={data.rules} />
           </ActivitySection>
+
+          {data.rewards && data.rewards.length > 0 ? (
+            <ActivitySection title="我的奖励">
+              <RewardList rewards={data.rewards} />
+            </ActivitySection>
+          ) : null}
         </div>
       </section>
     </TransparentActionNavPage>
@@ -245,6 +251,35 @@ function RulesTable({ rules }: { rules: PromotionActivityDetailData["rules"] }) 
         >
           <span>{row[0]}</span>
           <span>{row[1]}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function RewardList({ rewards }: { rewards: NonNullable<PromotionActivityDetailData["rewards"]> }) {
+  return (
+    <div className="w-full space-y-2.5">
+      {rewards.map((reward) => (
+        <div key={reward.id} className="rounded-[12px] bg-fill-page px-3 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="min-w-0 flex-1 truncate text-[15px] font-semibold leading-5 text-text-primary">{reward.title}</h3>
+            <span className={reward.canReceive ? "rounded-pill bg-success-soft px-2 py-1 text-[12px] font-semibold leading-none text-success-strong" : "rounded-pill bg-fill-muted px-2 py-1 text-[12px] font-medium leading-none text-text-tertiary"}>
+              {reward.statusText}
+            </span>
+          </div>
+          {reward.prizes.length > 0 ? (
+            <div className="mt-2 space-y-1.5">
+              {reward.prizes.map((prize) => (
+                <div key={prize.id} className="flex items-center justify-between gap-3 text-[13px] leading-[18px] text-text-secondary">
+                  <span className="min-w-0 flex-1 truncate">{prize.name}</span>
+                  <span className="shrink-0 text-text-tertiary">{prize.typeText} · {prize.stateText}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-[13px] leading-[18px] text-text-tertiary">奖励明细结算中</p>
+          )}
         </div>
       ))}
     </div>

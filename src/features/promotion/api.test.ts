@@ -3,6 +3,10 @@ import type { H5BffResult } from "@/lib/http";
 import type { PromotionHomeData, RankingData } from "./types";
 import { createPromotionApi } from "./api";
 import type { PromotionHttpClient } from "./api";
+import type {
+  PromotionIncentiveActivityDetailBffData,
+  PromotionIncentiveRewardDetailBffData
+} from "./server/promotion-incentive-activities-real-service";
 import type { PromotionProductsBffData } from "./server/promotion-products-real-service";
 
 describe("promotion api", () => {
@@ -66,6 +70,31 @@ describe("promotion api", () => {
     });
 
     expect(client.request).toHaveBeenCalledWith("/api/bff/promotion/products?categoryId2=10&current=2&prodName=%E7%9F%AD%E8%A2%96&size=10&sort=4");
+  });
+
+  test("centralizes promotion incentive activity endpoints", async () => {
+    const expectedResult = {
+      success: true,
+      data: {} as PromotionIncentiveActivityDetailBffData,
+      requestId: "req-promotion-activity"
+    } satisfies H5BffResult<PromotionIncentiveActivityDetailBffData>;
+    const rewardResult = {
+      success: true,
+      data: {} as PromotionIncentiveRewardDetailBffData,
+      requestId: "req-promotion-activity-reward"
+    } satisfies H5BffResult<PromotionIncentiveRewardDetailBffData>;
+    const client = {
+      request: vi.fn(async (path: string) => path.endsWith("/reward") ? rewardResult : expectedResult)
+    } as { request: PromotionHttpClient["request"] & ReturnType<typeof vi.fn> };
+    const api = createPromotionApi(client);
+
+    await api.getActivities({ current: 2, orderBy: "-createTime", size: 6 });
+    await api.getActivityDetail(1001);
+    await api.getActivityReward(1001);
+
+    expect(client.request).toHaveBeenNthCalledWith(1, "/api/bff/promotion/activities?current=2&orderBy=-createTime&size=6");
+    expect(client.request).toHaveBeenNthCalledWith(2, "/api/bff/promotion/activities/1001");
+    expect(client.request).toHaveBeenNthCalledWith(3, "/api/bff/promotion/activities/1001/reward");
   });
 });
 

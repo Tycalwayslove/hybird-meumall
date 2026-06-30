@@ -1,4 +1,4 @@
-import type { ActivityDetailSlug, PromotionActivityDetailData } from "../types";
+import type { PromotionActivityDetailData } from "../types";
 
 const activityRuleRows: Array<[string, string]> = [
   ["第一名", "4888元"],
@@ -13,9 +13,9 @@ const baseRules = {
   rows: activityRuleRows
 };
 
-export const promotionActivityDetails: Record<ActivityDetailSlug, PromotionActivityDetailData> = {
+export const promotionActivityDetails: Record<string, PromotionActivityDetailData> = {
   "open-order-july": {
-    slug: "open-order-july",
+    id: "open-order-july",
     title: {
       prefix: "7月",
       highlight: "开单",
@@ -44,7 +44,7 @@ export const promotionActivityDetails: Record<ActivityDetailSlug, PromotionActiv
     rules: baseRules
   },
   "pk-july": {
-    slug: "pk-july",
+    id: "pk-july",
     title: {
       prefix: "7月",
       highlight: "PK",
@@ -73,7 +73,7 @@ export const promotionActivityDetails: Record<ActivityDetailSlug, PromotionActiv
     rules: baseRules
   },
   "pk-june": {
-    slug: "pk-june",
+    id: "pk-june",
     title: {
       prefix: "6月",
       highlight: "PK",
@@ -104,5 +104,5 @@ export const promotionActivityDetails: Record<ActivityDetailSlug, PromotionActiv
 };
 
 export function getPromotionActivityDetailBySlug(slug: string): PromotionActivityDetailData | null {
-  return promotionActivityDetails[slug as ActivityDetailSlug] ?? null;
+  return promotionActivityDetails[slug] ?? null;
 }
