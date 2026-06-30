@@ -5,20 +5,100 @@ import { CouponsScreen } from "./components/CouponsScreen";
 import { OrderEmptyState, OrdersScreen } from "./components/OrdersScreen";
 import { RefundsEmptyState, RefundsScreen } from "./components/RefundsScreen";
 import { ProductCollectionScreen } from "./components/ProductCollectionScreen";
-import { WalletScreen } from "./components/WalletScreen";
+import { BankCardsScreen, BankCardsStaticView } from "./components/BankCardsScreen";
+import { WalletScreen, WalletStaticView } from "./components/WalletScreen";
 
 describe("mine secondary pages", () => {
-  test("renders the wallet balance card and settlement records", () => {
+  test("renders the wallet loading state without mock records", () => {
     const html = renderToStaticMarkup(<WalletScreen />);
 
     expect(html).toContain("我的钱包");
-    expect(html).toContain("帐户余额(元)");
-    expect(html).toContain("2383.43");
-    expect(html).toContain("已结算");
-    expect(html).toContain("待结算");
-    expect(html).toContain("历史钱包");
-    expect(html).toContain("本月(1月1日~1月31日)");
+    expect(html).toContain("钱包数据加载中");
+    expect(html).not.toContain("商品名称商品名称");
     expect(html).not.toContain("/wallet?tab=");
+  });
+
+  test("renders wallet real data and bank card management entry", () => {
+    const html = renderToStaticMarkup(
+      <WalletStaticView
+        activeState="settled"
+        data={{
+          modules: {
+            orders: { current: 1, pages: 1, records: [], size: 10, total: 1 },
+            overview: { userInfo: { distributionUserId: 7788 } },
+            wallet: { addupAmount: 1200.5 }
+          },
+          page: { current: 1, hasMore: false, pages: 1, size: 10, total: 1 },
+          view: {
+            orders: [
+              {
+                amountText: "+99.50",
+                detailHref: "/orders/NO1001",
+                id: "NO1001",
+                status: "settled",
+                time: "2026-06-30 10:00:00",
+                title: "推广订单商品"
+              }
+            ],
+            summary: {
+              balanceText: "1200.50",
+              pendingIncomeText: "+400.00",
+              settledIncomeText: "+800.00",
+              unsettledText: "400.00",
+              withdrawText: "200.00",
+              withdrawableText: "800.00"
+            }
+          }
+        }}
+        error=""
+        loading={false}
+        onReload={() => undefined}
+        onStateChange={() => undefined}
+      />
+    );
+
+    expect(html).toContain("帐户余额(元)");
+    expect(html).toContain("1200.50");
+    expect(html).toContain("提现记录");
+    expect(html).toContain("银行卡管理");
+    expect(html).toContain("/wallet/bank-cards");
+    expect(html).toContain("推广订单商品");
+  });
+
+  test("renders bank cards loading and real card views", () => {
+    const loadingHtml = renderToStaticMarkup(<BankCardsScreen />);
+
+    expect(loadingHtml).toContain("银行卡管理");
+    expect(loadingHtml).toContain("银行卡加载中");
+
+    const cardsHtml = renderToStaticMarkup(
+      <BankCardsStaticView
+        cards={[
+          {
+            acctNum: "6222020202025211",
+            bankName: "工商银行",
+            cardTypeText: "储蓄卡",
+            id: "6222020202025211",
+            maskedCardNo: "**** **** **** 5211",
+            signNum: "DU7788"
+          }
+        ]}
+        error=""
+        loading={false}
+        onReload={() => undefined}
+        onRequestUnbind={() => undefined}
+        pendingCard={null}
+        notice=""
+        onCancelUnbind={() => undefined}
+        onConfirmUnbind={() => undefined}
+        unbinding={false}
+      />
+    );
+
+    expect(cardsHtml).toContain("工商银行");
+    expect(cardsHtml).toContain("储蓄卡");
+    expect(cardsHtml).toContain("**** **** **** 5211");
+    expect(cardsHtml).toContain("解绑");
   });
 
   test("renders favorites and edit controls", () => {

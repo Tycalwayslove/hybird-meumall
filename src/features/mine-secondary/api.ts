@@ -21,6 +21,7 @@ import type {
   JavaRefundOrder
 } from "./server/orders-real-service";
 import type { CollectionMutationData, CollectionsPageData, JavaFavoriteProductGroup, JavaFootprintProduct } from "./server/collections-real-service";
+import type { BankCardMutationData, BankCardsPageData, WalletPageData, WalletState } from "./server/wallet-real-service";
 
 type AddressHttpClient = {
   request<T>(path: string, options?: H5RequestOptions): Promise<H5BffResult<T>>;
@@ -159,3 +160,38 @@ export function createCollectionsApi(client: AddressHttpClient) {
 }
 
 export type CollectionsApi = ReturnType<typeof createCollectionsApi>;
+
+export type GetWalletInput = {
+  current?: number;
+  size?: number;
+  state?: WalletState;
+};
+
+export type UnbindBankCardInput = {
+  acctNum: string;
+  signNum: string;
+};
+
+export function createWalletApi(client: AddressHttpClient) {
+  return {
+    getBankCards() {
+      return client.request<BankCardsPageData>("/api/bff/wallet/bank-cards");
+    },
+    getWallet({ current = 1, size = 10, state = "settled" }: GetWalletInput = {}) {
+      const query = new URLSearchParams({
+        current: String(current),
+        size: String(size),
+        state
+      });
+      return client.request<WalletPageData>(`/api/bff/wallet?${query.toString()}`);
+    },
+    unbindBankCard(input: UnbindBankCardInput) {
+      return client.request<BankCardMutationData>("/api/bff/wallet/bank-cards/unbind", {
+        body: input,
+        method: "POST"
+      });
+    }
+  };
+}
+
+export type WalletApi = ReturnType<typeof createWalletApi>;
