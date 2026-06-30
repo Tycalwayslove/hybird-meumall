@@ -54,6 +54,32 @@ export type BridgeAddressLocation = Omit<BridgeAddress, "addrId" | "commonAddr" 
   name?: string | null;
 };
 
+export type BridgePaymentPayRequest = {
+  orderNumbers: string;
+  payType: 7 | 8;
+  provider: "alipay" | "wechat";
+  sdkPayload: unknown;
+};
+
+export type BridgePaymentPayResponse = {
+  message?: string;
+  nativeCode?: string;
+  status: "cancelled" | "failed" | "success" | "unknown";
+};
+
+export type BridgePaymentOpenUrlRequest = {
+  bizOrderNo?: string;
+  orderNumbers: string;
+  provider?: "allinpay" | "alipay" | "wechat" | (string & {});
+  url: string;
+};
+
+export type BridgePaymentOpenUrlResponse = {
+  message?: string;
+  opened: boolean;
+  status?: "failed" | "opened";
+};
+
 export type RpcResponseMap = {
   getTokens: {
     accessToken: string;
@@ -90,6 +116,8 @@ export type RpcResponseMap = {
   "address.chooseLocation": {
     location?: BridgeAddressLocation | null;
   };
+  "payment.pay": BridgePaymentPayResponse;
+  "payment.openUrl": BridgePaymentOpenUrlResponse;
 };
 
 export type RpcRequestMap = {
@@ -108,6 +136,8 @@ export type RpcRequestMap = {
     addrId: string;
   };
   "address.chooseLocation": undefined;
+  "payment.pay": BridgePaymentPayRequest;
+  "payment.openUrl": BridgePaymentOpenUrlRequest;
 };
 
 export type RpcName = keyof RpcResponseMap;
@@ -305,8 +335,8 @@ function stringifyBridgePayload(payload: NavigatePayload) {
   }
 }
 
-export function createWindowProtocolBridge(): ProtocolBridge {
-  return createProtocolBridge();
+export function createWindowProtocolBridge(options: Omit<ProtocolBridgeOptions, "postMessage"> = {}): ProtocolBridge {
+  return createProtocolBridge(options);
 }
 
 function createWindowPostMessage(): ((message: BridgeMessage) => void) | undefined {

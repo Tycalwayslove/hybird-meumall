@@ -8,6 +8,7 @@ import { createPaymentApi } from "./api";
 import { PayWayScreen, paymentStartedMessage } from "./components/PayWayScreen";
 import {
   createCashierHrefFromSubmitResult,
+  createOrderPaymentData,
   fetchOrderPayInfoData,
   type PaymentServerResponse
 } from "./server/cashier-service";
@@ -38,6 +39,11 @@ describe("cashier real flow service", () => {
         code: "00000",
         data: samplePaySwitch,
         success: true
+      },
+      "/sys/config/paySettlementType": {
+        code: "00000",
+        data: JSON.stringify({ paySettlementType: 1 }),
+        success: true
       }
     });
 
@@ -52,9 +58,10 @@ describe("cashier real flow service", () => {
     if (result.ok) {
       expect(result.data.view).toMatchObject({
         amountText: "129.9",
-        defaultPayType: 7,
+        defaultPayType: 8,
         endTime: "2026-06-26 16:30:00",
         orderNumbers: "O202606260001",
+        paySettlementType: 1,
         status: "pending",
         totalAmount: 129.9
       });
@@ -65,12 +72,169 @@ describe("cashier real flow service", () => {
     }
     expect(backendClient.requests.map((request) => ({ method: request.method, path: request.path }))).toEqual([
       { method: "GET", path: "/p/order/getOrderPayInfoByOrderNumber?orderNumbers=O202606260001" },
-      { method: "GET", path: "/sys/config/info/getSysPaySwitch" }
+      { method: "GET", path: "/sys/config/info/getSysPaySwitch" },
+      { method: "GET", path: "/sys/config/paySettlementType" }
     ]);
   });
 
-  it("keeps confirm payment as a local prompt without calling Java pay this phase", () => {
-    expect(paymentStartedMessage).toBe("已发起支付");
+  it("keeps WeChat as the default payment method while WeChat is available", async () => {
+    const backendClient = createFakeBackendClient({
+      "/p/order/getOrderPayInfoByOrderNumber?orderNumbers=O202606300001": {
+        code: "00000",
+        data: samplePayInfo,
+        success: true
+      },
+      "/sys/config/info/getSysPaySwitch": {
+        code: "00000",
+        data: samplePaySwitch,
+        success: true
+      },
+      "/sys/config/paySettlementType": {
+        code: "00000",
+        data: 1,
+        success: true
+      }
+    });
+
+    const result = await fetchOrderPayInfoData({
+      backendClient,
+      orderNumbers: "O202606300001"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view.defaultPayType).toBe(8);
+    }
+  });
+
+  it("uses a real payment-starting prompt while the cashier calls payment APIs", () => {
+    expect(paymentStartedMessage).toBe("正在发起支付");
+  });
+
+  it("creates an allinpay alipay open-url execution from legacy Java payment endpoints", async () => {
+    const backendClient = createFakeBackendClient({
+      "/sys/config/paySettlementType": {
+        code: "00000",
+        data: JSON.stringify({ paySettlementType: 1 }),
+        success: true
+      },
+      "/p/order/pay": {
+        code: "00000",
+        data: {
+          bizOrderNo: "TL202606290001",
+          miniprogramPayInfo_VSP: "{\"token\":\"pay-token\"}"
+        },
+        success: true
+      },
+      "/p/allinpay/order/getAliAppPayUrl?json=%7B%22token%22%3A%22pay-token%22%7D&page=pages%2ForderDetail%2ForderDetail&schemeUrl=meumall%3A%2F%2Fapp%2F": {
+        code: "00000",
+        data: "alipays://platformapi/startapp?appId=20000067",
+        success: true
+      }
+    });
+
+    const result = await createOrderPaymentData({
+      authRequired: true,
+      authToken: "mall-token",
+      backendClient,
+      clientContext: { platform: "ios" },
+      orderNumbers: "O202606290001",
+      payType: 7,
+      returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606290001"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view).toMatchObject({
+        orderNumbers: "O202606290001",
+        paySettlementType: 1,
+        payType: 7,
+        execution: {
+          bizOrderNo: "TL202606290001",
+          provider: "allinpay",
+          type: "open-url",
+          url: "alipays://platformapi/startapp?appId=20000067"
+        }
+      });
+    }
+    expect(backendClient.requests.map((request) => ({ body: request.body, method: request.method, path: request.path }))).toEqual([
+      { body: undefined, method: "GET", path: "/sys/config/paySettlementType" },
+      {
+        body: {
+          allinPaySystemType: 1,
+          orderNumbers: "O202606290001",
+          payType: 7,
+          returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606290001",
+          systemType: 5
+        },
+        method: "POST",
+        path: "/p/order/pay"
+      },
+      {
+        body: undefined,
+        method: "GET",
+        path: "/p/allinpay/order/getAliAppPayUrl?json=%7B%22token%22%3A%22pay-token%22%7D&page=pages%2ForderDetail%2ForderDetail&schemeUrl=meumall%3A%2F%2Fapp%2F"
+      }
+    ]);
+  });
+
+  it("submits WeChat payment requests to Java with payType 8", async () => {
+    const backendClient = createFakeBackendClient({
+      "/sys/config/paySettlementType": {
+        code: "00000",
+        data: 1,
+        success: true
+      },
+      "/p/order/pay": {
+        code: "00000",
+        data: {
+          appId: "wx-app-id",
+          nonceStr: "nonce",
+          packageValue: "Sign=WXPay",
+          partnerId: "partner",
+          prepayId: "prepay",
+          sign: "sign",
+          timeStamp: "1770000000"
+        },
+        success: true
+      }
+    });
+
+    const result = await createOrderPaymentData({
+      backendClient,
+      clientContext: { platform: "ios" },
+      orderNumbers: "O202606300001",
+      payType: 8,
+      returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606300001"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view).toMatchObject({
+        orderNumbers: "O202606300001",
+        paySettlementType: 1,
+        payType: 8,
+        execution: {
+          payType: 8,
+          provider: "wechat",
+          type: "native-sdk"
+        }
+      });
+    }
+    expect(backendClient.requests.map((request) => ({ body: request.body, method: request.method, path: request.path }))).toEqual([
+      { body: undefined, method: "GET", path: "/sys/config/paySettlementType" },
+      {
+        body: {
+          allinPaySystemType: 1,
+          orderNumbers: "O202606300001",
+          payType: 8,
+          returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606300001",
+          systemType: 5
+        },
+        method: "POST",
+        path: "/p/order/pay"
+      }
+    ]);
   });
 });
 
@@ -113,7 +277,7 @@ describe("cashier rendering", () => {
     const html = renderToStaticMarkup(
       <PayWayScreen
         data={{
-          defaultPayType: 7,
+          defaultPayType: 8,
           dvyType: "1",
           endTime: "2026-06-26 16:30:00",
           isPurePoints: false,
@@ -126,7 +290,8 @@ describe("cashier rendering", () => {
           statusText: "待支付",
           totalAmount: 129.9,
           amountText: "129.9",
-          totalScore: 0
+          totalScore: 0,
+          paySettlementType: 0
         }}
       />
     );
@@ -168,8 +333,8 @@ describe("cashier rendering", () => {
     }
   });
 
-  it("keeps the payment button local with a started-payment prompt", () => {
-    expect(paymentStartedMessage).toBe("已发起支付");
+  it("uses a started-payment prompt while calling payment APIs", () => {
+    expect(paymentStartedMessage).toBe("正在发起支付");
   });
 });
 
@@ -177,6 +342,8 @@ type FakeBackendResponse =
   | { ok: false }
   | PaymentServerResponse<typeof samplePayInfo>
   | PaymentServerResponse<typeof samplePaySwitch>
+  | PaymentServerResponse<number>
+  | PaymentServerResponse<string>
   | PaymentServerResponse<Record<string, unknown>>;
 
 function createFakeBackendClient(responses: Record<string, FakeBackendResponse>) {

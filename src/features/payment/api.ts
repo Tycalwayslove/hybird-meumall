@@ -1,5 +1,5 @@
 import type { H5BffResult, H5RequestOptions } from "@/lib/http";
-import type { OrderPayInfoData } from "./server/cashier-service";
+import type { AllinpayOrderStatusData, OrderPaymentData, OrderPayInfoData } from "./server/cashier-service";
 
 export type PaymentHttpClient = {
   request<T>(path: string, options?: H5RequestOptions): Promise<H5BffResult<T>>;
@@ -11,6 +11,20 @@ export type OrderPayInfoParams = {
   orderNumbers: string;
   orderType?: string;
   ordermold?: string;
+};
+
+export type SubmitOrderPaymentParams = {
+  dvyType?: string;
+  isPurePoints?: boolean;
+  orderNumbers: string;
+  orderType?: string;
+  ordermold?: string;
+  payType: 7 | 8 | 0;
+};
+
+export type AllinpayOrderStatusParams = {
+  bizOrderNo: string;
+  orderNumbers?: string;
 };
 
 export function createPaymentApi(client: PaymentHttpClient) {
@@ -31,6 +45,20 @@ export function createPaymentApi(client: PaymentHttpClient) {
       }
 
       return client.request<OrderPayInfoData>(`/api/bff/order-pay-info?${query.toString()}`);
+    },
+    submitOrderPayment(params: SubmitOrderPaymentParams) {
+      return client.request<OrderPaymentData>("/api/bff/order-pay", {
+        body: params,
+        method: "POST"
+      });
+    },
+    getAllinpayOrderStatus({ bizOrderNo, orderNumbers }: AllinpayOrderStatusParams) {
+      const query = new URLSearchParams({ bizOrderNo });
+      if (orderNumbers) {
+        query.set("orderNumbers", orderNumbers);
+      }
+
+      return client.request<AllinpayOrderStatusData>(`/api/bff/allinpay-order-status?${query.toString()}`);
     }
   };
 }

@@ -229,4 +229,88 @@ describe("protocol bridge", () => {
       }
     });
   });
+
+  it("posts payment rpc messages through the shared envelope", async () => {
+    const messages: unknown[] = [];
+    const bridge = createProtocolBridge({
+      postMessage: (message) => {
+        messages.push(message);
+      },
+      createCallbackId: () => "cb_payment",
+      timeoutMs: 100
+    });
+
+    const promise = bridge.rpc("payment.pay", {
+      orderNumbers: "O202606290001",
+      payType: 7,
+      provider: "alipay",
+      sdkPayload: { orderInfo: "sdk-payload" }
+    });
+
+    expect(messages).toEqual([
+      {
+        module: "rpc",
+        action: "payment.pay",
+        callbackId: "cb_payment",
+        payload: {
+          orderNumbers: "O202606290001",
+          payType: 7,
+          provider: "alipay",
+          sdkPayload: { orderInfo: "sdk-payload" }
+        }
+      }
+    ]);
+
+    bridge.reply.resolve("cb_payment", {
+      status: "unknown",
+      message: "debug receiver"
+    });
+
+    await expect(promise).resolves.toEqual({
+      status: "unknown",
+      message: "debug receiver"
+    });
+  });
+
+  it("posts payment openUrl rpc messages through the shared envelope", async () => {
+    const messages: unknown[] = [];
+    const bridge = createProtocolBridge({
+      postMessage: (message) => {
+        messages.push(message);
+      },
+      createCallbackId: () => "cb_open_url",
+      timeoutMs: 100
+    });
+
+    const promise = bridge.rpc("payment.openUrl", {
+      bizOrderNo: "TL202606290001",
+      orderNumbers: "O202606290001",
+      provider: "allinpay",
+      url: "alipays://platformapi/startapp?appId=20000067"
+    });
+
+    expect(messages).toEqual([
+      {
+        module: "rpc",
+        action: "payment.openUrl",
+        callbackId: "cb_open_url",
+        payload: {
+          bizOrderNo: "TL202606290001",
+          orderNumbers: "O202606290001",
+          provider: "allinpay",
+          url: "alipays://platformapi/startapp?appId=20000067"
+        }
+      }
+    ]);
+
+    bridge.reply.resolve("cb_open_url", {
+      opened: true,
+      status: "opened"
+    });
+
+    await expect(promise).resolves.toEqual({
+      opened: true,
+      status: "opened"
+    });
+  });
 });

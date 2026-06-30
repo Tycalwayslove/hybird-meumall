@@ -121,6 +121,8 @@ type BridgeResult<T> =
 | rpc/getTokens | 调试中 | 统一信封 RPC，原生当前只返回 debug token。 |
 | rpc/getDeviceInfo | 调试中 | 统一信封 RPC，原生当前只返回 debug 设备信息。 |
 | rpc/address.* | 调试中 | 地址能力 RPC，H5 商品详情、订单确认和地址管理页优先使用；原生 debug receiver 当前返回调试地址。 |
+| rpc/payment.pay | 对接中 | H5 收银台请求原生拉起 App 内支付宝/微信 SDK；原生 debug receiver 当前返回占位状态。 |
+| rpc/payment.openUrl | 对接中 | H5 收银台请求原生打开通联支付 URL；原生 debug receiver 当前会尝试打开外部 URL。 |
 | router/navigate | 调试中 | H5 发出导航信封，原生当前只接收记录。 |
 | event/token_expired | 调试中 | H5 发出 token 失效事件，原生当前只接收记录。 |
 | event/share | 调试中 | H5 发出分享事件，原生当前只接收记录。 |
@@ -223,6 +225,56 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 `Address` 字段沿用旧 Java 地址对象核心字段：`addrId`、`receiver`、`mobile`、`province`、`provinceId`、`city`、`cityId`、`area`、`areaId`、`addr`、`commonAddr`、`lat`、`lng`。订单确认和提交 BFF 仍会调用 Java `/p/address/addrInfo/{addrId}` 校验地址，不能只信任 Bridge 快照。
 
 `address.chooseLocation` 当前只做 Bridge 能力预留：H5 发起 RPC 并输出 `[MeuMall][address-location]` console 日志；App 未接入时页面提示“定位能力等待 App Bridge 接入”，不会伪造定位结果。
+
+## rpc/payment.* 支付能力
+
+收银台 `/pay-way` 点击“确定支付”后，H5 先请求自身 BFF 创建后端支付参数，再按 BFF 返回的 `execution.type` 调 Native Bridge：
+
+| action | payload | resolve data | H5 使用场景 |
+| --- | --- | --- | --- |
+| `payment.pay` | `{ provider, payType, orderNumbers, sdkPayload }` | `{ status, message? }` | 普通 App 内支付宝/微信 SDK 支付。 |
+| `payment.openUrl` | `{ provider: "allinpay", url, orderNumbers, bizOrderNo? }` | `{ opened, status, message? }` | 通联支付宝 URL 支付；App 打开外部 URL 后 H5 进入 `/pay-result` 回查。 |
+
+`payment.pay` 请求示例：
+
+```json
+{
+  "module": "rpc",
+  "action": "payment.pay",
+  "callbackId": "cb_xxx",
+  "payload": {
+    "provider": "alipay",
+    "payType": 7,
+    "orderNumbers": "NO202606290001",
+    "sdkPayload": {
+      "orderInfo": "alipay_sdk_order_info"
+    }
+  }
+}
+```
+
+`payment.openUrl` 请求示例：
+
+```json
+{
+  "module": "rpc",
+  "action": "payment.openUrl",
+  "callbackId": "cb_xxx",
+  "payload": {
+    "provider": "allinpay",
+    "orderNumbers": "NO202606290001",
+    "bizOrderNo": "NO202606290001",
+    "url": "https://..."
+  }
+}
+```
+
+H5 处理规则：
+
+- `payment.pay` resolve `status=success/paid` 后进入 `/pay-result?sts=1`；`status=cancelled/failed/unknown` 进入结果页并展示可重试状态。
+- `payment.openUrl` resolve `opened=true` 后进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>`，结果页调用 `/api/bff/allinpay-order-status` 回查。
+- Bridge 不可用时，普通 App 内 SDK 支付无法降级，H5 展示“请在 App 内完成支付”；通联 URL 支付可临时使用 `window.location.assign(url)` 作为浏览器调试兜底。
+- App 生产实现必须校验支付 URL scheme / host 白名单，不应打开任意 URL。
 
 ### 地址选择流路由约定
 
