@@ -33,6 +33,7 @@
 - `/promotion/activities` 和 `/promotion/activities/[id]` 改为消费 Java APP 侧达人激励活动接口，失败或空数据不回退本地 mock。
 - 活动详情新增奖励状态展示，后续实物奖励地址选择交互可复用领取奖励 BFF。
 - 新增收银台真实支付发起链路：`/api/bff/order-pay` 调 Java `/p/order/pay`，普通支付宝/微信返回 App SDK payload，通联支付宝返回支付 URL。
+- `/api/bff/order-pay` 增加专属调试日志，BFF 服务端单独打印 H5 入参、Java `/p/order/pay` 实际请求体和 Java 原始返回；H5 收银台 console 同步打印提交参数、BFF 返回、本地/测试 `debugRaw` 中的 Java 入参和返回。
 - 新增 `/api/bff/allinpay-order-status` 和 `/pay-result`，支付结果页支持按 `bizOrderNo` 回查通联支付状态，并支持重试付款或查看订单。
 - 新增 Native Bridge 支付 RPC：`rpc/payment.pay` 用于 App 内支付宝/微信 SDK 支付，`rpc/payment.openUrl` 用于通联支付 URL 打开。
 - `/api/bff/order-pay-info` 新增 `/sys/config/paySettlementType` 读取，收银台展示当前普通支付或通联支付通道。

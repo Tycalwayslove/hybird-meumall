@@ -138,6 +138,7 @@ describe("cashier real flow service", () => {
       authToken: "mall-token",
       backendClient,
       clientContext: { platform: "ios" },
+      includeDebugRaw: true,
       orderNumbers: "O202606290001",
       payType: 7,
       returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606290001"
@@ -154,6 +155,19 @@ describe("cashier real flow service", () => {
           provider: "allinpay",
           type: "open-url",
           url: "alipays://platformapi/startapp?appId=20000067"
+        }
+      });
+      expect(result.data.debugRaw?.orderPayRequest).toEqual({
+        allinPaySystemType: 1,
+        orderNumbers: "O202606290001",
+        payType: 7,
+        returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606290001",
+        systemType: 5
+      });
+      expect(result.data.debugRaw?.orderPay).toMatchObject({
+        data: {
+          bizOrderNo: "TL202606290001",
+          miniprogramPayInfo_VSP: "{\"token\":\"pay-token\"}"
         }
       });
     }
@@ -253,8 +267,30 @@ describe("cashier browser api adapter", () => {
     });
 
     await api.getOrderPayInfo({ orderNumbers: "O202606260001" });
+    await api.submitOrderPayment({
+      dvyType: "1",
+      isPurePoints: false,
+      orderNumbers: "O202606260001",
+      orderType: "0",
+      ordermold: "0",
+      payType: 8
+    });
 
-    expect(calls).toEqual([{ method: undefined, path: "/api/bff/order-pay-info?orderNumbers=O202606260001" }]);
+    expect(calls).toEqual([
+      { method: undefined, path: "/api/bff/order-pay-info?orderNumbers=O202606260001" },
+      {
+        body: {
+          dvyType: "1",
+          isPurePoints: false,
+          orderNumbers: "O202606260001",
+          orderType: "0",
+          ordermold: "0",
+          payType: 8
+        },
+        method: "POST",
+        path: "/api/bff/order-pay?debugRaw=1"
+      }
+    ]);
   });
 });
 

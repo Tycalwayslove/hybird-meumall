@@ -20,20 +20,43 @@ export async function POST(request: Request) {
     }
 
     const context = createBffRequestContext(request);
-    const result = await createOrderPaymentData({
-      authRequired: true,
-      authToken: context.getAuthToken("java"),
-      backendClient: context.backendClient,
-      clientContext: context.clientContext,
+    const requestId = request.headers.get("x-request-id") ?? undefined;
+    const requestPayload = {
       dvyType: normalizeText(payload.dvyType) || "1",
-      includeDebugRaw: shouldIncludeDebugRaw(request),
       isPurePoints: payload.isPurePoints === true || payload.isPurePoints === "1",
       orderNumbers,
       orderType: normalizeText(payload.orderType) || "0",
       ordermold: normalizeText(payload.ordermold) || "0",
       payType,
       returnUrl: createPaymentReturnUrl(request, orderNumbers)
+    };
+    console.info("[h5-order-pay-bff-request]", JSON.stringify({ payload: requestPayload, requestId }, null, 2));
+
+    const result = await createOrderPaymentData({
+      authRequired: true,
+      authToken: context.getAuthToken("java"),
+      backendClient: context.backendClient,
+      clientContext: context.clientContext,
+      dvyType: requestPayload.dvyType,
+      includeDebugRaw: shouldIncludeDebugRaw(request),
+      isPurePoints: requestPayload.isPurePoints,
+      orderNumbers,
+      orderType: requestPayload.orderType,
+      ordermold: requestPayload.ordermold,
+      payType,
+      returnUrl: requestPayload.returnUrl
     });
+    console.info(
+      "[h5-order-pay-bff-response]",
+      JSON.stringify(
+        {
+          ok: result.ok,
+          ...(result.ok ? { data: result.data, requestId: result.meta.requestId } : { error: result.error, requestId: result.error.requestId })
+        },
+        null,
+        2
+      )
+    );
 
     return toBffResponse(result);
   } catch (error) {

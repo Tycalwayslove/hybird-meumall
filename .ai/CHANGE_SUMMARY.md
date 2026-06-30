@@ -1,5 +1,20 @@
 # 变更摘要
 
+## 2026-06-30 - 收银台支付调试日志
+
+### 变更
+
+- `/api/bff/order-pay` 增加专属服务端日志 `[h5-order-pay-bff-request]` 和 `[h5-order-pay-bff-response]`，单独打印 H5 到 BFF 的支付提交参数和 BFF 返回结果。
+- Java `/p/order/pay` 调用前后增加专属服务端日志 `[h5-order-pay-java-request]` 和 `[h5-order-pay-java-response]`，单独打印实际发给 Java 的请求体和 Java 原始返回。
+- H5 收银台点击“确定支付”时在 console 输出 `[MeuMall][order-pay][h5-request]`、`[MeuMall][order-pay][h5-response]`，本地/测试环境还会输出 `[MeuMall][order-pay][java-request]` 和 `[MeuMall][order-pay][java-response]`。
+- `/api/bff/order-pay?debugRaw=1` 在 local/test 下补充 `debugRaw.orderPayRequest`，方便 App WebView console 直接对照 Java 入参；正式环境不返回该调试字段。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 18 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/payment src/app/pay-way/page.tsx src/app/pay-result/page.tsx src/app/api/bff/order-pay/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/lib/bridge/protocol-bridge.ts`：通过。
+
 ## 2026-06-30 - 收银台视觉优化
 
 ### 变更

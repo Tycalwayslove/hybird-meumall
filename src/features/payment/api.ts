@@ -46,11 +46,25 @@ export function createPaymentApi(client: PaymentHttpClient) {
 
       return client.request<OrderPayInfoData>(`/api/bff/order-pay-info?${query.toString()}`);
     },
-    submitOrderPayment(params: SubmitOrderPaymentParams) {
-      return client.request<OrderPaymentData>("/api/bff/order-pay", {
-        body: params,
-        method: "POST"
-      });
+    async submitOrderPayment(params: SubmitOrderPaymentParams) {
+      console.info("[MeuMall][order-pay][h5-request]", params);
+      try {
+        const result = await client.request<OrderPaymentData>("/api/bff/order-pay?debugRaw=1", {
+          body: params,
+          method: "POST"
+        });
+        console.info("[MeuMall][order-pay][h5-response]", result);
+        if (result.success && result.data.debugRaw?.orderPayRequest) {
+          console.info("[MeuMall][order-pay][java-request]", result.data.debugRaw.orderPayRequest);
+        }
+        if (result.success && result.data.debugRaw?.orderPay) {
+          console.info("[MeuMall][order-pay][java-response]", result.data.debugRaw.orderPay);
+        }
+        return result;
+      } catch (error) {
+        console.error("[MeuMall][order-pay][h5-error]", error);
+        throw error;
+      }
     },
     getAllinpayOrderStatus({ bizOrderNo, orderNumbers }: AllinpayOrderStatusParams) {
       const query = new URLSearchParams({ bizOrderNo });

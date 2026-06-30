@@ -99,6 +99,7 @@ export type PaymentExecution =
 export type OrderPaymentData = {
   debugRaw?: {
     allinpayUrl?: PaymentServerResponse<string>;
+    orderPayRequest?: Record<string, unknown>;
     orderPay: PaymentServerResponse<JavaOrderPayResult>;
     paySettlement?: PaymentServerResponse<unknown>;
   };
@@ -345,22 +346,52 @@ export async function createOrderPaymentData({
   }
 
   const paySettlementType = paySettlementResult.data.paySettlementType;
+  const orderPayRequestBody = {
+    payType,
+    orderNumbers,
+    returnUrl,
+    systemType: resolveJavaSystemType(clientContext),
+    ...(paySettlementType === 1 ? { allinPaySystemType: 1 } : {})
+  };
+  console.info(
+    "[h5-order-pay-java-request]",
+    JSON.stringify(
+      {
+        body: orderPayRequestBody,
+        path: "/p/order/pay",
+        paySettlementType
+      },
+      null,
+      2
+    )
+  );
   const orderPayResult = await backendClient.request<PaymentServerResponse<JavaOrderPayResult>>({
     authRequired,
     authToken,
     backend: "java",
-    body: {
-      payType,
-      orderNumbers,
-      returnUrl,
-      systemType: resolveJavaSystemType(clientContext),
-      ...(paySettlementType === 1 ? { allinPaySystemType: 1 } : {})
-    },
+    body: orderPayRequestBody,
     clientContext,
     method: "POST",
     path: "/p/order/pay",
     route: "/api/bff/order-pay"
   });
+  console.info(
+    "[h5-order-pay-java-response]",
+    JSON.stringify(
+      orderPayResult.ok
+        ? {
+            data: orderPayResult.data,
+            ok: true,
+            requestId: orderPayResult.meta.requestId
+          }
+        : {
+            error: orderPayResult.error,
+            ok: false
+          },
+      null,
+      2
+    )
+  );
   if (!orderPayResult.ok) {
     return orderPayResult;
   }
@@ -397,11 +428,12 @@ export async function createOrderPaymentData({
       data: {
         ...(includeDebugRaw
           ? {
-              debugRaw: {
-                allinpayUrl: allinpayUrlResult.data,
-                orderPay: orderPayResult.data,
-                paySettlement: paySettlementResult.data.raw
-              }
+            debugRaw: {
+              allinpayUrl: allinpayUrlResult.data,
+              orderPayRequest: orderPayRequestBody,
+              orderPay: orderPayResult.data,
+              paySettlement: paySettlementResult.data.raw
+            }
             }
           : {}),
         modules: {
@@ -432,6 +464,7 @@ export async function createOrderPaymentData({
       ...(includeDebugRaw
         ? {
             debugRaw: {
+              orderPayRequest: orderPayRequestBody,
               orderPay: orderPayResult.data,
               paySettlement: paySettlementResult.data.raw
             }
