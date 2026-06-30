@@ -26,6 +26,16 @@
 
 ### 新增
 
+- 新增卖手活动真实 BFF：`/api/bff/seller-activities`、`/api/bff/seller-activities/[activityId]/products`、`/api/bff/seller-activities/[activityId]/available-products`、`/api/bff/seller-activities/[activityId]/products/[prodId]`、`/api/bff/seller-activities/save-or-update` 和 `/api/bff/seller-activities/batch-status`。
+- 新增 H5 页面 `/seller/activities`、`/seller/activities/[activityId]`、`/seller/activities/[activityId]/products`、`/seller/activities/[activityId]/products/[prodId]`，承接原生智能体营销活动入口后的卖手活动配置流程。
+- 卖手活动配置页支持进行中/已暂停 tab，切换只更新页面 state 和接口请求，不修改 URL；批量编辑中进行中 tab 橙色按钮为“暂停”，已暂停 tab 橙色按钮为“开始”。
+- 新增推广激励活动真实 BFF：`/api/bff/promotion/activities`、`/api/bff/promotion/activities/[id]`、`/api/bff/promotion/activities/[id]/reward` 和 `PATCH /api/bff/promotion/activities/rewards/[recordId]/receive`。
+- `/promotion/activities` 和 `/promotion/activities/[id]` 改为消费 Java APP 侧达人激励活动接口，失败或空数据不回退本地 mock。
+- 活动详情新增奖励状态展示，后续实物奖励地址选择交互可复用领取奖励 BFF。
+- 新增收银台真实支付发起链路：`/api/bff/order-pay` 调 Java `/p/order/pay`，普通支付宝/微信返回 App SDK payload，通联支付宝返回支付 URL。
+- 新增 `/api/bff/allinpay-order-status` 和 `/pay-result`，支付结果页支持按 `bizOrderNo` 回查通联支付状态，并支持重试付款或查看订单。
+- 新增 Native Bridge 支付 RPC：`rpc/payment.pay` 用于 App 内支付宝/微信 SDK 支付，`rpc/payment.openUrl` 用于通联支付 URL 打开。
+- `/api/bff/order-pay-info` 新增 `/sys/config/paySettlementType` 读取，收银台展示当前普通支付或通联支付通道。
 - 新增地址选择流统一 helper `src/features/mine-secondary/address-flow.ts`，用 `select/from/flowId/productId/skuId/quantity/addressId` 描述从商品详情或订单确认进入地址列表的上下文。
 - 地址列表选择态支持一次性 `sessionStorage` 结果 + `history.back()` 返回来源页，来源页消费后通过 `history.replaceState` 修正 URL 并重新请求商品详情或订单确认接口，兼容 App 导航栏返回和系统手势返回。
 - 地址列表删除非默认地址时新增 H5 确认弹层，用户确认后才调用删除接口，避免误删收货地址。
@@ -122,6 +132,9 @@
 
 ### 变更
 
+- `/pay-way` 收银台视觉优化：金额区改为更明确的 App 内结算面板，支付方式改为卡片式选中态，底部提交栏、支付中提示、加载和错误状态同步打磨；本次不变更支付接口或 Bridge 契约。
+- 收银台默认支付方式改为微信可用时优先微信，用于当前阶段优先跑通微信支付；直接点击“确定支付”会提交 `payType=8`。
+- `rpc/payment.pay` 的 H5 payload 字段名从 `paymentPayload` 对齐为契约里的 `sdkPayload`。
 - H5 BFF 鉴权和 API 规范补充 `User-Agent`、`x-request-id`、App 版本、系统版本、设备型号和 WebView 版本的透传约定。
 - 根目录 `dev:h5`、H5 项目环境启动命令和 `scripts/root/dev-all.sh` 改为读取 H5 environment profile；Java 后端统一为 `https://test.aigcpop.com/mini_h5`，Python 后端统一为 `https://test.aigcpop.com/api`。
 - 首页渲染数据源从纯静态 mock 调整为优先请求 H5 BFF；早期失败回落 `homeExperienceData` 的策略已在后续正式联调阶段移除。
@@ -616,3 +629,20 @@
 - `git diff --check` 通过。
 - HTTP 冒烟：`/hybird/favorites/products` 200，`/hybird/footprints` 200。
 - 飞书知识库已同步：页面清单 revision 38，API/BFF 对接说明 revision 10。
+
+## 2026-06-30 - 钱包和银行卡真实接口联调
+
+### 变更
+
+- 新增 `/api/bff/wallet`，聚合 Java `/p/distribution/wallet/info`、`/p/distribution/home/overview` 和 `/p/distribution/api/queryPromotionOrder`。
+- 新增 `/api/bff/wallet/bank-cards` 和 `/api/bff/wallet/bank-cards/unbind`，接入通联银行卡查询和解绑接口。
+- `/wallet` 从静态 mock 改为真实 BFF 数据源，首屏 loading、空订单空态、失败重试均不回退 mock。
+- 新增 `/wallet/bank-cards` 银行卡管理页，支持已绑卡列表、无卡态和解绑确认弹窗；新增绑卡流程后置。
+- 更新根级任务、对接说明、API 契约、页面清单和 H5 API 规范。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- HTTP 冒烟：`/hybird/wallet` 200，`/hybird/wallet/bank-cards` 200。
+- Playwright + 本机 Chrome 成功态截图验证：钱包、银行卡列表、解绑弹窗均可渲染，375 宽度无横向溢出。

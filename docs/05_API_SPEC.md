@@ -444,9 +444,13 @@ type HomeBffData = {
 
 我的页 `/mine` 已接入真实概览 BFF：SSR 消费 `/api/bff/mine/summary`，BFF 聚合 Java `/p/app/profile/summary` 和 `/p/daren/level/myLevel`。`walletBalance/yearSavedAmount/couponCount` 映射为我的页三项指标，`banners` 取 `seq` 最小的一张作为个人中心 banner，当前等级映射为权益中心入口 `/promotion/benefits?level=<v>`。联调阶段接口失败、token 缺失或 `data` 缺失时展示错误态，不回退 `minePageData` mock。
 
+钱包 `/wallet` 已接入真实 BFF：浏览器端消费 `/api/bff/wallet?state=settled|pending&current=1&size=10`，BFF 先调 Java `/p/distribution/wallet/info` 获取分销钱包汇总，再调 `/p/distribution/home/overview` 获取 `userInfo.distributionUserId`，随后调 `/p/distribution/api/queryPromotionOrder` 获取推广订单。`state=settled` 映射 Java `state=2`，`state=pending` 映射 Java `state=1`。银行卡管理 `/wallet/bank-cards` 消费 `/api/bff/wallet/bank-cards`，BFF 调 `/p/allinpay/member/queryBankCardV2` 并过滤已解除卡；解绑银行卡消费 `POST /api/bff/wallet/bank-cards/unbind`，BFF 转 Java `/p/allinpay/member/unbindBankCardV2`，body 为 `{ signNum, acctNum }`。当前 `signNum` 暂取推广概览 `userInfo.cardNo`，需要 App token 联调和后端确认。
+
 权益中心 `/promotion/benefits` 已接入真实等级 BFF：SSR 消费 `/api/bff/promotion/benefits`，BFF 聚合 Java `/p/daren/level/myLevel` 和 `/p/daren/level/list`。`myLevel` 用于当前等级、进度和佣金倍率，`level/list` 用于可切换等级列表和权益项。页面继续支持左右滑、箭头和等级轨道切换；等级列表为空或接口失败展示错误态，不回退本地 mock。Apifox description 中仍写旧 `/p/distribution/level/...`，当前 OpenAPI path 为 `/p/daren/level/...`，H5 以 OpenAPI path 为准。
 
 推广排行榜销量榜和销售额榜已接入真实 BFF：`/promotion/ranking/sales` 和 `/api/bff/promotion/rankings/sales` 调 Java `/p/distribution/rank/list?rankType=1`；`/promotion/ranking/amount` 和 `/api/bff/promotion/rankings/amount` 调 Java `/p/distribution/rank/list?rankType=2`。H5 `period=day/week/month` 映射 Java `period=1/2/3`，可选 `statPeriod` 按原值透传；我的排名来自同一响应内 `myRank`。接口成功后只渲染真实 `rankList/myRank`，空数组展示榜单空态，失败或 token 缺失展示错误态，不回退 mock 榜单。榜单类型和周期切换只更新页面 state 与 BFF 请求，不调用 router、不更新 query、不追加 WebView history。达人激励榜当前路由为 `/promotion/ranking/incentive`，本阶段固定展示空态，不请求 `rankType=4`。
+
+推广激励活动中心和详情已接入真实 BFF：`/promotion/activities` 和 `/api/bff/promotion/activities` 调 Java `/p/app/distribution/incentive/page`，支持 `current/size/orderBy`；`/promotion/activities/[id]` 和 `/api/bff/promotion/activities/[id]` 聚合 Java `/p/app/distribution/incentive/detail/{id}` 与 `/p/app/distribution/incentive/reward/detail/{id}`，用于活动基础信息、个人进度、奖励规则和当前奖励状态。`/api/bff/promotion/activities/[id]/reward` 单独返回奖励详情；`PATCH /api/bff/promotion/activities/rewards/[recordId]/receive` 转发 Java `/p/app/distribution/incentive/reward/receive/{recordId}`，可选 `addressId`。列表空数组展示活动空态，非法详情 id 走 404，接口失败或 token 缺失展示错误态，不回退本地 mock。
 
 首页推荐商品分页 BFF 返回：
 
@@ -766,13 +770,15 @@ type CategoryListBffData = {
 
 ### 商品详情真实接口
 
-商品详情真实接口通过 H5 BFF 接入，本期覆盖普通商品、快递配送、SKU、立即购买到订单确认实时校验、普通快递订单创建，以及创建订单后的收银台支付信息展示：
+商品详情真实接口通过 H5 BFF 接入，本期覆盖普通商品、快递配送、SKU、立即购买到订单确认实时校验、普通快递订单创建，以及创建订单后的收银台支付信息展示和真实发起支付：
 
 ```http
 GET /api/bff/product-detail?prodId=1000054
 GET /api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>
 POST /api/bff/order-submit
 GET /api/bff/order-pay-info?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0
+POST /api/bff/order-pay
+GET /api/bff/allinpay-order-status?bizOrderNo=<bizOrderNo>&orderNumbers=<orderNumbers>
 ```
 
 BFF 后端调用：
@@ -785,6 +791,10 @@ BFF 后端调用：
 | Java | POST | `/p/order/submit` | 普通商品快递订单提交；创建待支付订单并返回 `orderNumbers`。 |
 | Java | GET | `/p/order/getOrderPayInfoByOrderNumber?orderNumbers=<orderNumbers>` | 收银台读取待支付订单金额、过期时间、积分和支付状态。 |
 | Java | GET | `/sys/config/info/getSysPaySwitch` | 收银台读取支付方式开关，当前只展示支付宝和微信支付方式。 |
+| Java | GET | `/sys/config/paySettlementType` | 收银台读取当前支付结算类型；`1` 表示通联支付。 |
+| Java | POST | `/p/order/pay` | 确认付款时创建后端支付参数；H5 BFF 传 `payType/orderNumbers/returnUrl/systemType`，通联时补 `allinPaySystemType=1`。 |
+| Java | GET | `/p/allinpay/order/getAliAppPayUrl` | 通联支付宝支付 URL 获取；参数来自 `/p/order/pay` 返回的 `miniprogramPayInfo_VSP`。 |
+| Java | GET | `/p/allinpay/order/getOrderStatus` | `/pay-result` 按 `bizOrderNo` 回查通联支付状态。 |
 | Java | GET | `/shop/headInfo?shopId=<shopId>` | 店铺头部信息；主商品接口成功且存在 `shopId` 后尽量请求。 |
 | Java | GET | `/prod/prodCommData?prodId=<prodId>&stationId=` | 评论统计；用于评价数量、好评率和评价标签。 |
 | Java | GET | `/prod/prodCommPageByProd?prodId=<prodId>&size=10&current=1&evaluate=-1&stationId=` | 评论分页；首屏只取前两条作为概要。 |
@@ -922,6 +932,7 @@ type OrderPayInfoData = {
     orderNumbers: string;
     orderType?: string;
     ordermold?: string;
+    paySettlementType: number;
     status: "failed" | "paid" | "pending" | "unknown";
     statusText: string;
     totalAmount: number;
@@ -930,6 +941,71 @@ type OrderPayInfoData = {
   modules: {
     orderPayInfo: JavaOrderPayInfo;
     paySwitch?: JavaPaymentSwitchInfo;
+    paySettlementType: number;
+  };
+};
+```
+
+确认付款 BFF 请求体：
+
+```ts
+type OrderPayRequest = {
+  orderNumbers: string;
+  payType: 7 | 8 | 0;
+  dvyType?: string;
+  isPurePoints?: boolean;
+  orderType?: string;
+  ordermold?: string;
+};
+```
+
+确认付款 BFF 成功响应：
+
+```ts
+type OrderPaymentData = {
+  view: {
+    orderNumbers: string;
+    payType: 7 | 8 | 0;
+    paySettlementType: number;
+    execution:
+      | {
+          type: "native-sdk";
+          provider: "alipay" | "wechat" | "allinpay";
+          sdkPayload: unknown;
+          bizOrderNo?: string;
+        }
+      | {
+          type: "open-url";
+          provider: "allinpay";
+          url: string;
+          bizOrderNo?: string;
+        }
+      | {
+          type: "paid";
+          provider: "none";
+          message: string;
+        };
+  };
+  modules: {
+    orderPay: JavaOrderPayResult;
+    paySettlementType: number;
+  };
+};
+```
+
+通联状态回查 BFF 成功响应：
+
+```ts
+type AllinpayOrderStatusData = {
+  view: {
+    bizOrderNo: string;
+    orderNumbers?: string;
+    paid: boolean;
+    status: "paid" | "pending" | "failed" | "unknown";
+    statusText: string;
+  };
+  modules: {
+    orderStatus: JavaAllinpayOrderStatus;
   };
 };
 ```
@@ -948,7 +1024,10 @@ type OrderPayInfoData = {
 - `/order-confirm` 会先通过 Bridge `address.getDefault` 获取默认地址；再通过 `getOrderConfirm()` 请求 Java `/p/address/addrInfo/{addrId|0}` 解析默认/选中收货地址，重新请求商品详情校验 SKU、库存和价格，并调用 Java `/p/order/confirm` 生成后端确认上下文；如果 URL 中包含 `addressId`，会优先作为 `addrId` 传给 BFF；校验失败或无收货地址时禁止继续交易。普通快递链路对齐旧 uni-app，不因确认响应 `submitOrder=0` 在 H5 层置灰或阻断。
 - `/order-confirm` 地址卡会跳转 `/address?select=1&from=order-confirm&flowId=<flowId>&productId=<productId>&skuId=<skuId>&quantity=<quantity>&addressId=<addrId>`；地址列表“使用”会写入一次性地址选择结果并 `history.back()` 回订单确认页，订单确认页消费结果后用 `history.replaceState` 更新为 `/order-confirm?...&addressId=<addrId>` 并重新请求确认接口。无 JS 或无法回退 history 时，地址卡 href 兜底到同等参数的 `/order-confirm`。
 - `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
-- `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber` 和 `/sys/config/info/getSysPaySwitch` 后展示金额、倒计时、支付状态和支付方式。本期确认付款流程暂不迁移：点击“确定支付”只在 H5 本地提示“已发起支付”，不调用 Java `/p/order/pay`，不请求支付 Bridge，不进入支付结果页。
+- `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber`、`/sys/config/info/getSysPaySwitch` 和 `/sys/config/paySettlementType` 后展示金额、倒计时、支付状态、支付方式和结算通道。
+- `/pay-way` 点击“确定支付”调用 `/api/bff/order-pay`。BFF 传 Java `/p/order/pay` 的基础参数为 `payType/orderNumbers/returnUrl/systemType`；`systemType` 按客户端平台映射，Android 为 `4`，iOS/默认 App 为 `5`；当 `paySettlementType=1` 时补 `allinPaySystemType=1`。
+- 普通支付宝/微信支付返回 `execution.type="native-sdk"`，H5 通过 `rpc/payment.pay` 把 `provider/payType/orderNumbers/sdkPayload` 交给 App 拉起 SDK；Bridge 返回后进入 `/pay-result` 展示结果。
+- 测试环境当前 `paySettlementType=1`，通联支付宝返回 `execution.type="open-url"` 时，H5 通过 `rpc/payment.openUrl` 请求 App 打开支付 URL，随后进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>` 并调用 `/api/bff/allinpay-order-status` 回查结果。
 
 ### 订单列表、退货退款和订单详情
 
@@ -1329,6 +1408,19 @@ type Response = {};
 
 **备注**
 ```
+
+## 已接卖手活动 BFF
+
+| H5 BFF | Java 接口 | 页面 | 说明 |
+| --- | --- | --- | --- |
+| `/api/bff/seller-activities` | `GET /p/sellerActivity/availableList` | `/seller/activities` | 查询平台可参加营销活动，空数组展示空态 |
+| `/api/bff/seller-activities/[activityId]/products` | `GET /p/sellerActivity/page` | `/seller/activities/[activityId]` | 活动商品分页，`status=1` 进行中，`status=0` 已暂停 |
+| `/api/bff/seller-activities/[activityId]/available-products` | `GET /p/distribution/prod/productPage` | `/seller/activities/[activityId]/products` | 新增活动商品来源，传 `incentiveId=<activityId>` |
+| `/api/bff/seller-activities/[activityId]/products/[prodId]` | `GET /p/sellerActivity/detail` | `/seller/activities/[activityId]/products/[prodId]` | 活动商品设置详情 |
+| `/api/bff/seller-activities/save-or-update` | `POST /p/sellerActivity/saveOrUpdate` | 商品设置页 | 保存活动时间、限购和 SKU 活动价 |
+| `/api/bff/seller-activities/batch-status` | `POST /p/sellerActivity/batchStatus` | 活动配置页 | `-1` 删除，`0` 暂停，`1` 开始 |
+
+卖手活动页面进入真实接口联调阶段，不使用本地 mock 业务数据兜底。接口失败、鉴权失败或超时时展示错误/重试；列表为空时展示 `EmptyState`。
 
 ## 待确认问题
 

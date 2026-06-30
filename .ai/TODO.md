@@ -5,16 +5,21 @@ s
 - [ ] 与 Java / Python 后端确认接收、记录、透传和返回 `x-request-id`，并在入口日志记录 App / 设备 / 系统上下文。
 - [ ] 用 App 注入的有效 `mallToken` 验证首页 `/api/bff/home`、首页推荐 `/api/bff/home/recommend-products`、相似推荐 `/api/bff/home/for-you-products` 均能返回真实数据，并确认 banner `jumpType` 最终跳转语义。
 - [ ] 用 App 注入的有效 `mallToken` 验证我的页 `/api/bff/mine/summary` 和权益中心 `/api/bff/promotion/benefits` 的真实数据、当前等级、等级切换和权益展示。
+- [ ] 用 App 注入的有效 `mallToken` 验证钱包 `/api/bff/wallet`、银行卡列表 `/api/bff/wallet/bank-cards` 和解绑银行卡 `/api/bff/wallet/bank-cards/unbind`；重点确认推广订单 `userId` 来源和通联解绑 `signNum` 取值。
 - [ ] 接入正式线上日志平台后，将 `[h5-bff-backend-call]` 和 `[h5-bff-route-error]` 纳入可按 `requestId` 检索的日志索引。
-- [ ] 确认推广模块活动、榜单、权益、佣金明细和名片等剩余真实后端接口、达人等级规则、活动状态和榜单刷新策略；推广首页概览已接 `/p/distribution/home/overview`。
+- [ ] 确认推广模块佣金明细、名片、奖励记录列表等剩余真实后端接口、达人等级规则、活动状态和榜单刷新策略；推广首页概览已接 `/p/distribution/home/overview`，激励活动已接 APP 侧 `/p/app/distribution/incentive/*`。
 - [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`）、`route_changed`、手势返回和 URL 白名单。
 - [ ] 确认 v1.2.0 搜索建议、推广商品分类 ID 来源、商品详情收藏状态接口、秒杀购买资格/活动时间接口和原生入口跳转参数；热门搜索词、热榜、搜索结果商品、我的收藏商品和我的足迹已分别接 `/search/hotSearch`、`/search/rankTabs`、`/search/rank/{rankType}`、`/p/app/prod/page`、`/p/user/collection/prods`、`/p/prodBrowseLog/page`。
 - [ ] 用 App 注入的有效 `mallToken` 验证推广首页 `/api/bff/promotion/home`、秒杀商品 `/api/bff/seckill/products` 和推广商品 `/api/bff/promotion/products` 的真实数据、分页、商品详情跳转和分享 payload。
+- [ ] 用 App 注入的有效 `mallToken` 验证活动中心 `/api/bff/promotion/activities`、活动详情 `/api/bff/promotion/activities/[id]`、奖励详情 `/api/bff/promotion/activities/[id]/reward` 和领取奖励 `/api/bff/promotion/activities/rewards/[recordId]/receive`。
+- [ ] 用 App 注入的有效 `mallToken` 验证卖手活动 `/seller/activities`、活动配置 `/seller/activities/[activityId]`、选择商品和商品设置链路；重点确认 `/p/sellerActivity/detail` 对未配置商品的返回、`batchStatus` 批量部分失败策略和 `saveOrUpdate` SKU 活动价校验。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 的真实数据链路。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
 - [ ] 用 App 注入的有效 `mallToken` 验证订单列表、退货退款列表、普通快递订单详情、退款详情和订单操作接口：`/p/myOrder/myOrder`、`/p/orderRefund/list`、`/p/myOrder/orderDetail`、`/p/myDelivery/orderInfo/{orderNumber}`、`/p/myOrder/cancel/{orderNumber}`、`/p/myOrder/receipt/{orderNumber}`、`/p/myOrder/{orderNumber}`、`/p/myOrder/submitMessage`。
 - [ ] 用 App 注入的有效 `mallToken` 验证我的收藏和我的足迹接口：`/p/user/collection/prods`、`/p/user/collection/addOrCancel`、`/p/prodBrowseLog/page`、`/p/prodBrowseLog`。
-- [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取、真正确认付款 `/p/order/pay` 和支付 Bridge/支付结果页对接口径。
+- [ ] 用 App 注入的有效 `mallToken` 和真实待支付订单验证收银台 `/api/bff/order-pay-info`、`/api/bff/order-pay`、通联支付宝 `/p/allinpay/order/getAliAppPayUrl`、`/api/bff/allinpay-order-status` 与 `/pay-result` 全链路。
+- [ ] 与 iOS / Android 完成正式支付 Bridge 联调：`rpc/payment.pay` 拉起支付宝/微信 SDK，`rpc/payment.openUrl` 打开通联支付 URL，并统一返回 `success/paid/cancelled/failed/unknown` 状态。
+- [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取和通联微信支付返回字段口径。
 - [ ] 为 App 正式地址数据源接入 `rpc/address.*`，并补齐 `address.chooseLocation` 真实定位/地图选点和真实 App WebView token 联调验证。
 - [ ] 用 App 注入的有效 `mallToken` 验证真实商品 `content` 富文本中的详情图、表格和链接展示效果。
 - [ ] 用线上 `/debug-login` 写入 Java / Python 调试 token 后，验证浏览器独立 H5 首页、商品详情和订单确认真实接口链路。
@@ -31,7 +36,7 @@ s
 - [ ] 确认 API token 刷新、重新登录和原生代理策略。
 - [ ] 确认 Telemetry 真实 Sentry/埋点平台、白屏采样点、采样率和隐私脱敏策略。
 - [ ] 将模拟页面中的色块占位替换为正式 icon 体系。
-- [ ] 确认商品详情评价详情、咨询能力归属和支付前正式下单接口。
+- [ ] 确认商品详情评价详情、咨询能力归属、支付 App SDK 正式回调和真实支付验签口径。
 - [ ] 接入真实商品、订单和用户接口；分类列表已接 `/category/list`，喵呜无购物车概念。
 - [ ] 配置 GitHub Actions 所需 SSR secrets 和受保护发布环境。
 - [ ] 在真实 CI 环境配置 `H5_RELEASE_SERVER_URL`，验证 `register_release=true` 的 candidate release 注册链路。
@@ -40,6 +45,7 @@ s
 
 ## Done
 
+- [x] 优化 `/pay-way` 收银台视觉层级，补齐金额面板、支付方式选中态、底部提交栏和加载/错误状态样式。
 - [x] 按 `docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md` 完成订单列表、退货退款列表、普通快递订单详情和退款详情真实接口迁移，新增相关 BFF、页面、mapper 和操作按钮。
 
 - [x] 创建 AI 工作流文档脚手架。
@@ -99,5 +105,6 @@ s
 - [x] 增加 H5 本地 token 兜底，支持 `.env.local` 配置 Java / Python 临时 token。
 - [x] 将我的页昵称后的 V1-V5 达人等级从文字胶囊替换为本地图片横条徽章。
 - [x] 完成个人中心二级页首批静态高保真：钱包、我的收藏、我的足迹、我的优惠券和订单列表。
+- [x] 将钱包和银行卡管理接入真实 BFF：钱包聚合分销钱包、推广概览和推广订单接口，银行卡管理接入通联绑卡查询和解绑。
 - [x] 新增独立 H5 调试 Token 登录页，浏览器无 token 时可手动写入 Java / Python token，原生 App 信号下不展示。
 - [x] 完成收货地址模块前端闭环：地址列表、新增/编辑地址页、我的页入口、商品详情/订单确认地址选择入口、`addrId` 传递和兼容 App 手势返回的地址选择流。

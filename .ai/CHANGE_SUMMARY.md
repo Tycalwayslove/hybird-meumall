@@ -1,5 +1,82 @@
 # 变更摘要
 
+## 2026-06-30 - 收银台视觉优化
+
+### 变更
+
+- 优化 `/pay-way` 收银台金额面板、支付方式列表、选中态、底部提交栏、支付中提示和加载/错误状态样式。
+- 支付方式行补充 App 支付副文案和 `aria-pressed` 状态，当前选中方式在标题区同步展示。
+- 本次仅调整收银台视觉与展示结构，不变更 `/api/bff/order-pay`、`rpc/payment.pay` 或 `rpc/payment.openUrl` 的接口契约。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 18 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/payment src/app/pay-way/page.tsx src/app/pay-result/page.tsx src/app/api/bff/order-pay/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/lib/bridge/protocol-bridge.ts`：通过。
+
+## 2026-06-30 - 卖手活动真实接口联调
+
+### 变更
+
+- 新增 `/seller/activities` 营销活动入口、`/seller/activities/[activityId]` 活动商品配置、`/seller/activities/[activityId]/products` 选择商品、`/seller/activities/[activityId]/products/[prodId]` 商品设置页。
+- 新增卖手活动 BFF 和 mapper：可用活动、活动商品分页、活动详情、保存配置、批量状态、可选推广商品来源。
+- 配置页 tab 切换只走页面 state，不改 URL；进行中批量橙色按钮为“暂停”，已暂停批量橙色按钮为“开始”；删除保留确认弹层。
+- 新增根级任务、对接说明和 API 契约：`TASK-2026-0630-001`、`BRIEF-2026-0630-001`、`h5-seller-activities-real-api-contract.md`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/seller-activity/seller-activity.test.tsx`：通过，1 file / 7 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/seller-activity src/app/seller src/app/api/bff/seller-activities`：通过。
+
+### 风险
+
+- 真实新增模式下 `/p/sellerActivity/detail` 是否能返回未配置商品的基础信息仍需后端联调确认；当前 H5 支持从选择商品页 query 带入基础展示信息，最终保存仍由后端校验。
+
+## 2026-06-29 - 推广激励活动真实接口联调
+
+### 变更
+
+- `/promotion/activities` 改为 SSR 调真实活动列表 BFF，不再使用本地活动 mock 作为联调页面兜底。
+- `/promotion/activities/[id]` 改为聚合真实活动详情和奖励详情，并展示活动 banner、个人进度、奖励规则和奖励状态。
+- 新增 H5 BFF：`/api/bff/promotion/activities`、`/api/bff/promotion/activities/[id]`、`/api/bff/promotion/activities/[id]/reward`、`PATCH /api/bff/promotion/activities/rewards/[recordId]/receive`。
+- `createPromotionApi` 增加活动列表、详情和奖励详情入口，继续复用统一 Promotion API。
+- 新增根级任务、对接说明和 API 契约：`TASK-2026-0629-007`、`BRIEF-2026-0629-007`、`h5-promotion-incentive-activities-real-api-contract.md`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts`：通过，3 files / 29 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/promotion/server/promotion-incentive-activities-real-service.ts src/features/promotion/components/PromotionActivitiesScreen.tsx src/features/promotion/components/PromotionActivityDetailScreen.tsx src/app/promotion/activities/page.tsx 'src/app/promotion/activities/[slug]/page.tsx' src/app/api/bff/promotion/activities/route.ts 'src/app/api/bff/promotion/activities/[id]/route.ts' 'src/app/api/bff/promotion/activities/[id]/reward/route.ts' 'src/app/api/bff/promotion/activities/rewards/[recordId]/receive/route.ts' src/features/promotion/api.ts src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts`：通过，0 errors，2 warnings；warning 为活动页既有 `<img>` 规则提示。
+- `pnpm run ai:check-docs-sync --strict`：通过。
+
+### 风险
+
+- 实物奖励领取需要地址选择，当前只完成 BFF `addressId` 转发能力；完整前端地址选择交互后置。
+
+## 2026-06-29 - 收银台真实支付发起与通联链路
+
+### 变更
+
+- 2026-06-30 追加：为先跑通微信支付，收银台默认支付方式从“支付方式数组第一项”改为“微信可用时优先微信”，避免用户直接点击“确定支付”时默认提交支付宝 `payType=7`。
+- 2026-06-30 追加：`rpc/payment.pay` H5 payload 字段从实现里的旧名 `paymentPayload` 对齐为契约字段 `sdkPayload`。
+- 新增 `/api/bff/order-pay`，点击收银台“确定支付”后调用 Java `/p/order/pay`，并按 `/sys/config/paySettlementType` 分流普通 App SDK 支付和通联支付。
+- `/api/bff/order-pay-info` 增加 `/sys/config/paySettlementType` 读取，收银台可展示当前为普通结算或通联结算。
+- 测试环境 `paySettlementType=1` 时，支付宝链路会用 `/p/order/pay` 返回的 `miniprogramPayInfo_VSP` 请求 `/p/allinpay/order/getAliAppPayUrl`，再通过 `rpc/payment.openUrl` 请求 App 打开通联支付 URL。
+- 新增 `/api/bff/allinpay-order-status` 和 `/pay-result`，支付结果页可按 `bizOrderNo` 调 Java `/p/allinpay/order/getOrderStatus` 回查通联状态；非通联或 SDK 支付返回后回读订单支付信息。
+- 新增 `rpc/payment.pay` 与 `rpc/payment.openUrl` typed Bridge，普通支付宝/微信 SDK 支付交给 App，通联 URL 打开交给 App；Web 调试环境仅对通联 URL 保留直接跳转兜底。
+- 同步更新 Native Bridge 规范、API 规范、根级 Bridge/API 契约和页面盘点。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 16 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/payment src/app/pay-way/page.tsx src/app/pay-result/page.tsx src/app/api/bff/order-pay/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/lib/bridge/protocol-bridge.ts`：通过。
+- 2026-06-30 追加验证：`pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 18 tests。
+- 2026-06-30 追加验证：`pnpm typecheck`：通过。
+- 2026-06-30 追加验证：`pnpm exec eslint src/features/payment src/app/pay-way/page.tsx src/app/pay-result/page.tsx src/app/api/bff/order-pay/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/lib/bridge/protocol-bridge.ts`：通过。
+- 飞书同步：页面清单 `WgaqwTRRUitnRNkCtNPcOcDnnre` revision 40；H5 与原生 App 对接说明 `OJk1wa43PiR9lTkYs2YcW8llnmf` revision 89；H5 BFF/API 对接说明 `GPhdwjQ87iQAQskeS6lc9bMOnte` revision 11。
+
 ## 2026-06-29 - 地址模块路由选择流优化
 
 ### 变更
@@ -2300,3 +2377,24 @@
 ### 后续
 
 - 用 App 注入的真实 `mallToken` 联调收藏/足迹列表和删除动作。
+
+## 2026-06-30 - 钱包和银行卡真实接口联调
+
+### 变更
+
+- 新增根级工作项、对接说明和 API 契约，记录 Apifox main 分支钱包、推广订单、银行卡查询和解绑接口。
+- 新增 `/api/bff/wallet`、`/api/bff/wallet/bank-cards` 和 `/api/bff/wallet/bank-cards/unbind`。
+- `/wallet` 改为真实 BFF 数据源，按 Figma 更新余额卡、账户/银行卡入口、结算 tab 和推广订单列表；联调阶段不回退 mock。
+- 新增 `/wallet/bank-cards` 银行卡管理页，支持已绑卡列表、无卡态和解绑确认弹窗。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx` 通过，3 files / 15 tests。
+- `pnpm typecheck` 通过。
+- `curl -I http://localhost:3109/hybird/wallet` 返回 200。
+- `curl -I http://localhost:3109/hybird/wallet/bank-cards` 返回 200。
+- Playwright + 本机 Chrome 拦截 BFF 成功态截图验证钱包、银行卡列表和解绑弹窗，375 宽度无横向溢出。
+
+### 后续
+
+- 用 App 注入的真实 `mallToken` 联调 Java 返回数据，重点确认推广订单 `distributionUserId` 和解绑银行卡 `signNum` 取值。
