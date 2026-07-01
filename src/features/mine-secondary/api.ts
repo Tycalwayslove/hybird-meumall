@@ -21,7 +21,7 @@ import type {
   JavaRefundOrder
 } from "./server/orders-real-service";
 import type { CollectionMutationData, CollectionsPageData, JavaFavoriteProductGroup, JavaFootprintProduct } from "./server/collections-real-service";
-import type { BankCardMutationData, BankCardsPageData, WalletPageData, WalletState } from "./server/wallet-real-service";
+import type { BankCardMutationData, BankCardsPageData, WalletOrdersPageData, WalletState, WalletSummaryData, WalletWithdrawRecordsPageData } from "./server/wallet-real-service";
 
 type AddressHttpClient = {
   request<T>(path: string, options?: H5RequestOptions): Promise<H5BffResult<T>>;
@@ -167,6 +167,11 @@ export type GetWalletInput = {
   state?: WalletState;
 };
 
+export type GetWalletWithdrawRecordsInput = {
+  current?: number;
+  size?: number;
+};
+
 export type UnbindBankCardInput = {
   acctNum: string;
   signNum: string;
@@ -177,13 +182,19 @@ export function createWalletApi(client: AddressHttpClient) {
     getBankCards() {
       return client.request<BankCardsPageData>("/api/bff/wallet/bank-cards");
     },
-    getWallet({ current = 1, size = 10, state = "settled" }: GetWalletInput = {}) {
+    getWalletOrders({ current = 1, size = 10, state = "settled" }: GetWalletInput = {}) {
       const query = new URLSearchParams({
         current: String(current),
         size: String(size),
         state
       });
-      return client.request<WalletPageData>(`/api/bff/wallet?${query.toString()}`);
+      return client.request<WalletOrdersPageData>(`/api/bff/wallet/orders?${query.toString()}`);
+    },
+    getWalletSummary() {
+      return client.request<WalletSummaryData>("/api/bff/wallet/summary");
+    },
+    getWithdrawRecords({ current = 1, size = 10 }: GetWalletWithdrawRecordsInput = {}) {
+      return client.request<WalletWithdrawRecordsPageData>(`/api/bff/wallet/withdraw-records?${new URLSearchParams({ current: String(current), size: String(size) }).toString()}`);
     },
     unbindBankCard(input: UnbindBankCardInput) {
       return client.request<BankCardMutationData>("/api/bff/wallet/bank-cards/unbind", {

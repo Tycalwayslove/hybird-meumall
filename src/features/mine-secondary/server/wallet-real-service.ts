@@ -22,10 +22,27 @@ export type WalletOrderView = {
   title: string;
 };
 
+export type WalletWithdrawStatus = "failed" | "pending" | "processing" | "success";
+
+export type WalletWithdrawRecordView = {
+  amountText: string;
+  id: string;
+  orderNo: string;
+  status: WalletWithdrawStatus;
+  statusText: string;
+  time: string;
+  title: string;
+};
+
+export type WalletWithdrawRecordGroupView = {
+  date: string;
+  records: WalletWithdrawRecordView[];
+};
+
 export type WalletPageData = {
   modules: {
     orders: Required<WalletJavaPage<WalletJavaPromotionOrder>>;
-    overview: WalletDistributionOverview;
+    overview?: WalletDistributionOverview;
     wallet: WalletDistributionSummary;
   };
   page: {
@@ -38,6 +55,47 @@ export type WalletPageData = {
   view: {
     orders: WalletOrderView[];
     summary: WalletSummaryView;
+  };
+};
+
+export type WalletSummaryData = {
+  modules: {
+    wallet: WalletDistributionSummary;
+  };
+  view: {
+    summary: WalletSummaryView;
+  };
+};
+
+export type WalletOrdersPageData = {
+  modules: {
+    orders: Required<WalletJavaPage<WalletJavaPromotionOrder>>;
+  };
+  page: {
+    current: number;
+    hasMore: boolean;
+    pages: number;
+    size: number;
+    total: number;
+  };
+  view: {
+    orders: WalletOrderView[];
+  };
+};
+
+export type WalletWithdrawRecordsPageData = {
+  modules: {
+    withdrawRecords: Required<WalletJavaPage<WalletJavaWithdrawRecordGroup>>;
+  };
+  page: {
+    current: number;
+    hasMore: boolean;
+    pages: number;
+    size: number;
+    total: number;
+  };
+  view: {
+    groups: WalletWithdrawRecordGroupView[];
   };
 };
 
@@ -111,6 +169,20 @@ export type WalletJavaPromotionOrder = {
   updateTime?: unknown;
 };
 
+export type WalletJavaWithdrawRecordGroup = {
+  date?: unknown;
+  withdrawCashVOs?: WalletJavaWithdrawRecord[];
+};
+
+export type WalletJavaWithdrawRecord = {
+  amount?: unknown;
+  cashId?: unknown;
+  createTime?: unknown;
+  orderNo?: unknown;
+  status?: unknown;
+  updateTime?: unknown;
+};
+
 export type WalletJavaBankCard = {
   bankCardNo?: unknown;
   bankName?: unknown;
@@ -122,23 +194,15 @@ type WalletBackendClient = {
   request<T>(options: BackendRequestOptions): Promise<BackendApiResult<T>>;
 };
 
-export async function fetchWalletData({
+export async function fetchWalletSummaryData({
   authToken,
   backendClient,
-  current = 1,
-  javaOssAssetBaseUrl,
-  route,
-  size = 10,
-  state = "settled"
+  route
 }: {
   authToken: string | null;
   backendClient: WalletBackendClient;
-  current?: number;
-  javaOssAssetBaseUrl?: string;
   route: string;
-  size?: number;
-  state?: WalletState;
-}): Promise<BackendApiResult<WalletPageData>> {
+}): Promise<BackendApiResult<WalletSummaryData>> {
   const walletResult = await requestJava<WalletDistributionSummary>({
     authToken,
     backendClient,
@@ -150,18 +214,45 @@ export async function fetchWalletData({
     return walletResult;
   }
 
-  const overviewResult = await requestDistributionOverview({ authToken, backendClient, route });
-  if (!overviewResult.ok) {
-    return overviewResult;
-  }
+  return {
+    ok: true,
+    data: {
+      modules: {
+        wallet: walletResult.data
+      },
+      view: {
+        summary: mapWalletSummary(walletResult.data)
+      }
+    },
+    meta: walletResult.meta
+  };
+}
 
-  const distributionUserId = normalizeText(overviewResult.data.userInfo?.distributionUserId);
-  if (!distributionUserId) {
+export async function fetchWalletOrdersData({
+  authToken,
+  backendClient,
+  current = 1,
+  javaOssAssetBaseUrl,
+  promotionOrderUserId,
+  route,
+  size = 10,
+  state = "settled"
+}: {
+  authToken: string | null;
+  backendClient: WalletBackendClient;
+  current?: number;
+  javaOssAssetBaseUrl?: string;
+  promotionOrderUserId?: string | null;
+  route: string;
+  size?: number;
+  state?: WalletState;
+}): Promise<BackendApiResult<WalletOrdersPageData>> {
+  const normalizedPromotionOrderUserId = normalizeText(promotionOrderUserId);
+  if (!normalizedPromotionOrderUserId) {
     return {
       ok: false,
       error: createApiError("PARSE_ERROR", {
-        message: "分销员ID缺失，无法获取推广订单。",
-        requestId: overviewResult.meta.requestId
+        message: "用户手机号缺失，无法获取推广订单。"
       })
     };
   }
@@ -172,7 +263,7 @@ export async function fetchWalletData({
     current: String(normalizedCurrent),
     size: String(normalizedSize),
     state: String(state === "pending" ? 1 : 2),
-    userId: distributionUserId
+    userId: normalizedPromotionOrderUserId
   });
   const ordersResult = await requestJava<WalletJavaPage<WalletJavaPromotionOrder>>({
     authToken,
@@ -191,17 +282,97 @@ export async function fetchWalletData({
     ok: true,
     data: {
       modules: {
-        orders,
-        overview: overviewResult.data,
-        wallet: walletResult.data
+        orders
       },
       page: mapPage(orders),
       view: {
-        orders: orders.records.map((order) => mapPromotionOrder(order, { javaOssAssetBaseUrl })).filter(isWalletOrderView),
-        summary: mapWalletSummary(walletResult.data)
+        orders: orders.records.map((order) => mapPromotionOrder(order, { javaOssAssetBaseUrl })).filter(isWalletOrderView)
       }
     },
-    meta: walletResult.meta
+    meta: ordersResult.meta
+  };
+}
+
+export async function fetchWalletData(input: {
+  authToken: string | null;
+  backendClient: WalletBackendClient;
+  current?: number;
+  javaOssAssetBaseUrl?: string;
+  promotionOrderUserId?: string | null;
+  route: string;
+  size?: number;
+  state?: WalletState;
+}): Promise<BackendApiResult<WalletPageData>> {
+  const summaryResult = await fetchWalletSummaryData(input);
+  if (!summaryResult.ok) {
+    return summaryResult;
+  }
+  const ordersResult = await fetchWalletOrdersData(input);
+  if (!ordersResult.ok) {
+    return ordersResult;
+  }
+
+  return {
+    ok: true,
+    data: {
+      modules: {
+        orders: ordersResult.data.modules.orders,
+        wallet: summaryResult.data.modules.wallet
+      },
+      page: ordersResult.data.page,
+      view: {
+        orders: ordersResult.data.view.orders,
+        summary: summaryResult.data.view.summary
+      }
+    },
+    meta: summaryResult.meta
+  };
+}
+
+export async function fetchWalletWithdrawRecordsData({
+  authToken,
+  backendClient,
+  current = 1,
+  route,
+  size = 10
+}: {
+  authToken: string | null;
+  backendClient: WalletBackendClient;
+  current?: number;
+  route: string;
+  size?: number;
+}): Promise<BackendApiResult<WalletWithdrawRecordsPageData>> {
+  const normalizedCurrent = normalizePositiveInteger(current, 1);
+  const normalizedSize = normalizePositiveInteger(size, 10);
+  const query = new URLSearchParams({
+    current: String(normalizedCurrent),
+    size: String(normalizedSize)
+  });
+  const recordsResult = await requestJava<WalletJavaPage<WalletJavaWithdrawRecordGroup>>({
+    authToken,
+    backendClient,
+    path: `/p/userWithdraw/pageDateUserWithdrawCash?${query.toString()}`,
+    route,
+    fallbackMessage: "提现记录获取失败。"
+  });
+  if (!recordsResult.ok) {
+    return recordsResult;
+  }
+
+  const withdrawRecords = normalizePage(recordsResult.data, normalizedSize);
+
+  return {
+    ok: true,
+    data: {
+      modules: {
+        withdrawRecords
+      },
+      page: mapPage(withdrawRecords),
+      view: {
+        groups: withdrawRecords.records.map(mapWithdrawRecordGroup).filter(isWithdrawRecordGroupView)
+      }
+    },
+    meta: recordsResult.meta
   };
 }
 
@@ -427,6 +598,63 @@ function mapOrderStatus(state: unknown): WalletOrderView["status"] {
   return "unpaid";
 }
 
+function mapWithdrawRecordGroup(group: WalletJavaWithdrawRecordGroup): WalletWithdrawRecordGroupView | null {
+  const records = Array.isArray(group.withdrawCashVOs) ? group.withdrawCashVOs.map(mapWithdrawRecord).filter(isWithdrawRecordView) : [];
+  if (records.length === 0) {
+    return null;
+  }
+
+  return {
+    date: normalizeText(group.date, "提现记录"),
+    records
+  };
+}
+
+function mapWithdrawRecord(record: WalletJavaWithdrawRecord): WalletWithdrawRecordView | null {
+  const amount = normalizeMoney(record.amount, 0);
+  const id = normalizeText(record.cashId, normalizeText(record.orderNo));
+  if (!id) {
+    return null;
+  }
+  const status = mapWithdrawStatus(record.status);
+
+  return {
+    amountText: `-¥${formatAmountText(amount)}`,
+    id,
+    orderNo: normalizeText(record.orderNo),
+    status,
+    statusText: mapWithdrawStatusText(status),
+    time: normalizeText(record.createTime, normalizeText(record.updateTime)),
+    title: "提现"
+  };
+}
+
+function mapWithdrawStatus(status: unknown): WalletWithdrawStatus {
+  if (Number(status) === 2) {
+    return "success";
+  }
+  if (Number(status) === 3) {
+    return "failed";
+  }
+  if (Number(status) === 1) {
+    return "processing";
+  }
+  return "pending";
+}
+
+function mapWithdrawStatusText(status: WalletWithdrawStatus) {
+  if (status === "success") {
+    return "成功";
+  }
+  if (status === "failed") {
+    return "失败";
+  }
+  if (status === "processing") {
+    return "到帐中";
+  }
+  return "待支付";
+}
+
 function mapBankCard(card: WalletJavaBankCard, signNum: string): BankCardView | null {
   if (String(card.bindStatus ?? "1") === "2") {
     return null;
@@ -451,6 +679,14 @@ function isWalletOrderView(value: WalletOrderView | null): value is WalletOrderV
 }
 
 function isBankCardView(value: BankCardView | null): value is BankCardView {
+  return value !== null;
+}
+
+function isWithdrawRecordGroupView(value: WalletWithdrawRecordGroupView | null): value is WalletWithdrawRecordGroupView {
+  return value !== null;
+}
+
+function isWithdrawRecordView(value: WalletWithdrawRecordView | null): value is WalletWithdrawRecordView {
   return value !== null;
 }
 

@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 import { EmptyState, TransparentActionNavPage, cn } from "@/design-system";
 import { createH5Client } from "@/lib/http";
 import { buildClientHref } from "@/lib/navigation";
 
 import { createWalletApi } from "../api";
-import type { WalletOrderView, WalletPageData, WalletState } from "../server/wallet-real-service";
+import type { WalletOrderView, WalletOrdersPageData, WalletState, WalletSummaryData } from "../server/wallet-real-service";
 import styles from "./WalletScreen.module.css";
 
 const settlementTabs: Array<{ id: WalletState; title: string }> = [
@@ -17,78 +17,188 @@ const settlementTabs: Array<{ id: WalletState; title: string }> = [
 
 type WalletStaticViewProps = {
   activeState: WalletState;
-  data: WalletPageData | null;
-  error: string;
-  loading: boolean;
-  onReload: () => void;
+  loadingMore: boolean;
+  loadMoreRef?: RefObject<HTMLDivElement | null>;
+  orders: WalletOrderView[];
+  ordersError: string;
+  ordersLoading: boolean;
+  page: WalletOrdersPageData["page"] | null;
+  summaryData: WalletSummaryData | null;
+  summaryError: string;
+  onLoadMore: () => void;
+  onReloadOrders: () => void;
+  onReloadSummary: () => void;
   onStateChange: (state: WalletState) => void;
 };
 
+const walletOrderPageSize = 10;
+
 export function WalletScreen() {
   const [activeState, setActiveState] = useState<WalletState>("settled");
-  const [data, setData] = useState<WalletPageData | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [summaryData, setSummaryData] = useState<WalletSummaryData | null>(null);
+  const [summaryError, setSummaryError] = useState("");
+  const [, setSummaryLoading] = useState(true);
+  const [orders, setOrders] = useState<WalletOrderView[]>([]);
+  const [page, setPage] = useState<WalletOrdersPageData["page"] | null>(null);
+  const [ordersError, setOrdersError] = useState("");
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const ordersRequestSeq = useRef(0);
   const api = useMemo(() => createWalletApi(createH5Client()), []);
 
-  const loadWallet = useCallback(
-    async (state: WalletState) => {
-      setLoading(true);
-      setError("");
+  const loadSummary = useCallback(async () => {
+    setSummaryLoading(true);
+    setSummaryError("");
+    try {
+      const result = await api.getWalletSummary();
+      if (!result.success) {
+        setSummaryData(null);
+        setSummaryError(result.message || "钱包数据加载失败，请稍后重试。");
+        setSummaryLoading(false);
+        return;
+      }
+      setSummaryData(result.data);
+      setSummaryLoading(false);
+    } catch {
+      setSummaryData(null);
+      setSummaryError("钱包数据加载失败，请稍后重试。");
+      setSummaryLoading(false);
+    }
+  }, [api]);
+
+  const loadOrders = useCallback(
+    async ({ append, current, state }: { append: boolean; current: number; state: WalletState }) => {
+      const requestSeq = ordersRequestSeq.current + 1;
+      ordersRequestSeq.current = requestSeq;
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setOrdersLoading(true);
+        setOrders([]);
+        setPage(null);
+      }
+      setOrdersError("");
       try {
-        const result = await api.getWallet({ current: 1, size: 10, state });
-        if (!result.success) {
-          setData(null);
-          setError(result.message || "钱包数据加载失败，请稍后重试。");
-          setLoading(false);
+        const result = await api.getWalletOrders({ current, size: walletOrderPageSize, state });
+        if (ordersRequestSeq.current !== requestSeq) {
           return;
         }
-        setData(result.data);
-        setLoading(false);
+        if (!result.success) {
+          if (!append) {
+            setOrders([]);
+            setPage(null);
+          }
+          setOrdersError(result.message || "推广订单加载失败，请稍后重试。");
+          setOrdersLoading(false);
+          setLoadingMore(false);
+          return;
+        }
+        setOrders((previous) => (append ? [...previous, ...result.data.view.orders] : result.data.view.orders));
+        setPage(result.data.page);
+        setOrdersLoading(false);
+        setLoadingMore(false);
       } catch {
-        setData(null);
-        setError("钱包数据加载失败，请稍后重试。");
-        setLoading(false);
+        if (ordersRequestSeq.current !== requestSeq) {
+          return;
+        }
+        if (!append) {
+          setOrders([]);
+          setPage(null);
+        }
+        setOrdersError("推广订单加载失败，请稍后重试。");
+        setOrdersLoading(false);
+        setLoadingMore(false);
       }
     },
     [api]
   );
 
   useEffect(() => {
-    void loadWallet(activeState);
-  }, [activeState, loadWallet]);
+    void loadSummary();
+  }, [loadSummary]);
+
+  useEffect(() => {
+    void loadOrders({ append: false, current: 1, state: activeState });
+  }, [activeState, loadOrders]);
+
+  const loadMoreOrders = useCallback(() => {
+    if (!page?.hasMore || ordersLoading || loadingMore) {
+      return;
+    }
+    void loadOrders({ append: true, current: page.current + 1, state: activeState });
+  }, [activeState, loadOrders, loadingMore, ordersLoading, page]);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !page?.hasMore || typeof IntersectionObserver === "undefined") {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          loadMoreOrders();
+        }
+      },
+      { rootMargin: "160px 0px" }
+    );
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [loadMoreOrders, page?.hasMore]);
 
   return (
     <WalletStaticView
       activeState={activeState}
-      data={data}
-      error={error}
-      loading={loading}
-      onReload={() => void loadWallet(activeState)}
+      loadingMore={loadingMore}
+      loadMoreRef={loadMoreRef}
+      orders={orders}
+      ordersError={ordersError}
+      ordersLoading={ordersLoading}
+      page={page}
+      summaryData={summaryData}
+      summaryError={summaryError}
+      onLoadMore={loadMoreOrders}
+      onReloadOrders={() => void loadOrders({ append: false, current: 1, state: activeState })}
+      onReloadSummary={() => void loadSummary()}
       onStateChange={setActiveState}
     />
   );
 }
 
-export function WalletStaticView({ activeState, data, error, loading, onReload, onStateChange }: WalletStaticViewProps) {
-  const summary = data?.view.summary;
-  const orders = data?.view.orders ?? [];
+export function WalletStaticView({
+  activeState,
+  loadingMore,
+  loadMoreRef,
+  orders,
+  ordersError,
+  ordersLoading,
+  page,
+  summaryData,
+  summaryError,
+  onLoadMore,
+  onReloadOrders,
+  onReloadSummary,
+  onStateChange
+}: WalletStaticViewProps) {
+  const summary = summaryData?.view.summary;
 
   return (
     <TransparentActionNavPage
       title="我的钱包"
       backHref="/mine"
       foreground="dark"
-      rightNode={<WithdrawRecordEntry />}
       className={styles.screen}
       contentClassName={styles.content}
     >
       <section className={styles.balanceCard} aria-label="钱包余额">
         <div className={styles.balanceTop}>
-          <div>
-            <p className={styles.balanceLabel}>帐户余额(元)</p>
-            <strong className={styles.balanceValue}>{summary?.balanceText ?? "--"}</strong>
-          </div>
+          <p className={styles.balanceLabel}>帐户余额(元)</p>
+          <WithdrawRecordEntry />
+        </div>
+        <div className={styles.balanceAmountRow} aria-label="账户余额与提现">
+          <strong className={styles.balanceValue}>{summary?.balanceText ?? "--"}</strong>
           <button className={styles.withdrawButton} type="button" disabled>
             提现
           </button>
@@ -107,6 +217,8 @@ export function WalletStaticView({ activeState, data, error, loading, onReload, 
         </div>
       </section>
 
+      {summaryError ? <WalletError message={summaryError} onReload={onReloadSummary} /> : null}
+
       <section className={styles.entryGrid} aria-label="钱包管理">
         <button className={styles.entryButton} type="button" disabled>
           <span className={cn(styles.entryIcon, styles.accountIcon)} aria-hidden="true" />
@@ -120,42 +232,55 @@ export function WalletStaticView({ activeState, data, error, loading, onReload, 
 
       <section className={styles.recordsCard} aria-label="钱包流水">
         <WalletSettlementTabs activeState={activeState} onChange={onStateChange} />
-        <div className={styles.filters}>
-          <button type="button" disabled>
-            本月(1月1日~1月31日)
-          </button>
-          <button type="button" disabled>
-            全部类型
-          </button>
-        </div>
         <div className={styles.settlementData} key={activeState} aria-live="polite">
-          <div className={styles.summaryPanel}>
-            <div>
-              <span>收入(元)</span>
-              <strong className={styles.income}>{activeState === "settled" ? summary?.settledIncomeText ?? "--" : summary?.pendingIncomeText ?? "--"}</strong>
-            </div>
-            <div>
-              <span>支出(元)</span>
-              <strong className={styles.expense}>0.00</strong>
-            </div>
-            <div>
-              <span>提现(元)</span>
-              <strong>{summary?.withdrawText ?? "--"}</strong>
-            </div>
-          </div>
-          {error ? <WalletError message={error} onReload={onReload} /> : loading ? <WalletLoading /> : orders.length ? <WalletRecordList records={orders} /> : <EmptyState className={styles.emptyState} imageSize={132} text="暂无推广订单" />}
+          {ordersError ? (
+            <WalletError message={ordersError} onReload={onReloadOrders} />
+          ) : ordersLoading ? (
+            <WalletLoading />
+          ) : orders.length ? (
+            <>
+              <WalletRecordList records={orders} />
+              <WalletLoadMoreFooter hasMore={Boolean(page?.hasMore)} loading={loadingMore} onLoadMore={onLoadMore} sentinelRef={loadMoreRef} />
+            </>
+          ) : (
+            <EmptyState className={styles.emptyState} imageSize={132} text="暂无推广订单" />
+          )}
         </div>
       </section>
     </TransparentActionNavPage>
   );
 }
 
+function WalletLoadMoreFooter({
+  hasMore,
+  loading,
+  onLoadMore,
+  sentinelRef
+}: {
+  hasMore: boolean;
+  loading: boolean;
+  onLoadMore: () => void;
+  sentinelRef?: RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div className={styles.loadMoreFooter} ref={sentinelRef}>
+      {hasMore ? (
+        <button type="button" onClick={onLoadMore} disabled={loading}>
+          {loading ? "加载中..." : "上拉加载更多"}
+        </button>
+      ) : (
+        <span>没有更多了</span>
+      )}
+    </div>
+  );
+}
+
 function WithdrawRecordEntry() {
   return (
-    <button className={styles.historyWalletButton} type="button" disabled>
+    <a className={styles.historyWalletButton} href={buildClientHref("/wallet/withdraw-records")}>
       <span>提现记录</span>
       <span className={styles.historyWalletIcon} aria-hidden="true" />
-    </button>
+    </a>
   );
 }
 
@@ -200,8 +325,8 @@ function WalletRecordList({ records }: { records: WalletOrderView[] }) {
 }
 
 function WalletRecordItem({ record }: { record: WalletOrderView }) {
-  const content = (
-    <>
+  return (
+    <article className={styles.recordItem}>
       {record.imageUrl ? (
         <span className={styles.walletAvatar} aria-hidden="true" style={{ backgroundImage: `url(${record.imageUrl})` }} />
       ) : (
@@ -214,18 +339,7 @@ function WalletRecordItem({ record }: { record: WalletOrderView }) {
         <p>{record.time || "时间待确认"}</p>
       </div>
       <strong className={record.amountText.startsWith("-") ? styles.recordExpense : styles.recordIncome}>{record.amountText}</strong>
-      <span className={styles.chevron} aria-hidden="true" />
-    </>
-  );
-
-  if (!record.detailHref) {
-    return <article className={styles.recordItem}>{content}</article>;
-  }
-
-  return (
-    <a className={styles.recordItem} href={buildClientHref(record.detailHref)}>
-      {content}
-    </a>
+    </article>
   );
 }
 

@@ -7,6 +7,7 @@ import { RefundsEmptyState, RefundsScreen } from "./components/RefundsScreen";
 import { ProductCollectionScreen } from "./components/ProductCollectionScreen";
 import { BankCardsScreen, BankCardsStaticView } from "./components/BankCardsScreen";
 import { WalletScreen, WalletStaticView } from "./components/WalletScreen";
+import { WithdrawRecordsScreen, WithdrawRecordsStaticView } from "./components/WithdrawRecordsScreen";
 
 describe("mine secondary pages", () => {
   test("renders the wallet loading state without mock records", () => {
@@ -22,24 +23,25 @@ describe("mine secondary pages", () => {
     const html = renderToStaticMarkup(
       <WalletStaticView
         activeState="settled"
-        data={{
+        loadingMore={false}
+        orders={[
+          {
+            amountText: "+99.50",
+            detailHref: "/orders/NO1001",
+            id: "NO1001",
+            status: "settled",
+            time: "2026-06-30 10:00:00",
+            title: "推广订单商品"
+          }
+        ]}
+        ordersError=""
+        ordersLoading={false}
+        page={{ current: 1, hasMore: false, pages: 1, size: 10, total: 1 }}
+        summaryData={{
           modules: {
-            orders: { current: 1, pages: 1, records: [], size: 10, total: 1 },
-            overview: { userInfo: { distributionUserId: 7788 } },
             wallet: { addupAmount: 1200.5 }
           },
-          page: { current: 1, hasMore: false, pages: 1, size: 10, total: 1 },
           view: {
-            orders: [
-              {
-                amountText: "+99.50",
-                detailHref: "/orders/NO1001",
-                id: "NO1001",
-                status: "settled",
-                time: "2026-06-30 10:00:00",
-                title: "推广订单商品"
-              }
-            ],
             summary: {
               balanceText: "1200.50",
               pendingIncomeText: "+400.00",
@@ -50,19 +52,85 @@ describe("mine secondary pages", () => {
             }
           }
         }}
-        error=""
-        loading={false}
-        onReload={() => undefined}
+        summaryError=""
+        onLoadMore={() => undefined}
+        onReloadOrders={() => undefined}
+        onReloadSummary={() => undefined}
         onStateChange={() => undefined}
       />
     );
 
     expect(html).toContain("帐户余额(元)");
     expect(html).toContain("1200.50");
+    expect(html).toContain('aria-label="账户余额与提现"');
+    expect(html).toMatch(/aria-label="账户余额与提现"[\s\S]*1200\.50[\s\S]*提现/);
     expect(html).toContain("提现记录");
+    expect(html).toContain("/wallet/withdraw-records");
     expect(html).toContain("银行卡管理");
     expect(html).toContain("/wallet/bank-cards");
     expect(html).toContain("推广订单商品");
+    expect(html).toContain("没有更多了");
+    expect(html).not.toContain("/orders/NO1001");
+    expect(html).not.toContain("_chevron_");
+    expect(html).not.toContain("本月(1月1日~1月31日)");
+    expect(html).not.toContain("全部类型");
+    expect(html).not.toContain("收入(元)");
+    expect(html).not.toContain("支出(元)");
+  });
+
+  test("renders withdraw record groups and empty state", () => {
+    const loadingHtml = renderToStaticMarkup(<WithdrawRecordsScreen />);
+
+    expect(loadingHtml).toContain("提现记录");
+    expect(loadingHtml).toContain("提现记录加载中");
+
+    const recordsHtml = renderToStaticMarkup(
+      <WithdrawRecordsStaticView
+        error=""
+        groups={[
+          {
+            date: "2026-07",
+            records: [
+              {
+                amountText: "-¥98.50",
+                id: "1001",
+                orderNo: "WD1001",
+                status: "processing",
+                statusText: "到帐中",
+                time: "2026-07-01 10:00:00",
+                title: "提现"
+              }
+            ]
+          }
+        ]}
+        loading={false}
+        loadingMore={false}
+        page={{ current: 1, hasMore: false, pages: 1, size: 10, total: 1 }}
+        onLoadMore={() => undefined}
+        onReload={() => undefined}
+      />
+    );
+
+    expect(recordsHtml).toContain("2026-07");
+    expect(recordsHtml).toContain("提现");
+    expect(recordsHtml).toContain("2026-07-01 10:00:00");
+    expect(recordsHtml).toContain("-¥98.50");
+    expect(recordsHtml).toContain("到帐中");
+    expect(recordsHtml).toContain("没有更多了");
+
+    const emptyHtml = renderToStaticMarkup(
+      <WithdrawRecordsStaticView
+        error=""
+        groups={[]}
+        loading={false}
+        loadingMore={false}
+        page={{ current: 1, hasMore: false, pages: 1, size: 10, total: 0 }}
+        onLoadMore={() => undefined}
+        onReload={() => undefined}
+      />
+    );
+
+    expect(emptyHtml).toContain("暂无提现记录");
   });
 
   test("renders bank cards loading and real card views", () => {

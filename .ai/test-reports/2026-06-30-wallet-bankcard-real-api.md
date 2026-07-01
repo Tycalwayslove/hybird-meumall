@@ -30,5 +30,6 @@ curl -I http://localhost:3109/hybird/wallet/bank-cards
 
 ## 备注
 
-- 尚未在 App WebView 内用真实 `mallToken` 验证 Java 返回数据。
+- 2026-07-01 口径更新：推广订单 `userId` 已改为从原生 Cookie `userInfo.phone` 读取，不再取推广概览 `distributionUserId`。
+- 尚未在 App WebView 内用真实 `mallToken` 和 `userInfo` Cookie 验证 Java 返回数据。
 - 解绑银行卡 `signNum` 当前取推广概览 `userInfo.cardNo`，需后端确认最终口径。

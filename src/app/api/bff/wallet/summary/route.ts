@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const result = await fetchWalletSummaryData({
     authToken: context.getAuthToken("java"),
     backendClient: context.backendClient,
-    route: "/api/bff/wallet"
+    route: "/api/bff/wallet/summary"
   });
 
   return toBffResponse(result);

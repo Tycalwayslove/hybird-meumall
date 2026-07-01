@@ -16,11 +16,12 @@
   gap: 4px;
   border: 0;
   background: transparent;
-  color: #0f0f0f;
+  color: #f7f9fb;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   line-height: 20px;
   padding: 0;
+  text-decoration: none;
   white-space: nowrap;
 }
 
@@ -69,7 +70,7 @@
 
 .balanceTop {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
@@ -96,7 +97,7 @@
 
 .balanceValue {
   display: block;
-  margin-top: 2px;
+  min-width: 0;
   background: linear-gradient(90deg, #d4ffa3 0%, #b6ffd4 48%, #97d6ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -106,21 +107,27 @@
   line-height: 32px;
 }
 
+.balanceAmountRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
 .withdrawButton {
-  min-width: 60px;
-  height: 34px;
+  min-width: 52px;
+  height: 24px;
   border: 0;
   border-radius: 999px;
   background: #a8f156;
   color: #0f0f0f;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .withdrawButton:disabled,
-.historyWalletButton:disabled,
-.entryButton:disabled,
-.filters button:disabled {
+.entryButton:disabled {
   opacity: 1;
 }
 
@@ -305,86 +312,13 @@
   }
 }
 
-.filters {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.filters button {
-  min-width: 0;
-  overflow: hidden;
-  border: 0;
-  background: transparent;
-  color: #272727;
-  font-size: 15px;
-  line-height: 22px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.filters button::after {
-  content: "";
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin-left: 4px;
-  border-right: 1px solid #c9cdd4;
-  border-bottom: 1px solid #c9cdd4;
-  transform: translateY(-2px) rotate(45deg);
-}
-
-.summaryPanel {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-top: 12px;
-  border-radius: 10px;
-  background: #f7f9fb;
-  padding: 12px 0;
-}
-
-.summaryPanel div {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
-
-.summaryPanel div + div {
-  border-left: 1px solid #eef0f5;
-}
-
-.summaryPanel span {
-  color: #272727;
-  font-size: 14px;
-  line-height: 18px;
-}
-
-.summaryPanel strong {
-  color: #0f0f0f;
-  font-size: 18px;
-  line-height: 20px;
-}
-
-.summaryPanel .income {
-  color: #ff2d50;
-}
-
-.summaryPanel .expense {
-  color: #7fda19;
-}
-
 .recordList {
-  margin-top: 10px;
+  margin-top: 14px;
 }
 
 .recordItem {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) minmax(54px, auto) 8px;
+  grid-template-columns: 42px minmax(0, 1fr) minmax(54px, auto);
   align-items: center;
   gap: 7px;
   padding: 10px 0;
@@ -464,17 +398,34 @@
   color: #272727;
 }
 
-.chevron {
-  width: 8px;
-  height: 8px;
-  border-top: 2px solid #272727;
-  border-right: 2px solid #272727;
-  transform: rotate(45deg);
-}
-
 .emptyState {
   min-height: 220px;
   background: transparent;
+}
+
+.loadMoreFooter {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  color: #8a8f85;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.loadMoreFooter button {
+  min-width: 132px;
+  height: 34px;
+  border: 1px solid #e2e8dc;
+  border-radius: 999px;
+  background: #fff;
+  color: #3e4938;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.loadMoreFooter button:disabled {
+  color: #8a8f85;
 }
 
 .errorBox {
