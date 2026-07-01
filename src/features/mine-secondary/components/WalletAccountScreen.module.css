@@ -1,0 +1,163 @@
+.screen {
+  background: #f5f6f8;
+}
+
+.content {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px 14px calc(env(safe-area-inset-bottom) + 24px);
+}
+
+.menuList,
+.infoCard,
+.bankSection {
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.menuItem,
+.sectionHeader {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 10px;
+  color: #0f0f0f;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.chevron {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-top: 2px solid #8e9299;
+  border-right: 2px solid #8e9299;
+  transform: rotate(45deg);
+}
+
+.infoCard {
+  padding: 0 14px;
+}
+
+.infoRow {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.infoRow:last-child {
+  border-bottom: 0;
+}
+
+.infoRow span {
+  color: #6f6f6f;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.infoRow strong {
+  min-width: 0;
+  margin-left: auto;
+  color: #0f0f0f;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
+.valueSkeleton {
+  width: 112px;
+  height: 18px;
+  margin-left: auto;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #eef0f5 0%, #f7f9fb 48%, #eef0f5 100%);
+  background-size: 220% 100%;
+  animation: accountSkeleton 1100ms linear infinite;
+}
+
+.bankSection {
+  padding-bottom: 12px;
+}
+
+.sectionHeader {
+  border-bottom: 1px solid #f0f2f5;
+}
+
+.bankPreviewList {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.bankPreview {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-radius: 10px;
+  background: #fff7ef;
+  padding: 10px 12px;
+}
+
+.bankPreview h2 {
+  margin: 0;
+  color: #0f0f0f;
+  font-size: 15px;
+  line-height: 21px;
+}
+
+.bankPreview p {
+  margin: 2px 0 0;
+  color: #8e9299;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.bankPreview strong {
+  color: #0f0f0f;
+  font-size: 14px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.bankLoading {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.bankLoading span {
+  height: 62px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef0f5 0%, #f7f9fb 48%, #eef0f5 100%);
+  background-size: 220% 100%;
+  animation: accountSkeleton 1100ms linear infinite;
+}
+
+.emptyText {
+  margin: 0;
+  color: #8e9299;
+  font-size: 14px;
+  line-height: 20px;
+  padding: 18px 14px 6px;
+  text-align: center;
+}
+
+@keyframes accountSkeleton {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}

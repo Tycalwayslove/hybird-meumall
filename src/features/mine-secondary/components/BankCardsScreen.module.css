@@ -15,68 +15,53 @@
   position: relative;
   min-height: 109px;
   overflow: hidden;
-  border-radius: 9px;
-  background:
-    radial-gradient(circle at 88% 24%, rgb(255 255 255 / 25%) 0 40px, transparent 41px),
-    linear-gradient(122deg, #7a6c56 0%, #a38d6c 100%);
+  border-radius: 12px;
+  background: linear-gradient(122.78deg, #ffd8ab 8.39%, #fff8f0 48.12%, #ffe2c0 88.63%);
   color: #0f0f0f;
   padding: 12px;
 }
 
 .bankHeader {
   display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-.bankLogo {
-  display: inline-flex;
-  width: 40px;
-  height: 40px;
-  align-items: center;
-  justify-content: center;
-  border: 3px solid #a0000a;
-  border-radius: 999px;
-  color: #a0000a;
-  font-size: 16px;
-  font-weight: 800;
+  align-items: flex-start;
 }
 
 .bankHeader h2 {
   margin: 0;
   color: #0f0f0f;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 22px;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 24px;
 }
 
 .bankHeader p {
   margin: 2px 0 0;
-  color: #2f2f2f;
+  color: #575757;
   font-size: 13px;
   line-height: 18px;
 }
 
 .cardNumber {
-  margin: 10px 0 0 55px;
-  color: #0f0f0f;
-  font-size: 23px;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 31px;
+  margin: 16px 0 0 55px;
+  color: #272727;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  line-height: 30px;
+  white-space: nowrap;
 }
 
 .unbindButton {
   position: absolute;
   top: 10px;
-  right: 10px;
+  right: 12px;
   height: 24px;
   border: 0;
   border-radius: 999px;
-  background: rgb(255 255 255 / 26%);
-  color: #ff7a1a;
+  background: #fff;
+  color: #ff7d00;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 18px;
   padding: 0 12px;
 }
@@ -94,6 +79,7 @@
   color: #fff;
   font-size: 16px;
   font-weight: 700;
+  text-decoration: none;
 }
 
 .addCardButton:disabled {
@@ -115,7 +101,63 @@
   background: transparent;
 }
 
-.notice,
+.addForm {
+  display: grid;
+  gap: 14px;
+}
+
+.addForm label {
+  display: grid;
+  gap: 9px;
+  color: #202124;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+}
+
+.addForm input {
+  width: 100%;
+  height: 52px;
+  border: 0;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f0f0f;
+  font-size: 15px;
+  line-height: 20px;
+  outline: none;
+  padding: 0 14px;
+}
+
+.addForm input::placeholder {
+  color: #a3a7ad;
+}
+
+.submitButton {
+  height: 52px;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 8px;
+  background: #232323;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.submitButton:disabled {
+  background: #8e9299;
+}
+
+.formError {
+  margin: 0 0 12px;
+  border-radius: 10px;
+  background: #fff2f2;
+  color: #d14343;
+  font-size: 14px;
+  line-height: 20px;
+  padding: 12px;
+  text-align: center;
+}
+
 .errorBox {
   margin: 0 0 12px;
   border-radius: 10px;
@@ -124,10 +166,19 @@
 }
 
 .notice {
-  background: #ecffdf;
-  color: #2f7200;
-  font-size: 14px;
-  line-height: 20px;
+  position: fixed;
+  top: 298px;
+  left: 50%;
+  z-index: 60;
+  margin: 0;
+  border-radius: 8px;
+  background: rgb(0 0 0 / 80%);
+  color: #fff;
+  font-size: 16px;
+  line-height: 22px;
+  padding: 12px 16px;
+  text-align: center;
+  transform: translateX(-50%);
 }
 
 .errorBox {

@@ -82,6 +82,7 @@ const badge = localAssetUrl("promotion.talentBadge.v1");
 | `promotion.rankingCrown.third` | `/assets/promotion/ranking/ranking-crown-third.png` | 排行榜第 3 名皇冠 |
 | `promotion.rankingHeroBg` | `/assets/shared/green-hero-bg.png` | 排行榜顶部背景，复用共享浅绿背景 |
 | `promotion.rewardRecordsBg` | `/assets/shared/green-hero-bg.png` | 奖励记录顶部背景，复用共享浅绿背景 |
+| `wallet.withdrawRecordIcon` | `/assets/wallet/withdraw-record-icon.png` | 钱包提现记录列表图标 |
 | `placeholder.productImage` | `/assets/placeholders/product-image-placeholder.png` | 商品图片缺省组件中心图标 |
 | `mine.hero.background` | `/assets/shared/green-hero-bg.png` | 我的页顶部背景，复用共享浅绿背景 |
 | `mine.levelBadge.v1` | `/assets/mine/level-badges/level-badge-v1.png` | 我的页 V1 新锐达人横条徽章 |

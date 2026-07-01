@@ -48,29 +48,11 @@
 }
 
 .recordIcon {
-  display: inline-flex;
+  display: block;
   width: 42px;
   height: 42px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #a8f156;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.recordIcon_processing,
-.recordIcon_pending {
-  background: linear-gradient(145deg, #a8f156 0%, #64d9ff 100%);
-}
-
-.recordIcon_success {
-  background: #a8f156;
-}
-
-.recordIcon_failed {
-  background: #c9cdd4;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .recordInfo {

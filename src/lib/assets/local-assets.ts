@@ -66,6 +66,7 @@ export const localAssetPaths = {
   "home.recommend.icon": "/assets/home/recommend-icon.png",
   "home.more": "/assets/home/more.png",
   "home.talentPriceTag": "/assets/home/talent-price-tag.png",
+  "wallet.withdrawRecordIcon": "/assets/wallet/withdraw-record-icon.png",
   "mine.hero.background": "/assets/shared/green-hero-bg.png",
   "mine.hero.role": "/assets/mine/hero-role.png",
   "mine.notification": "/assets/mine/mine-mascot.png",

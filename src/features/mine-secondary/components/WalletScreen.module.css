@@ -1,13 +1,51 @@
 .screen {
-  background:
-    radial-gradient(circle at 66px 36px, rgb(168 241 86 / 18%) 0 46px, transparent 47px),
-    linear-gradient(122deg, #bdf8ef 0%, #dffbd0 55%, #f7f9fb 78%);
+  background: rgb(var(--mm-color-fill-page));
+  color: rgb(var(--mm-color-text-primary));
 }
 
 .content {
+  position: relative;
   height: 100vh;
   overflow-x: hidden;
   padding: 95px 14px calc(env(safe-area-inset-bottom) + 14px);
+}
+
+.pageBackground {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 0;
+  height: 250px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #baffeb 0%, #d3ffd7 48%, #f3ffd9 100%);
+  pointer-events: none;
+}
+
+.pageBackgroundImage {
+  display: block;
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.balanceCard,
+.entryGrid,
+.recordsCard,
+.noticeBox {
+  position: relative;
+  z-index: 1;
+}
+
+.historyWalletEntry {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  padding: 0;
+  white-space: nowrap;
 }
 
 .historyWalletButton {
@@ -116,12 +154,16 @@
 }
 
 .withdrawButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 52px;
   height: 24px;
   border: 0;
   border-radius: 999px;
   background: #a8f156;
   color: #0f0f0f;
+  cursor: pointer;
   font-size: 13px;
   font-weight: 700;
 }
@@ -129,6 +171,18 @@
 .withdrawButton:disabled,
 .entryButton:disabled {
   opacity: 1;
+}
+
+.noticeBox {
+  margin-top: 10px;
+  border-radius: 10px;
+  background: rgb(176 249 92 / 18%);
+  color: #1b4b13;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  padding: 10px 12px;
+  text-align: center;
 }
 
 .balanceLine {
@@ -191,39 +245,102 @@
 .entryIcon {
   position: relative;
   display: inline-flex;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
+  overflow: hidden;
 }
 
 .accountIcon {
-  background: #e5f7ff;
+  background: #e9fbff;
 }
 
-.accountIcon::before {
-  width: 10px;
-  height: 10px;
+.accountPerson,
+.accountBadge,
+.bankCardShape {
+  position: absolute;
+  display: block;
+}
+
+.accountPerson {
+  inset: 0;
+}
+
+.accountPerson::before {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
-  background: #2aa7ff;
-  box-shadow: 0 12px 0 4px #2aa7ff;
+  background: #1397f5;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.accountPerson::after {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  width: 21px;
+  height: 12px;
+  border-radius: 10px 10px 3px 3px;
+  background: #1397f5;
+  clip-path: polygon(0 100%, 12% 38%, 28% 0, 70% 0, 88% 38%, 100% 100%);
+  content: "";
+}
+
+.accountBadge {
+  right: 4px;
+  bottom: 5px;
+  width: 13px;
+  height: 13px;
+  background: #1397f5;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+}
+
+.accountBadge::before {
+  position: absolute;
+  inset: 4px;
+  border-radius: 999px;
+  background: #e9fbff;
   content: "";
 }
 
 .bankIcon {
-  background: #fff1e7;
+  background: #fffaf5;
 }
 
-.bankIcon::before {
-  width: 18px;
-  height: 16px;
+.bankCardShape {
+  top: 7px;
+  left: 6px;
+  width: 20px;
+  height: 18px;
   border-radius: 3px;
-  background:
-    linear-gradient(#fff 0 0) 4px 5px / 10px 2px no-repeat,
-    linear-gradient(#fff 0 0) 4px 10px / 10px 2px no-repeat,
-    #ff7a1a;
+  background: #ff822e;
+}
+
+.bankCardShape::before {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: #fffaf5;
+  content: "";
+}
+
+.bankCardShape::after {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 7px;
+  height: 2px;
+  border-radius: 99px;
+  background: #fffaf5;
   content: "";
 }
 
@@ -453,6 +570,133 @@
   font-size: 14px;
   font-weight: 700;
   padding: 0 18px;
+}
+
+.withdrawOverlay {
+  position: fixed;
+  inset: 0;
+  left: 50%;
+  z-index: 70;
+  display: flex;
+  width: min(100vw, 430px);
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 55%);
+  padding: 24px;
+  transform: translateX(-50%);
+}
+
+.withdrawDialog {
+  position: relative;
+  width: min(100%, 300px);
+  border-radius: 12px;
+  background: #fff;
+  padding: 24px;
+  text-align: center;
+}
+
+.withdrawDialog h2 {
+  margin: 0;
+  color: #0f0f0f;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+}
+
+.withdrawClose {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #6f6f6f;
+  cursor: pointer;
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 24px;
+}
+
+.withdrawDescription {
+  margin: 8px 0 14px;
+  color: #6f6f6f;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.withdrawField {
+  display: block;
+}
+
+.withdrawField input {
+  width: 100%;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: #f7f9fb;
+  color: #0f0f0f;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+  outline: none;
+  padding: 0 16px;
+  text-align: center;
+}
+
+.withdrawField input::placeholder {
+  color: #c9cdd4;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.withdrawHint {
+  margin: 8px 0 0;
+  color: #6f6f6f;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.withdrawError {
+  margin: 8px 0 0;
+  color: #ff2d50;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.withdrawSubmit {
+  display: inline-flex;
+  width: 100%;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: #b0f95c;
+  color: #0f0f0f;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.withdrawSubmit:disabled,
+.withdrawClose:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 
 .loadingList {

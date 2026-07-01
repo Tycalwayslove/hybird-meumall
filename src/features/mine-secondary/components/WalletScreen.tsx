@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 import { EmptyState, TransparentActionNavPage, cn } from "@/design-system";
+import { localAssetUrl } from "@/lib/assets";
 import { createH5Client } from "@/lib/http";
-import { buildClientHref } from "@/lib/navigation";
+import { buildClientHref, createHybridNavigator } from "@/lib/navigation";
 
 import { createWalletApi } from "../api";
 import type { WalletOrderView, WalletOrdersPageData, WalletState, WalletSummaryData } from "../server/wallet-real-service";
@@ -25,10 +26,21 @@ type WalletStaticViewProps = {
   page: WalletOrdersPageData["page"] | null;
   summaryData: WalletSummaryData | null;
   summaryError: string;
+  hasHistoryWallet?: boolean;
+  withdrawAmount?: string;
+  withdrawDialogOpen?: boolean;
+  withdrawError?: string;
+  withdrawSubmitting?: boolean;
+  withdrawSuccess?: string;
+  onCloseWithdraw?: () => void;
+  onHistoryWalletClick?: () => void;
   onLoadMore: () => void;
   onReloadOrders: () => void;
   onReloadSummary: () => void;
   onStateChange: (state: WalletState) => void;
+  onSubmitWithdraw?: () => void;
+  onWithdrawAmountChange?: (amount: string) => void;
+  onWithdrawClick?: () => void;
 };
 
 const walletOrderPageSize = 10;
@@ -43,6 +55,12 @@ export function WalletScreen() {
   const [ordersError, setOrdersError] = useState("");
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawError, setWithdrawError] = useState("");
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [withdrawSuccess, setWithdrawSuccess] = useState("");
+  const [hasHistoryWallet, setHasHistoryWallet] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const ordersRequestSeq = useRef(0);
   const api = useMemo(() => createWalletApi(createH5Client()), []);
@@ -64,6 +82,15 @@ export function WalletScreen() {
       setSummaryData(null);
       setSummaryError("钱包数据加载失败，请稍后重试。");
       setSummaryLoading(false);
+    }
+  }, [api]);
+
+  const loadHistoryStatus = useCallback(async () => {
+    try {
+      const result = await api.getWalletHistoryStatus();
+      setHasHistoryWallet(result.success ? result.data.view.hasHistoryWallet : false);
+    } catch {
+      setHasHistoryWallet(false);
     }
   }, [api]);
 
@@ -119,6 +146,10 @@ export function WalletScreen() {
   }, [loadSummary]);
 
   useEffect(() => {
+    void loadHistoryStatus();
+  }, [loadHistoryStatus]);
+
+  useEffect(() => {
     void loadOrders({ append: false, current: 1, state: activeState });
   }, [activeState, loadOrders]);
 
@@ -128,6 +159,35 @@ export function WalletScreen() {
     }
     void loadOrders({ append: true, current: page.current + 1, state: activeState });
   }, [activeState, loadOrders, loadingMore, ordersLoading, page]);
+
+  const submitWithdraw = useCallback(async () => {
+    const withdrawableAmount = getWithdrawableAmount(summaryData);
+    const validationMessage = validateWithdrawAmount(withdrawAmount, withdrawableAmount);
+    if (validationMessage) {
+      setWithdrawError(validationMessage);
+      return;
+    }
+
+    setWithdrawSubmitting(true);
+    setWithdrawError("");
+    setWithdrawSuccess("");
+    try {
+      const result = await api.applyWithdraw({ amount: normalizeWithdrawInputAmount(withdrawAmount) });
+      if (!result.success) {
+        setWithdrawError(result.message || "提现申请失败，请稍后重试。");
+        setWithdrawSubmitting(false);
+        return;
+      }
+      setWithdrawSuccess(result.data.view.message || "提现申请已提交");
+      setWithdrawDialogOpen(false);
+      setWithdrawAmount("");
+      setWithdrawSubmitting(false);
+      void loadSummary();
+    } catch {
+      setWithdrawError("提现申请失败，请稍后重试。");
+      setWithdrawSubmitting(false);
+    }
+  }, [api, loadSummary, summaryData, withdrawAmount]);
 
   useEffect(() => {
     const target = loadMoreRef.current;
@@ -159,10 +219,34 @@ export function WalletScreen() {
       page={page}
       summaryData={summaryData}
       summaryError={summaryError}
+      hasHistoryWallet={hasHistoryWallet}
+      withdrawAmount={withdrawAmount}
+      withdrawDialogOpen={withdrawDialogOpen}
+      withdrawError={withdrawError}
+      withdrawSubmitting={withdrawSubmitting}
+      withdrawSuccess={withdrawSuccess}
+      onCloseWithdraw={() => {
+        if (withdrawSubmitting) {
+          return;
+        }
+        setWithdrawDialogOpen(false);
+        setWithdrawError("");
+      }}
+      onHistoryWalletClick={() => createHybridNavigator().openNativePage("history-wallet")}
       onLoadMore={loadMoreOrders}
       onReloadOrders={() => void loadOrders({ append: false, current: 1, state: activeState })}
       onReloadSummary={() => void loadSummary()}
       onStateChange={setActiveState}
+      onSubmitWithdraw={() => void submitWithdraw()}
+      onWithdrawAmountChange={(amount) => {
+        setWithdrawAmount(amount);
+        setWithdrawError("");
+      }}
+      onWithdrawClick={() => {
+        setWithdrawSuccess("");
+        setWithdrawError("");
+        setWithdrawDialogOpen(true);
+      }}
     />
   );
 }
@@ -172,17 +256,25 @@ export function WalletStaticView({
   loadingMore,
   loadMoreRef,
   orders,
-  ordersError,
   ordersLoading,
   page,
   summaryData,
-  summaryError,
+  hasHistoryWallet = false,
+  withdrawAmount = "",
+  withdrawDialogOpen = false,
+  withdrawError = "",
+  withdrawSubmitting = false,
+  withdrawSuccess = "",
+  onCloseWithdraw = () => undefined,
+  onHistoryWalletClick = () => undefined,
   onLoadMore,
-  onReloadOrders,
-  onReloadSummary,
-  onStateChange
+  onStateChange,
+  onSubmitWithdraw = () => undefined,
+  onWithdrawAmountChange = () => undefined,
+  onWithdrawClick = () => undefined
 }: WalletStaticViewProps) {
   const summary = summaryData?.view.summary;
+  const withdrawableText = summary?.withdrawableText ?? "--";
 
   return (
     <TransparentActionNavPage
@@ -191,7 +283,9 @@ export function WalletStaticView({
       foreground="dark"
       className={styles.screen}
       contentClassName={styles.content}
+      rightNode={hasHistoryWallet ? <HistoryWalletEntry onClick={onHistoryWalletClick} /> : null}
     >
+      <WalletPageBackground />
       <section className={styles.balanceCard} aria-label="钱包余额">
         <div className={styles.balanceTop}>
           <p className={styles.balanceLabel}>帐户余额(元)</p>
@@ -199,7 +293,7 @@ export function WalletStaticView({
         </div>
         <div className={styles.balanceAmountRow} aria-label="账户余额与提现">
           <strong className={styles.balanceValue}>{summary?.balanceText ?? "--"}</strong>
-          <button className={styles.withdrawButton} type="button" disabled>
+          <button className={styles.withdrawButton} type="button" onClick={onWithdrawClick}>
             提现
           </button>
         </div>
@@ -217,15 +311,20 @@ export function WalletStaticView({
         </div>
       </section>
 
-      {summaryError ? <WalletError message={summaryError} onReload={onReloadSummary} /> : null}
+      {withdrawSuccess ? <div className={styles.noticeBox}>{withdrawSuccess}</div> : null}
 
       <section className={styles.entryGrid} aria-label="钱包管理">
-        <button className={styles.entryButton} type="button" disabled>
-          <span className={cn(styles.entryIcon, styles.accountIcon)} aria-hidden="true" />
+        <a className={styles.entryButton} href={buildClientHref("/wallet/account")}>
+          <span className={cn(styles.entryIcon, styles.accountIcon)} aria-hidden="true">
+            <span className={styles.accountPerson} />
+            <span className={styles.accountBadge} />
+          </span>
           帐户管理
-        </button>
+        </a>
         <a className={styles.entryButton} href={buildClientHref("/wallet/bank-cards")}>
-          <span className={cn(styles.entryIcon, styles.bankIcon)} aria-hidden="true" />
+          <span className={cn(styles.entryIcon, styles.bankIcon)} aria-hidden="true">
+            <span className={styles.bankCardShape} />
+          </span>
           银行卡管理
         </a>
       </section>
@@ -233,9 +332,7 @@ export function WalletStaticView({
       <section className={styles.recordsCard} aria-label="钱包流水">
         <WalletSettlementTabs activeState={activeState} onChange={onStateChange} />
         <div className={styles.settlementData} key={activeState} aria-live="polite">
-          {ordersError ? (
-            <WalletError message={ordersError} onReload={onReloadOrders} />
-          ) : ordersLoading ? (
+          {ordersLoading ? (
             <WalletLoading />
           ) : orders.length ? (
             <>
@@ -247,7 +344,97 @@ export function WalletStaticView({
           )}
         </div>
       </section>
+
+      {withdrawDialogOpen ? (
+        <WalletWithdrawDialog
+          amount={withdrawAmount}
+          error={withdrawError}
+          submitting={withdrawSubmitting}
+          withdrawableText={withdrawableText}
+          onAmountChange={onWithdrawAmountChange}
+          onClose={onCloseWithdraw}
+          onSubmit={onSubmitWithdraw}
+        />
+      ) : null}
     </TransparentActionNavPage>
+  );
+}
+
+export function validateWithdrawAmount(amountText: string, withdrawableAmount: number) {
+  const amount = Number(amountText);
+  if (!amountText.trim() || !Number.isFinite(amount) || amount <= 0) {
+    return "请输入正确的提现金额。";
+  }
+  if (!/^\d+(\.\d{1,2})?$/.test(amountText.trim())) {
+    return "提现金额最多保留两位小数。";
+  }
+  if (amount > withdrawableAmount) {
+    return "提现金额不能超过可提现金额。";
+  }
+  return "";
+}
+
+function normalizeWithdrawInputAmount(amountText: string) {
+  return Math.round(Number(amountText) * 100) / 100;
+}
+
+function getWithdrawableAmount(summaryData: WalletSummaryData | null) {
+  const amount = Number(summaryData?.modules.wallet.canWithdrawAmount);
+  return Number.isFinite(amount) ? Math.round(amount * 100) / 100 : 0;
+}
+
+function WalletWithdrawDialog({
+  amount,
+  error,
+  submitting,
+  withdrawableText,
+  onAmountChange,
+  onClose,
+  onSubmit
+}: {
+  amount: string;
+  error: string;
+  submitting: boolean;
+  withdrawableText: string;
+  onAmountChange: (amount: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className={styles.withdrawOverlay} aria-label="提现弹窗遮罩">
+      <form
+        className={styles.withdrawDialog}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="wallet-withdraw-title"
+        onSubmit={(event) => {
+          event.preventDefault();
+          onSubmit();
+        }}
+      >
+        <button className={styles.withdrawClose} type="button" aria-label="关闭提现弹窗" onClick={onClose} disabled={submitting}>
+          ×
+        </button>
+        <h2 id="wallet-withdraw-title">提现</h2>
+        <p className={styles.withdrawDescription}>请输入您需要提现的金额(元)</p>
+        <label className={styles.withdrawField}>
+          <span className={styles.srOnly}>提现金额</span>
+          <input
+            inputMode="decimal"
+            name="amount"
+            placeholder="请输入"
+            type="text"
+            value={amount}
+            onChange={(event) => onAmountChange(event.currentTarget.value)}
+          />
+        </label>
+        <p className={styles.withdrawHint}>可提现金额 {withdrawableText} 元</p>
+        {error ? <p className={styles.withdrawError}>{error}</p> : null}
+        <button className={styles.withdrawSubmit} type="submit" disabled={submitting}>
+          {submitting ? "提交中..." : "确认"}
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -281,6 +468,23 @@ function WithdrawRecordEntry() {
       <span>提现记录</span>
       <span className={styles.historyWalletIcon} aria-hidden="true" />
     </a>
+  );
+}
+
+function HistoryWalletEntry({ onClick }: { onClick: () => void }) {
+  return (
+    <button className={styles.historyWalletEntry} type="button" aria-label="打开历史钱包" onClick={onClick}>
+      历史钱包
+    </button>
+  );
+}
+
+function WalletPageBackground() {
+  return (
+    <div className={styles.pageBackground} aria-hidden="true">
+      {/* eslint-disable-next-line @next/next/no-img-element -- wallet reuses the same local background image pattern as MineScreen. */}
+      <img className={styles.pageBackgroundImage} src={localAssetUrl("mine.hero.background")} alt="" />
+    </div>
   );
 }
 
@@ -356,17 +560,6 @@ function WalletLoading() {
           <strong />
         </div>
       ))}
-    </div>
-  );
-}
-
-function WalletError({ message, onReload }: { message: string; onReload: () => void }) {
-  return (
-    <div className={styles.errorBox}>
-      <p>{message}</p>
-      <button type="button" onClick={onReload}>
-        重新加载
-      </button>
     </div>
   );
 }

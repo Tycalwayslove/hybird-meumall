@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
-import { EmptyState, StandardNavPage, cn } from "@/design-system";
+import { EmptyState, StandardNavPage } from "@/design-system";
+import { localAssetUrl } from "@/lib/assets";
 import { createH5Client } from "@/lib/http";
 
 import { createWalletApi } from "../api";
@@ -146,12 +147,10 @@ export function WithdrawRecordsStaticView({
               <section className={styles.monthGroup} key={group.date}>
                 <h2>{group.date}</h2>
                 <div className={styles.recordList}>
-                  {group.records.map((record) => (
-                    <article className={styles.recordItem} key={record.id}>
-                      <span className={cn(styles.recordIcon, styles[`recordIcon_${record.status}`])} aria-hidden="true">
-                        提
-                      </span>
-                      <div className={styles.recordInfo}>
+	                  {group.records.map((record) => (
+	                    <article className={styles.recordItem} key={record.id}>
+	                      <img className={styles.recordIcon} src={localAssetUrl("wallet.withdrawRecordIcon")} alt="" />
+	                      <div className={styles.recordInfo}>
                         <h3>{record.title}</h3>
                         <p>{record.time || "时间待确认"}</p>
                       </div>

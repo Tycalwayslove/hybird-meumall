@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { EmptyState, StandardNavPage, cn } from "@/design-system";
 import { createH5Client } from "@/lib/http";
+import { buildClientHref } from "@/lib/navigation";
 
 import { createWalletApi } from "../api";
 import type { BankCardView } from "../server/wallet-real-service";
@@ -22,10 +23,22 @@ type BankCardsStaticViewProps = {
   unbinding: boolean;
 };
 
-export function BankCardsScreen() {
+type AddBankCardFormInput = {
+  acctNum: string;
+  cerNum: string;
+  phone: string;
+};
+
+type AddBankCardStaticViewProps = {
+  error: string;
+  submitting: boolean;
+  onSubmit: (input: AddBankCardFormInput) => void;
+};
+
+export function BankCardsScreen({ initialNotice = "" }: { initialNotice?: string } = {}) {
   const [cards, setCards] = useState<BankCardView[]>([]);
   const [pendingCard, setPendingCard] = useState<BankCardView | null>(null);
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(initialNotice);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [unbinding, setUnbinding] = useState(false);
@@ -34,7 +47,6 @@ export function BankCardsScreen() {
   const loadCards = useCallback(async () => {
     setLoading(true);
     setError("");
-    setNotice("");
     try {
       const result = await api.getBankCards();
       if (!result.success) {
@@ -60,16 +72,10 @@ export function BankCardsScreen() {
     if (!pendingCard) {
       return;
     }
-    if (!pendingCard.signNum) {
-      setError("银行卡会员编号缺失，暂无法解绑。");
-      setPendingCard(null);
-      return;
-    }
     setUnbinding(true);
     setError("");
     const result = await api.unbindBankCard({
-      acctNum: pendingCard.acctNum,
-      signNum: pendingCard.signNum
+      acctNum: pendingCard.acctNum
     });
     if (!result.success) {
       setError(result.message || "解绑银行卡失败，请稍后重试。");
@@ -97,6 +103,29 @@ export function BankCardsScreen() {
       unbinding={unbinding}
     />
   );
+}
+
+export function AddBankCardScreen() {
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const api = useMemo(() => createWalletApi(createH5Client()), []);
+
+  async function submit(input: AddBankCardFormInput) {
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
+    setError("");
+    const result = await api.addBankCard(input);
+    if (!result.success) {
+      setError(result.message || "添加银行卡失败，请稍后重试。");
+      setSubmitting(false);
+      return;
+    }
+    window.location.href = buildClientHref("/wallet/bank-cards?notice=add-success");
+  }
+
+  return <AddBankCardStaticView error={error} submitting={submitting} onSubmit={(input) => void submit(input)} />;
 }
 
 export function BankCardsStaticView({
@@ -146,9 +175,6 @@ function BankCardItem({ card, onRequestUnbind }: { card: BankCardView; onRequest
   return (
     <article className={styles.bankCard}>
       <div className={styles.bankHeader}>
-        <span className={styles.bankLogo} aria-hidden="true">
-          卡
-        </span>
         <div>
           <h2>{card.bankName}</h2>
           <p>{card.cardTypeText}</p>
@@ -164,10 +190,45 @@ function BankCardItem({ card, onRequestUnbind }: { card: BankCardView; onRequest
 
 function AddCardButton() {
   return (
-    <button className={styles.addCardButton} type="button" disabled>
+    <a className={styles.addCardButton} href={buildClientHref("/wallet/bank-cards/add")}>
       <span aria-hidden="true">+</span>
       添加银行卡
-    </button>
+    </a>
+  );
+}
+
+export function AddBankCardStaticView({ error, submitting, onSubmit }: AddBankCardStaticViewProps) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    onSubmit({
+      acctNum: String(formData.get("acctNum") ?? ""),
+      cerNum: String(formData.get("cerNum") ?? ""),
+      phone: String(formData.get("phone") ?? "")
+    });
+  }
+
+  return (
+    <StandardNavPage title="添加银行卡" backHref="/wallet/bank-cards" className={styles.screen} contentClassName={styles.content}>
+      {error ? <p className={styles.formError}>{error}</p> : null}
+      <form className={styles.addForm} onSubmit={handleSubmit}>
+        <label>
+          <span>银行卡号</span>
+          <input autoComplete="cc-number" inputMode="numeric" name="acctNum" placeholder="请输入银行卡号" required />
+        </label>
+        <label>
+          <span>身份证号</span>
+          <input autoComplete="off" name="cerNum" placeholder="请输入身份证号" required />
+        </label>
+        <label>
+          <span>手机号</span>
+          <input autoComplete="tel" inputMode="tel" name="phone" placeholder="请输入银行预留手机号" required />
+        </label>
+        <button className={styles.submitButton} type="submit" disabled={submitting}>
+          {submitting ? "添加中" : "确认添加"}
+        </button>
+      </form>
+    </StandardNavPage>
   );
 }
 
