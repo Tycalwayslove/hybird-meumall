@@ -2,6 +2,21 @@
 
 所有重要的项目、工作流、架构、发布、Bridge、主题和 API 变更都记录在这里。
 
+## 2026-07-01 - 接入 iconfont Font class 图标体系
+
+### 变更
+
+- 新增 `IconFont` design-system 组件和 iconfont 英文语义别名。
+- 从 iconfont 下载包同步项目 `5196034` 的 23 个单色图标，生成本地字体文件、CSS 和类型清单。
+- 新增 `pnpm icons:sync -- --source <iconfont下载目录>`，用于后续 iconfont 更新后显式同步。
+
+### 验证
+
+- `pnpm exec vitest run src/design-system/components/iconfont.test.tsx`：通过，1 file / 4 tests。
+- `pnpm typecheck`：通过。
+- `pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_pfky5d5l91`：通过，同步 23 个图标。
+- `pnpm build:test`：通过。
+
 ## 格式
 
 ```markdown
@@ -26,17 +41,20 @@
 
 ### 新增
 
+- 新增钱包拆分 BFF：`/api/bff/wallet/summary` 只获取分销钱包汇总，`/api/bff/wallet/orders` 单独按 `state/current/size` 获取推广订单；旧 `/api/bff/wallet` 保留为汇总兼容入口。
+- 服务端 Cookie 解析新增 `userInfo` JSON 支持，当前只读取 `phone` 供钱包推广订单 BFF 使用。
+- `/debug-login` 调试页新增 UserInfo JSON 输入框，可在浏览器独立 H5 调试时写入 `userInfo` Cookie；直接访问调试页时，已有 token 但缺少 `userInfo` 不再自动跳走。
 - 新增卖手活动真实 BFF：`/api/bff/seller-activities`、`/api/bff/seller-activities/[activityId]/products`、`/api/bff/seller-activities/[activityId]/available-products`、`/api/bff/seller-activities/[activityId]/products/[prodId]`、`/api/bff/seller-activities/save-or-update` 和 `/api/bff/seller-activities/batch-status`。
 - 新增 H5 页面 `/seller/activities`、`/seller/activities/[activityId]`、`/seller/activities/[activityId]/products`、`/seller/activities/[activityId]/products/[prodId]`，承接原生智能体营销活动入口后的卖手活动配置流程。
 - 卖手活动配置页支持进行中/已暂停 tab，切换只更新页面 state 和接口请求，不修改 URL；批量编辑中进行中 tab 橙色按钮为“暂停”，已暂停 tab 橙色按钮为“开始”。
 - 新增推广激励活动真实 BFF：`/api/bff/promotion/activities`、`/api/bff/promotion/activities/[id]`、`/api/bff/promotion/activities/[id]/reward` 和 `PATCH /api/bff/promotion/activities/rewards/[recordId]/receive`。
 - `/promotion/activities` 和 `/promotion/activities/[id]` 改为消费 Java APP 侧达人激励活动接口，失败或空数据不回退本地 mock。
 - 活动详情新增奖励状态展示，后续实物奖励地址选择交互可复用领取奖励 BFF。
-- 新增收银台真实支付发起链路：`/api/bff/order-pay` 调 Java `/p/order/pay`，普通支付宝/微信返回 App SDK payload，通联支付宝返回支付 URL。
+- 新增收银台真实支付发起链路：`/api/bff/order-pay` 调 Java `/p/order/pay`，`paymentStartCashier.sdkPayload` 透传 `/p/order/pay` 完整 `data`，通联支付宝返回支付 URL。
 - `/api/bff/order-pay` 增加专属调试日志，BFF 服务端单独打印 H5 入参、Java `/p/order/pay` 实际请求体和 Java 原始返回；H5 收银台 console 同步打印提交参数、BFF 返回、本地/测试 `debugRaw` 中的 Java 入参和返回。
-- `/api/bff/order-pay` 在 `paySettlementType=1 + payType=8` 时新增通联微信小程序收银台执行参数，返回 `provider=allinpay`、`paymentMode=wechat-mini-program`、`miniProgram.originalId/path`，由 App 使用微信 OpenSDK 拉起通联小程序收银台。
+- `/api/bff/order-pay` 在 `paySettlementType=1 + payType=8` 时新增通联微信小程序支付桥执行参数，返回 `provider=allinpay`、`paymentMode=allinpay-mini-program-bridge`、`miniProgram.appId/path/extraData`，由 App 打开喵呜小程序支付桥页。
 - 新增 `/api/bff/allinpay-order-status` 和 `/pay-result`，支付结果页支持按 `bizOrderNo` 回查通联支付状态，并支持重试付款或查看订单。
-- 新增 Native Bridge 支付 RPC：`rpc/payment.pay` 用于 App 内支付宝/微信 SDK 支付，`rpc/payment.openUrl` 用于通联支付 URL 打开。
+- 新增 Native Bridge 支付 RPC：`rpc/paymentStartCashier` 用于 App 内支付宝/微信 SDK 支付和通联微信小程序支付桥，`rpc/payment.openUrl` 用于通联支付 URL 打开。
 - `/api/bff/order-pay-info` 新增 `/sys/config/paySettlementType` 读取，收银台展示当前普通支付或通联支付通道。
 - 新增地址选择流统一 helper `src/features/mine-secondary/address-flow.ts`，用 `select/from/flowId/productId/skuId/quantity/addressId` 描述从商品详情或订单确认进入地址列表的上下文。
 - 地址列表选择态支持一次性 `sessionStorage` 结果 + `history.back()` 返回来源页，来源页消费后通过 `history.replaceState` 修正 URL 并重新请求商品详情或订单确认接口，兼容 App 导航栏返回和系统手势返回。
@@ -56,7 +74,7 @@
 - 新增 H5 三套环境 profile：`config/env/h5.local.env`、`config/env/h5.test.env`、`config/env/h5.prod.env`，当前统一指向测试 H5 配置和测试后端域名。
 - 新增首页 BFF route 自身异常日志 `[h5-bff-route-error]`，用于区分 BFF 自身错误和后端调用错误。
 - 新增 H5 本地 token 兜底：仅 `APP_ENV=local` 且 Cookie 缺失时，从 `.env.local` 读取 `H5_LOCAL_JAVA_TOKEN` / `H5_LOCAL_PYTHON_TOKEN`。
-- 新增独立 H5 调试登录页 `/debug-login`：仅浏览器独立打开且缺少 `mallToken` / `pythonToken` 时可手动写入 Java Token 和 Python Token；检测到原生 App 运行信号时返回 404。
+- 新增独立 H5 调试登录页 `/debug-login`：仅浏览器独立打开时可手动写入 Java Token、Python Token 和 UserInfo JSON；检测到原生 App 运行信号时返回 404。
 - 新增 BFF 后端业务码日志字段：`backendBusinessCode`、`backendBusinessMessage`、`backendBusinessSuccess`。
 - 新增商品详情真实接口 BFF：`/api/bff/product-detail?prodId=<prodId>`，请求 Java `/prod/prodInfo?prodId=<prodId>&addrId=0&dvyType=1`。
 - 新增订单确认实时校验 BFF：`/api/bff/order-confirm?productId=<prodId>&skuId=<skuId>&quantity=<n>`，订单确认页重新校验 SKU、库存和价格。
@@ -134,9 +152,14 @@
 
 ### 变更
 
+- 钱包账户卡片按 Figma 节点 `677:29231` 调整：`提现` 按钮移动到帐户余额金额右侧，卡片右上角展示 `提现记录`，页面顶部导航不再重复展示该入口。
+- 新增钱包提现记录页 `/wallet/withdraw-records` 和 BFF `/api/bff/wallet/withdraw-records`，接入 Java `/p/userWithdraw/pageDateUserWithdrawCash`，支持按年月分组展示、触底加载更多、错误重试和空态。
+- 钱包页切换“已结算 / 待结算”时只重置并请求订单第一页，订单列表触底后按下一页加载更多，不再把钱包金额和订单分页绑在同一个 BFF 响应里。
+- 钱包推广订单 `/p/distribution/api/queryPromotionOrder` 的 `userId` 来源改为原生 Cookie `userInfo.phone`；`/api/bff/wallet` 不再依赖推广概览 `distributionUserId`。
+
 - `/pay-way` 收银台视觉优化：金额区改为更明确的 App 内结算面板，支付方式改为卡片式选中态，底部提交栏、支付中提示、加载和错误状态同步打磨；本次不变更支付接口或 Bridge 契约。
 - 收银台默认支付方式改为微信可用时优先微信，用于当前阶段优先跑通微信支付；直接点击“确定支付”会提交 `payType=8`。
-- `rpc/payment.pay` 的 H5 payload 字段名从 `paymentPayload` 对齐为契约里的 `sdkPayload`。
+- `rpc/paymentStartCashier` 的 H5 payload 字段名从 `paymentPayload` 对齐为契约里的 `sdkPayload`。
 - H5 BFF 鉴权和 API 规范补充 `User-Agent`、`x-request-id`、App 版本、系统版本、设备型号和 WebView 版本的透传约定。
 - 根目录 `dev:h5`、H5 项目环境启动命令和 `scripts/root/dev-all.sh` 改为读取 H5 environment profile；Java 后端统一为 `https://test.aigcpop.com/mini_h5`，Python 后端统一为 `https://test.aigcpop.com/api`。
 - 首页渲染数据源从纯静态 mock 调整为优先请求 H5 BFF；早期失败回落 `homeExperienceData` 的策略已在后续正式联调阶段移除。
@@ -636,7 +659,7 @@
 
 ### 变更
 
-- 新增 `/api/bff/wallet`，聚合 Java `/p/distribution/wallet/info`、`/p/distribution/home/overview` 和 `/p/distribution/api/queryPromotionOrder`。
+- 新增钱包 BFF，当前已拆分为 `/api/bff/wallet/summary` 和 `/api/bff/wallet/orders`；推广订单 `userId` 由原生 Cookie `userInfo.phone` 提供。
 - 新增 `/api/bff/wallet/bank-cards` 和 `/api/bff/wallet/bank-cards/unbind`，接入通联银行卡查询和解绑接口。
 - `/wallet` 从静态 mock 改为真实 BFF 数据源，首屏 loading、空订单空态、失败重试均不回退 mock。
 - 新增 `/wallet/bank-cards` 银行卡管理页，支持已绑卡列表、无卡态和解绑确认弹窗；新增绑卡流程后置。

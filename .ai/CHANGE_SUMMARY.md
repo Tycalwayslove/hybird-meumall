@@ -1,11 +1,133 @@
 # 变更摘要
 
+## 2026-07-01 - 接入 iconfont Font class 图标体系
+
+### 变更
+
+- 从本地下载包 `/Users/mac/Downloads/font_5196034_pfky5d5l91/` 同步 iconfont 项目 `5196034` 的 23 个单色 Font class 图标。
+- 新增 `IconFont` design-system 组件，业务页面通过英文语义名或生成 key 使用图标，不直接依赖 iconfont 原始 class。
+- 新增 `pnpm icons:sync -- --source <iconfont下载目录>`，用于后续下载新包后重新生成字体文件、CSS 和类型清单。
+- iconfont 字体资源放入 `src/design-system/icons/font/`，通过 Next CSS 资源打包适配 H5 basePath。
+
+### 验证
+
+- `pnpm exec vitest run src/design-system/components/iconfont.test.tsx`：通过，1 file / 4 tests。
+- `pnpm typecheck`：通过。
+- `pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_pfky5d5l91`：通过，同步 23 个图标。
+- `pnpm build:test`：通过，构建产物包含 `.next/static/media/iconfont...woff2/woff/ttf`。
+
+## 2026-07-01 - 钱包提现记录页真实接口
+
+### 变更
+
+- 点击钱包账户卡片右上角 `提现记录` 进入 `/wallet/withdraw-records`。
+- 新增提现记录 BFF `/api/bff/wallet/withdraw-records`，接入 Apifox main 分支 `GET /p/userWithdraw/pageDateUserWithdrawCash`，按 `current/size` 分页。
+- 新增提现记录页面，保留顶部导航栏，按年月分组展示记录，支持 loading、error、empty、触底加载更多和按钮兜底。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 18 tests。
+- `pnpm typecheck`：通过。
+- 飞书同步：页面清单 revision 48；H5 BFF/API 对接说明 revision 19。
+
+## 2026-07-01 - 钱包账户卡片入口布局调整
+
+### 变更
+
+- 按 Figma 节点 `677:29231` 调整钱包账户卡片：`提现` 按钮移动到帐户余额金额右侧。
+- 账户卡片右上角展示 `提现记录` 入口；页面顶部导航不再额外展示重复的 `提现记录`。
+- 订单列表仍保持无筛选、无总述、无详情箭头的纯列表展示。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/mine-secondary-pages.test.tsx -t "renders wallet real data"`：通过，1 test。
+- `pnpm typecheck`：通过。
+
+## 2026-07-01 - 钱包 BFF 拆分与订单分页加载
+
+### 变更
+
+- 将钱包汇总与推广订单拆成两个 BFF：`/api/bff/wallet/summary` 只获取 `/p/distribution/wallet/info`，`/api/bff/wallet/orders` 按 `state/current/size` 获取 `/p/distribution/api/queryPromotionOrder`。
+- `/wallet` 页面改为汇总和订单两条加载状态：切换“已结算 / 待结算”只重置订单列表并请求第一页，不重复请求钱包汇总。
+- 推广订单列表支持触底自动加载下一页，并保留“上拉加载更多”按钮作为兜底。
+- 旧 `/api/bff/wallet` 保留为钱包汇总兼容入口，不再聚合订单。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 16 tests。
+- `pnpm typecheck`：通过。
+- 飞书同步：页面清单 revision 47；H5 BFF/API 对接说明 revision 18。
+
+## 2026-07-01 - Debug Login 支持写入 UserInfo
+
+### 变更
+
+- `/debug-login` 表单新增 `UserInfo JSON` 输入框，提交时会校验 JSON 对象并写入 `userInfo` Cookie。
+- 清空调试 Cookie 时同步清除 `userInfo`。
+- 直接访问 `/debug-login` 时，如果已有 `mallToken` / `pythonToken` 但缺少 `userInfo`，会继续展示表单，方便补写 `userInfo.phone`；首页不会因为缺少 `userInfo` 自动跳调试页。
+
+### 验证
+
+- `pnpm exec vitest run src/features/debug-login/debug-login.test.tsx`：通过，1 file / 6 tests。
+
+## 2026-07-01 - 钱包推广订单 userId 来源修正
+
+### 变更
+
+- 新增服务端 Cookie `userInfo` 解析，读取 `phone` 作为钱包推广订单 `/p/distribution/api/queryPromotionOrder` 的 `userId` 参数。
+- `/api/bff/wallet` 不再为了推广订单请求 `/p/distribution/home/overview`；银行卡管理仍使用推广概览 `userInfo.cardNo` 作为当前解绑 `signNum` 候选值。
+- 更新 H5 API 规范、根级 API 契约、对接说明、页面清单、工作项和 TODO。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/server/auth/cookie-auth.test.ts`：通过，2 files / 14 tests。
+- 飞书同步：页面清单 revision 46；H5 BFF/API 对接说明 revision 17。
+
+### 后续
+
+- 需要 App WebView 初始化时随 `mallToken` / `pythonToken` 一起写入 `userInfo` Cookie，并用真实 `userInfo.phone` 验证推广订单返回。
+
+## 2026-07-01 - 支付 RPC 无点命名与通联微信小程序桥修正
+
+### 变更
+
+- 将 H5 发给原生的支付 RPC action 从 `payment.pay` 改为无点命名 `paymentStartCashier`，降低原生侧方法映射复杂度。
+- 通联微信 `paySettlementType=1 + payType=8` 分支改为 `paymentMode="allinpay-mini-program-bridge"`。
+- `miniProgram` 不再指向通联收银台原始 ID/path，而是指向喵呜小程序支付桥：`appId=wx264f4850dc92b03d`、`path=package-pay/pages/allinpay-bridge/allinpay-bridge`。
+- `/p/order/pay` 返回的完整 `data` 继续透传到 `sdkPayload`；`chnlFrontParamInfo` 解析对象同时放入 `chnlFrontParamInfo` 和 `miniProgram.extraData.allinpayParams`，由小程序桥页原样传给通联收银台。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 21 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/payment src/app/pay-way/page.tsx src/app/pay-result/page.tsx src/app/api/bff/order-pay/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/lib/bridge/protocol-bridge.ts`：通过。
+- `pnpm run ai:check-docs-sync --strict`：通过，15 个 H5 文档文件同步检查通过。
+- 飞书同步：H5 与原生 App 对接说明 revision 119；H5 BFF/API 对接说明 revision 16；页面清单 revision 45。
+
+## 2026-06-30 - payment.pay 完整透传支付返回
+
+### 变更
+
+- 按原生联调要求调整支付 Bridge 参数：所有 `execution.type="native-sdk"` 分支的 `sdkPayload` 都透传 Java `/p/order/pay` 解包后的完整 `data`。
+- 普通微信支付不再把后端字段裁剪为 `appid/noncestr/prepayid` 等 H5 归一化对象；通联微信支付不再只传 `miniprogramPayInfo_VSP` 内部字段。
+- 通联微信在 `data.result == 0` 且 `data.chnlFrontParamInfo` 可解析时，会把该 JSON 字符串解析为 `chnlFrontParamInfo` 对象并把对象内所有顶层参数传给原生；仍保留 `miniProgram` 作为 H5 派生的快捷拉起参数，原生需要完整支付返回时读取 `sdkPayload`，需要通联前置参数时读取 `chnlFrontParamInfo`，需要打开喵呜小程序支付桥时读取 `miniProgram`。
+- 同步更新 H5 Native Bridge 规范、API 规范、根级支付 Bridge/API 契约和通联微信原生对接说明。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 21 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/payment src/app/pay-way/page.tsx src/app/pay-result/page.tsx src/app/api/bff/order-pay/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/lib/bridge/protocol-bridge.ts`：通过。
+- `pnpm run ai:check-docs-sync --strict`：通过，15 个 H5 文档文件同步检查通过。
+- 飞书同步：H5 与原生 App 对接说明 `OJk1wa43PiR9lTkYs2YcW8llnmf` revision 93；H5 BFF/API 对接说明 `GPhdwjQ87iQAQskeS6lc9bMOnte` revision 14；页面清单 `WgaqwTRRUitnRNkCtNPcOcDnnre` revision 43。
+- 2026-07-01 追加：`chnlFrontParamInfo` 解析传参后，支付聚焦测试通过，2 files / 21 tests；飞书同步：H5 与原生 App 对接说明 revision 99；H5 BFF/API 对接说明 revision 15；页面清单 revision 44。
+
 ## 2026-06-30 - 通联微信支付 Native Bridge 对接
 
 ### 变更
 
-- `/api/bff/order-pay` 在 `paySettlementType=1 + payType=8` 时，会把 Java `/p/order/pay` 返回的通联小程序支付字段归一化为 `execution.type="native-sdk"`、`provider="allinpay"`、`settlementProvider="allinpay"`、`paymentMode="wechat-mini-program"`。
-- `payment.pay` Bridge payload 新增 `miniProgram`、`paymentMode`、`settlementProvider` 和 `bizOrderNo`，H5 会传 `miniProgram.originalId=gh_e64a1a89a0ad` 与 `miniProgram.path=pages/orderDetail/orderDetail?...` 给 App 使用微信 OpenSDK 打开通联小程序收银台。
+- `/api/bff/order-pay` 在 `paySettlementType=1 + payType=8` 时，会把 Java `/p/order/pay` 返回的通联小程序支付字段归一化为 `execution.type="native-sdk"`、`provider="allinpay"`、`settlementProvider="allinpay"`、`paymentMode="allinpay-mini-program-bridge"`。
+- `paymentStartCashier` Bridge payload 新增 `miniProgram`、`paymentMode`、`settlementProvider` 和 `bizOrderNo`，H5 会传 `miniProgram.appId=wx264f4850dc92b03d`、`miniProgram.path=package-pay/pages/allinpay-bridge/allinpay-bridge` 与 `miniProgram.extraData.allinpayParams` 给 App 打开喵呜小程序支付桥页。
 - 通联微信打开成功但支付结果未知时，App 可返回 `status=unknown`，H5 进入 `/pay-result` 并按 `bizOrderNo` 回查订单状态。
 - 收紧通联微信参数识别：只有命中 `miniprogramPayInfo_VSP` 等显式字段或顶层通联小程序关键字段时，才生成小程序收银台 payload。
 - 同步更新 H5 Native Bridge 规范、API 规范、根级 Native Bridge/API 契约、支付对接说明、任务和页面盘点。
@@ -39,7 +161,7 @@
 
 - 优化 `/pay-way` 收银台金额面板、支付方式列表、选中态、底部提交栏、支付中提示和加载/错误状态样式。
 - 支付方式行补充 App 支付副文案和 `aria-pressed` 状态，当前选中方式在标题区同步展示。
-- 本次仅调整收银台视觉与展示结构，不变更 `/api/bff/order-pay`、`rpc/payment.pay` 或 `rpc/payment.openUrl` 的接口契约。
+- 本次仅调整收银台视觉与展示结构，不变更 `/api/bff/order-pay`、支付 RPC 或 `rpc/payment.openUrl` 的接口契约。
 
 ### 验证
 
@@ -92,12 +214,12 @@
 ### 变更
 
 - 2026-06-30 追加：为先跑通微信支付，收银台默认支付方式从“支付方式数组第一项”改为“微信可用时优先微信”，避免用户直接点击“确定支付”时默认提交支付宝 `payType=7`。
-- 2026-06-30 追加：`rpc/payment.pay` H5 payload 字段从实现里的旧名 `paymentPayload` 对齐为契约字段 `sdkPayload`。
+- 2026-06-30 追加：支付 RPC H5 payload 字段从实现里的旧名 `paymentPayload` 对齐为契约字段 `sdkPayload`。
 - 新增 `/api/bff/order-pay`，点击收银台“确定支付”后调用 Java `/p/order/pay`，并按 `/sys/config/paySettlementType` 分流普通 App SDK 支付和通联支付。
 - `/api/bff/order-pay-info` 增加 `/sys/config/paySettlementType` 读取，收银台可展示当前为普通结算或通联结算。
 - 测试环境 `paySettlementType=1` 时，支付宝链路会用 `/p/order/pay` 返回的 `miniprogramPayInfo_VSP` 请求 `/p/allinpay/order/getAliAppPayUrl`，再通过 `rpc/payment.openUrl` 请求 App 打开通联支付 URL。
 - 新增 `/api/bff/allinpay-order-status` 和 `/pay-result`，支付结果页可按 `bizOrderNo` 调 Java `/p/allinpay/order/getOrderStatus` 回查通联状态；非通联或 SDK 支付返回后回读订单支付信息。
-- 新增 `rpc/payment.pay` 与 `rpc/payment.openUrl` typed Bridge，普通支付宝/微信 SDK 支付交给 App，通联 URL 打开交给 App；Web 调试环境仅对通联 URL 保留直接跳转兜底。
+- 新增 `rpc/paymentStartCashier` 与 `rpc/payment.openUrl` typed Bridge，普通支付宝/微信 SDK 支付交给 App，通联 URL 打开交给 App；Web 调试环境仅对通联 URL 保留直接跳转兜底。
 - 同步更新 Native Bridge 规范、API 规范、根级 Bridge/API 契约和页面盘点。
 
 ### 验证
@@ -2430,4 +2552,4 @@
 
 ### 后续
 
-- 用 App 注入的真实 `mallToken` 联调 Java 返回数据，重点确认推广订单 `distributionUserId` 和解绑银行卡 `signNum` 取值。
+- 用 App 注入的真实 `mallToken` 和 `userInfo` Cookie 联调 Java 返回数据，重点确认推广订单 `userId=userInfo.phone` 和解绑银行卡 `signNum` 取值。

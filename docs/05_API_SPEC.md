@@ -47,6 +47,7 @@ Python / Java 后端不需要支持 Cookie 鉴权，仍继续按 `Authorization`
 | --- | --- | --- | --- |
 | `pythonToken` | 原生 App 写入的 Python 服务 token。 | 否 | `HttpOnly; Secure; Path=/; SameSite=Lax` |
 | `mallToken` | 原生 App 写入的 Java / mall 服务 token。 | 否 | `HttpOnly; Secure; Path=/; SameSite=Lax` |
+| `userInfo` | 原生 App 写入的用户基础信息 JSON，钱包推广订单当前读取其中 `phone` 作为 Java `userId` 参数。 | 否 | `HttpOnly; Secure; Path=/; SameSite=Lax` |
 | `statusHeight` | 原生 App 写入的手机顶部状态栏高度，H5 按 px 处理。 | 可按需 | `Secure; Path=/; SameSite=Lax` |
 | `meu_page_config` | 可选页面启动配置，禁止放敏感信息。 | 可按需 | `Secure; Path=/; SameSite=Lax` |
 
@@ -79,13 +80,14 @@ H5_LOCAL_PYTHON_TOKEN=本地调试用 pythonToken
 
 | 条件 | 行为 |
 | --- | --- |
-| Cookie 中已同时存在 `mallToken` 和 `pythonToken` | 直接跳回目标页面。 |
-| 缺少 token，且没有原生运行信号 | 展示 Java Token / Python Token 输入框，提交后写入调试 Cookie。 |
+| Cookie 中已同时存在 `mallToken`、`pythonToken` 和 `userInfo` | 直接跳回目标页面。 |
+| 缺少 token，且没有原生运行信号 | 展示 Java Token / Python Token / UserInfo JSON 输入框，提交后写入调试 Cookie。 |
+| 已有 `mallToken` 和 `pythonToken`，但缺少 `userInfo` | 直接访问 `/debug-login` 时仍展示表单，便于补写钱包联调所需 `userInfo.phone`；首页不会因此自动跳转到调试页。 |
 | 检测到原生运行信号 | 返回 404，不展示调试页。 |
 
 原生运行信号包括 `statusHeight`、`meu_page_config`、`x-app-version`、`x-app-build`、`x-device-model`、`x-os-version`、`x-webview-version`，以及 `x-platform=ios/android`。原生 App WebView 应始终由 App 写入 `mallToken` 和 `pythonToken`，不依赖该页面。
 
-`/` 首页在浏览器独立 H5、无 token、无原生信号时会跳转到 `/debug-login?redirect=/`，用于解决线上版本浏览器调试无法获取 token 的问题。调试页写入的 token Cookie 不是 HttpOnly，仅用于手动联调；不要把真实 token 写入代码、环境 profile、文档或日志。
+UserInfo JSON 可留空；如果填写，必须是包含非空 `phone` 的 JSON 对象，例如 `{"phone":"37"}`。`/` 首页在浏览器独立 H5、无 token、无原生信号时会跳转到 `/debug-login?redirect=/`，用于解决线上版本浏览器调试无法获取 token 的问题。调试页写入的 token 和 userInfo Cookie 不是 HttpOnly，仅用于手动联调；不要把真实 token、手机号或完整 userInfo 写入代码、环境 profile、文档或日志。
 
 ### 服务端后端注册表
 
@@ -444,7 +446,7 @@ type HomeBffData = {
 
 我的页 `/mine` 已接入真实概览 BFF：SSR 消费 `/api/bff/mine/summary`，BFF 聚合 Java `/p/app/profile/summary` 和 `/p/daren/level/myLevel`。`walletBalance/yearSavedAmount/couponCount` 映射为我的页三项指标，`banners` 取 `seq` 最小的一张作为个人中心 banner，当前等级映射为权益中心入口 `/promotion/benefits?level=<v>`。联调阶段接口失败、token 缺失或 `data` 缺失时展示错误态，不回退 `minePageData` mock。
 
-钱包 `/wallet` 已接入真实 BFF：浏览器端消费 `/api/bff/wallet?state=settled|pending&current=1&size=10`，BFF 先调 Java `/p/distribution/wallet/info` 获取分销钱包汇总，再调 `/p/distribution/home/overview` 获取 `userInfo.distributionUserId`，随后调 `/p/distribution/api/queryPromotionOrder` 获取推广订单。`state=settled` 映射 Java `state=2`，`state=pending` 映射 Java `state=1`。银行卡管理 `/wallet/bank-cards` 消费 `/api/bff/wallet/bank-cards`，BFF 调 `/p/allinpay/member/queryBankCardV2` 并过滤已解除卡；解绑银行卡消费 `POST /api/bff/wallet/bank-cards/unbind`，BFF 转 Java `/p/allinpay/member/unbindBankCardV2`，body 为 `{ signNum, acctNum }`。当前 `signNum` 暂取推广概览 `userInfo.cardNo`，需要 App token 联调和后端确认。
+钱包 `/wallet` 已接入真实 BFF，且钱包汇总和推广订单已拆分：浏览器端消费 `/api/bff/wallet/summary` 获取 Java `/p/distribution/wallet/info` 的分销钱包汇总；消费 `/api/bff/wallet/orders?state=settled|pending&current=1&size=10` 获取推广订单，BFF 从原生 Cookie `userInfo` 解析 `phone` 作为 `/p/distribution/api/queryPromotionOrder` 的 `userId` 参数。`state=settled` 映射 Java `state=2`，`state=pending` 映射 Java `state=1`。页面切换“已结算 / 待结算”时只重置订单列表并请求订单第一页，触底后按 `current + 1` 加载更多订单；钱包金额不随订单 tab 反复请求。点击“提现记录”进入 `/wallet/withdraw-records`，页面消费 `/api/bff/wallet/withdraw-records?current=1&size=10`，BFF 转 Java `/p/userWithdraw/pageDateUserWithdrawCash`，响应按 `date + withdrawCashVOs` 年月分组展示，并支持触底加载更多和空态。旧 `/api/bff/wallet` 仅保留为汇总兼容入口，不再聚合订单。银行卡管理 `/wallet/bank-cards` 消费 `/api/bff/wallet/bank-cards`，BFF 调 `/p/distribution/home/overview` 获取 `signNum` 候选值，再调 `/p/allinpay/member/queryBankCardV2` 并过滤已解除卡；解绑银行卡消费 `POST /api/bff/wallet/bank-cards/unbind`，BFF 转 Java `/p/allinpay/member/unbindBankCardV2`，body 为 `{ signNum, acctNum }`。当前 `signNum` 暂取推广概览 `userInfo.cardNo`，需要 App token 联调和后端确认。
 
 权益中心 `/promotion/benefits` 已接入真实等级 BFF：SSR 消费 `/api/bff/promotion/benefits`，BFF 聚合 Java `/p/daren/level/myLevel` 和 `/p/daren/level/list`。`myLevel` 用于当前等级、进度和佣金倍率，`level/list` 用于可切换等级列表和权益项。页面继续支持左右滑、箭头和等级轨道切换；等级列表为空或接口失败展示错误态，不回退本地 mock。Apifox description 中仍写旧 `/p/distribution/level/...`，当前 OpenAPI path 为 `/p/daren/level/...`，H5 以 OpenAPI path 为准。
 
@@ -971,14 +973,21 @@ type OrderPaymentData = {
       | {
           type: "native-sdk";
           provider: "alipay" | "wechat" | "allinpay";
-          paymentMode?: "app-sdk" | "wechat-mini-program";
+          paymentMode?: "app-sdk" | "allinpay-mini-program-bridge";
           paymentPayload: unknown;
+          chnlFrontParamInfo?: Record<string, string>;
           miniProgram?: {
             appId: string;
-            originalId: string;
+            cashierAppId?: string;
+            extraData?: {
+              allinpayParams?: Record<string, string>;
+              orderNumbers?: string;
+              bizOrderNo?: string;
+              reqsn?: string;
+              returnToCaller?: boolean;
+            };
+            launchMode?: "embedded-mini-program";
             path: string;
-            query: Record<string, string>;
-            queryString: string;
             type: "wechat";
           };
           settlementProvider?: "allinpay";
@@ -1036,9 +1045,9 @@ type AllinpayOrderStatusData = {
 - `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
 - `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber`、`/sys/config/info/getSysPaySwitch` 和 `/sys/config/paySettlementType` 后展示金额、倒计时、支付状态、支付方式和结算通道。
 - `/pay-way` 点击“确定支付”调用 `/api/bff/order-pay`。BFF 传 Java `/p/order/pay` 的基础参数为 `payType/orderNumbers/returnUrl/systemType`；`systemType` 按客户端平台映射，Android 为 `4`，iOS/默认 App 为 `5`；当 `paySettlementType=1` 时补 `allinPaySystemType=1`。
-- 普通支付宝/微信支付返回 `execution.type="native-sdk"` 和 `paymentMode="app-sdk"`，H5 通过 `rpc/payment.pay` 把 `provider/payType/orderNumbers/sdkPayload` 交给 App 拉起 SDK；Bridge 返回后进入 `/pay-result` 展示结果。
+- 普通支付宝/微信支付返回 `execution.type="native-sdk"` 和 `paymentMode="app-sdk"`，H5 通过 `rpc/paymentStartCashier` 把 `provider/payType/orderNumbers/sdkPayload` 交给 App 拉起 SDK；其中 `sdkPayload` 固定等于 Java `/p/order/pay` 返回的完整 `data`，Bridge 返回后进入 `/pay-result` 展示结果。
 - 测试环境当前 `paySettlementType=1`，通联支付宝返回 `execution.type="open-url"` 时，H5 通过 `rpc/payment.openUrl` 请求 App 打开支付 URL，随后进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>` 并调用 `/api/bff/allinpay-order-status` 回查结果。
-- 测试环境当前 `paySettlementType=1` 且选择微信 `payType=8` 时，H5 会把 `/p/order/pay` 返回的通联小程序支付字段归一化为 `execution.type="native-sdk"`、`provider="allinpay"`、`settlementProvider="allinpay"`、`paymentMode="wechat-mini-program"`，并在 `miniProgram` 中提供 `appId=wxef277996acc166c3`、`originalId=gh_e64a1a89a0ad`、`path=pages/orderDetail/orderDetail?...`。H5 通过 `rpc/payment.pay` 交给 App 使用微信 OpenSDK 拉起通联小程序收银台；App 若只能确认已打开，返回 `status=unknown` 即可，H5 进入 `/pay-result` 回查。
+- 测试环境当前 `paySettlementType=1` 且选择微信 `payType=8` 时，H5 会把 `/p/order/pay` 返回的完整 `data` 放入 `sdkPayload`；当 `data.result == 0` 且 `data.chnlFrontParamInfo` 可解析时，H5 会把该 JSON 字符串解析成 `chnlFrontParamInfo` 对象并把对象所有顶层参数传给 App，同时派生 `miniProgram.extraData.allinpayParams`，并设置 `execution.type="native-sdk"`、`provider="allinpay"`、`settlementProvider="allinpay"`、`paymentMode="allinpay-mini-program-bridge"`。H5 通过 `rpc/paymentStartCashier` 交给 App 打开喵呜小程序支付桥页；桥页再原样透传 `allinpayParams` 打开通联收银台。App 若只能确认已打开，返回 `status=unknown` 即可，H5 进入 `/pay-result` 回查。
 
 ### 订单列表、退货退款和订单详情
 
