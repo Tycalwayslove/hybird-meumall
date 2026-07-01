@@ -24,13 +24,17 @@ describe("IconFont", () => {
   });
 
   test("resolves semantic aliases and generated keys", () => {
+    expect(resolveIconFontClass("wallet")).toBe("qianbao");
+    expect(resolveIconFontClass("dialogClose")).toBe("danchuang-guanbi");
     expect(resolveIconFontClass("favorite")).toBe("shoucang");
     expect(resolveIconFontClass("danxuanYixuan")).toBe("danxuan-yixuan");
     expect(resolveIconFontClass("frame")).toBe("Frame");
   });
 
   test("keeps the full downloaded iconfont glyph set available", () => {
-    expect(iconFontGlyphs).toHaveLength(23);
+    expect(iconFontGlyphs).toHaveLength(30);
+    expect(iconFontGlyphs.map((glyph) => glyph.rawClass)).toContain("qianbao");
+    expect(iconFontGlyphs.map((glyph) => glyph.rawClass)).toContain("danchuang-guanbi");
     expect(iconFontGlyphs.map((glyph) => glyph.rawClass)).toContain("shoucang");
     expect(iconFontGlyphs.map((glyph) => glyph.rawClass)).toContain("fenxiang");
     expect(iconFontGlyphs.map((glyph) => glyph.rawClass)).toContain("qingchu");

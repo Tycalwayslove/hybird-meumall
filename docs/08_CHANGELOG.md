@@ -7,14 +7,14 @@
 ### 变更
 
 - 新增 `IconFont` design-system 组件和 iconfont 英文语义别名。
-- 从 iconfont 下载包同步项目 `5196034` 的 23 个单色图标，生成本地字体文件、CSS 和类型清单。
+- 从 iconfont 下载包同步项目 `5196034` 的 30 个单色图标，生成本地字体文件、CSS 和类型清单。
 - 新增 `pnpm icons:sync -- --source <iconfont下载目录>`，用于后续 iconfont 更新后显式同步。
 
 ### 验证
 
 - `pnpm exec vitest run src/design-system/components/iconfont.test.tsx`：通过，1 file / 4 tests。
 - `pnpm typecheck`：通过。
-- `pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_pfky5d5l91`：通过，同步 23 个图标。
+- `pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_kvmncux845h`：通过，同步 30 个图标。
 - `pnpm build:test`：通过。
 
 ## 格式

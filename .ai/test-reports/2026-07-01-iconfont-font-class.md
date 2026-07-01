@@ -8,7 +8,7 @@
 
 - `IconFont` 组件渲染。
 - iconfont 英文语义别名和生成 key 解析。
-- 从本地 iconfont 下载包同步 23 个图标。
+- 从本地 iconfont 下载包同步 30 个图标。
 - Next 测试环境构建中的字体资源打包。
 
 ## 验证命令
@@ -16,7 +16,7 @@
 ```bash
 pnpm exec vitest run src/design-system/components/iconfont.test.tsx
 pnpm typecheck
-pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_pfky5d5l91
+pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_kvmncux845h
 pnpm build:test
 ```
 
@@ -24,7 +24,7 @@ pnpm build:test
 
 - `pnpm exec vitest run src/design-system/components/iconfont.test.tsx`：通过，1 file / 4 tests。
 - `pnpm typecheck`：通过。
-- `pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_pfky5d5l91`：通过，同步 iconfont 项目 `5196034` 的 23 个图标。
+- `pnpm icons:sync -- --source /Users/mac/Downloads/font_5196034_kvmncux845h`：通过，同步 iconfont 项目 `5196034` 的 30 个图标。
 - `pnpm build:test`：通过。
 - 构建产物检查：`.next/static/media/` 下生成 `iconfont...woff2`、`iconfont...woff` 和 `iconfont...ttf`。
 

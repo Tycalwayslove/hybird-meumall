@@ -1,6 +1,13 @@
 import type { IconFontRawClass } from "./iconfont.generated";
 
 export const iconFontAliases = {
+  detailLinkWhite: "xiangqingyetiaozhuanbai",
+  detailLinkBlack: "xiangqingyetiaozhuanhei",
+  wallet: "qianbao",
+  clearCircle: "qingchu1",
+  dropdown: "xiala",
+  add: "tianjia",
+  dialogClose: "danchuang-guanbi",
   favorite: "shoucang",
   basicInfoEdit: "jibenxinxibianji",
   voiceEdit: "shengyinbianji",

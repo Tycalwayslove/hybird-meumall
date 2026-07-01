@@ -9,6 +9,48 @@ export const iconFontProject = {
 
 export const iconFontGlyphs = [
   {
+    id: "47974033",
+    name: "详情页跳转白",
+    rawClass: "xiangqingyetiaozhuanbai",
+    unicode: "e6af"
+  },
+  {
+    id: "47974032",
+    name: "详情页跳转黑",
+    rawClass: "xiangqingyetiaozhuanhei",
+    unicode: "e6b0"
+  },
+  {
+    id: "47974031",
+    name: "钱包",
+    rawClass: "qianbao",
+    unicode: "e6b1"
+  },
+  {
+    id: "47974037",
+    name: "清除",
+    rawClass: "qingchu1",
+    unicode: "e6ab"
+  },
+  {
+    id: "47974036",
+    name: "下拉",
+    rawClass: "xiala",
+    unicode: "e6ac"
+  },
+  {
+    id: "47974035",
+    name: "添加",
+    rawClass: "tianjia",
+    unicode: "e6ad"
+  },
+  {
+    id: "47974034",
+    name: "弹窗-关闭",
+    rawClass: "danchuang-guanbi",
+    unicode: "e6ae"
+  },
+  {
     id: "47967219",
     name: "收藏",
     rawClass: "shoucang",
@@ -151,6 +193,13 @@ export const iconFontGlyphs = [
 export type IconFontRawClass = (typeof iconFontGlyphs)[number]["rawClass"];
 
 export const iconFontClassMap = {
+  "xiangqingyetiaozhuanbai": "xiangqingyetiaozhuanbai",
+  "xiangqingyetiaozhuanhei": "xiangqingyetiaozhuanhei",
+  "qianbao": "qianbao",
+  "qingchu1": "qingchu1",
+  "xiala": "xiala",
+  "tianjia": "tianjia",
+  "danchuangGuanbi": "danchuang-guanbi",
   "shoucang": "shoucang",
   "jibenxinxibianji": "jibenxinxibianji",
   "shengyinbianji": "shengyinbianji",
