@@ -1,5 +1,98 @@
 # 变更摘要
 
+## 2026-07-01 - 钱包账户管理与认证信息页
+
+### 变更
+
+- 钱包页“帐户管理”入口改为跳转 `/wallet/account`。
+- 新增账户管理页 `/wallet/account`，当前只展示“认证信息”入口。
+- 新增认证信息页 `/wallet/account/certification`，通过 `/api/bff/wallet/member-info` 转 Java `/p/allinpay/member/getMemberBasicInfoV2` 获取会员姓名和身份证号。
+- 认证信息页同步读取 `/api/bff/wallet/bank-cards`，展示银行卡列表预览并可跳转 `/wallet/bank-cards`。
+- 认证信息页不展示 Figma 中的“实名登记”模块。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 30 tests。
+- `pnpm typecheck`：通过。
+- `git diff --check`：通过。
+- 飞书同步：页面清单 revision 54；H5 BFF/API 对接说明 revision 25。
+
+## 2026-07-01 - 钱包展示口径调整
+
+### 变更
+
+- 钱包汇总接口失败时不再展示“无法获取钱包数据”的错误卡，账户卡片保留 `--` 空数据展示。
+- 推广订单接口失败时不再展示错误卡和“重新加载”，订单区域直接展示通用空态“暂无推广订单”。
+- 钱包页背景改为复用“我的”页面同源图片 `mine.hero.background`，移除原页面级 CSS 渐变背景。
+- 补充页面渲染测试，覆盖错误文案不出现和订单空态出现。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，1 file / 15 tests。
+- `pnpm typecheck`：通过。
+- 飞书同步：页面清单 revision 52；H5 BFF/API 对接说明 revision 24。
+
+## 2026-07-01 - 钱包历史钱包入口
+
+### 变更
+
+- 新增 BFF `/api/bff/wallet/history-status`，读取 Python `GET /user/wallet_state`，兼容响应顶层 `state` 或 `data.state`。
+- 钱包页进入后单独查询历史钱包状态；`state=1` 时展示导航栏右侧“历史钱包”入口，其它状态或接口失败时不展示。
+- 点击“历史钱包”复用 `createHybridNavigator().openNativePage("history-wallet")`，向 App 发送 `router/navigate` 和 `payload.route=history-wallet`。
+- 更新 H5 API 规范、Native Bridge 规范、根级 API/Bridge 契约、页面盘点和对接说明。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx src/lib/navigation/hybrid-navigation.test.ts`：通过，4 files / 33 tests。
+- `pnpm typecheck`：通过。
+- `git diff --check`：通过。
+- 飞书同步：页面清单 revision 52；H5 BFF/API 对接说明 revision 23；H5 与原生路由对接说明 revision 122。
+
+## 2026-07-01 - 钱包汇总切换 infoV2 与入口图标调整
+
+### 变更
+
+- 钱包汇总 BFF `/api/bff/wallet/summary` 和兼容入口 `/api/bff/wallet` 改为请求 Java `GET /p/distribution/wallet/infoV2?userMobile=<userInfo.phone>`。
+- 钱包提现申请 BFF 提交前同样读取 `infoV2`，并改为用 `canWithdrawAmount` 校验提现上限。
+- 钱包账户余额和可提现金额都映射 `canWithdrawAmount`；后端字段未返回时按 `0` 展示和校验。
+- 钱包页“帐户管理”和“银行卡管理”入口图标按提供的账户/银行卡 PNG 参考改为浅蓝账户与橙色银行卡样式。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 24 tests。
+- 飞书同步：页面清单 revision 51；H5 BFF/API 对接说明 revision 22。
+
+## 2026-07-01 - 钱包提现申请接入
+
+### 变更
+
+- 钱包页 `提现` 按钮改为打开金额弹窗，弹窗只包含提现金额输入、关闭和确认。
+- 新增 BFF `/api/bff/wallet/withdraw`，提交前先读取钱包汇总校验 `amount <= settledAmount`，再转 Java `POST /p/allinpay/member/memberWithdrawApply`。
+- 提现申请 Java 请求体只传 `{ amount }`，不传 `signNum/notifyUrl`。
+- 提交成功后关闭弹窗、提示“提现申请已提交”并刷新钱包汇总。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 23 tests。
+- `pnpm typecheck`：通过。
+- `git diff --check`：通过。
+- 飞书同步：页面清单 revision 50；H5 BFF/API 对接说明 revision 21。
+
+## 2026-07-01 - 添加银行卡与解绑入参口径调整
+
+### 变更
+
+- 新增 `/wallet/bank-cards/add` 添加银行卡页，只展示银行卡号、身份证号、手机号三个输入。
+- 新增 BFF `/api/bff/wallet/bank-cards/apply`，转 Java `POST /p/allinpay/member/createMemberApply`，请求体只传 `acctNum/cerNum/phone`，不传 `signNum/name`。
+- 解绑银行卡 BFF `/api/bff/wallet/bank-cards/unbind` 改为只传 `acctNum`，不再依赖 `signNum`。
+- 添加成功后返回 `/wallet/bank-cards?notice=add-success`，银行卡管理页展示“添加成功”toast。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 20 tests。
+- `pnpm typecheck`：通过。
+- 飞书同步：页面清单 revision 49；H5 BFF/API 对接说明 revision 20。
+
 ## 2026-07-01 - 接入 iconfont Font class 图标体系
 
 ### 变更

@@ -39,8 +39,57 @@
 
 ## Unreleased
 
+## 2026-07-01 - 钱包账户管理与认证信息页
+
 ### 新增
 
+- 新增钱包账户管理页 `/wallet/account`，当前只展示“认证信息”入口。
+- 新增认证信息页 `/wallet/account/certification`，接入 BFF `/api/bff/wallet/member-info`，转 Java `/p/allinpay/member/getMemberBasicInfoV2` 获取会员姓名和身份证号。
+- 认证信息页同时读取 `/api/bff/wallet/bank-cards` 展示银行卡列表预览，并可跳转 `/wallet/bank-cards`。
+
+### 变更
+
+- 钱包页“帐户管理”入口从禁用占位改为跳转账户管理页。
+- 认证信息页不展示 Figma 中的“实名登记”模块，只展示本期接口支持的认证信息和银行卡入口。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，3 files / 30 tests。
+- `pnpm typecheck`：通过。
+- `git diff --check`：通过。
+
+## 2026-07-01 - 钱包展示口径调整
+
+### 变更
+
+- 钱包汇总接口失败时，钱包卡片只保留金额空占位，不再展示“无法获取钱包数据”的错误卡和重试按钮。
+- 推广订单接口失败时，订单区域展示通用空态组件“暂无推广订单”，不再展示接口错误文案和重试按钮。
+- 钱包页背景改为复用“我的”页面同源图片 `mine.hero.background`，不再使用页面级 CSS 渐变背景。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/mine-secondary-pages.test.tsx`：通过，1 file / 15 tests。
+- `pnpm typecheck`：通过。
+
+## 2026-07-01 - 钱包历史钱包入口
+
+### 变更
+
+- 新增钱包历史状态 BFF `/api/bff/wallet/history-status`，转 Python `GET /user/wallet_state`。
+- 钱包页进入后查询历史钱包状态；仅当接口返回 `state=1` 时展示导航栏右侧“历史钱包”入口。
+- 点击“历史钱包”发送 Native Bridge `router/navigate`，`payload.route=history-wallet`，交给 App 打开原生历史钱包页。
+
+### 验证
+
+- `pnpm exec vitest run src/features/mine-secondary/wallet-real-service.test.ts src/features/mine-secondary/wallet-api.test.ts src/features/mine-secondary/mine-secondary-pages.test.tsx src/lib/navigation/hybrid-navigation.test.ts`：通过，4 files / 33 tests。
+- `pnpm typecheck`：通过。
+- `git diff --check`：通过。
+
+### 新增
+
+- 新增添加银行卡页 `/wallet/bank-cards/add`，表单只包含银行卡号、身份证号和手机号；提交成功后返回银行卡管理页并展示“添加成功”toast。
+- 新增 `/api/bff/wallet/bank-cards/apply`，转 Java `/p/allinpay/member/createMemberApply`，请求体只传 `acctNum/cerNum/phone`，不传 `signNum/name`。
+- 新增钱包提现申请 BFF `/api/bff/wallet/withdraw`，转 Java `/p/allinpay/member/memberWithdrawApply`，请求体只传 `amount`，提交前校验不超过可提现金额。
 - 新增钱包拆分 BFF：`/api/bff/wallet/summary` 只获取分销钱包汇总，`/api/bff/wallet/orders` 单独按 `state/current/size` 获取推广订单；旧 `/api/bff/wallet` 保留为汇总兼容入口。
 - 服务端 Cookie 解析新增 `userInfo` JSON 支持，当前只读取 `phone` 供钱包推广订单 BFF 使用。
 - `/debug-login` 调试页新增 UserInfo JSON 输入框，可在浏览器独立 H5 调试时写入 `userInfo` Cookie；直接访问调试页时，已有 token 但缺少 `userInfo` 不再自动跳走。
@@ -152,6 +201,10 @@
 
 ### 变更
 
+- 钱包汇总 BFF `/api/bff/wallet/summary` 和兼容入口 `/api/bff/wallet` 改为请求 Java `/p/distribution/wallet/infoV2?userMobile=<userInfo.phone>`。
+- 钱包页账户余额、可提现金额和提现申请上限统一取 `canWithdrawAmount`；后端字段未返回时按 `0` 展示和校验。
+- 钱包页“帐户管理”和“银行卡管理”入口图标改为浅蓝账户与橙色银行卡样式。
+- 解绑银行卡 `/api/bff/wallet/bank-cards/unbind` 请求体改为只传 `acctNum`，不再传 `signNum`。
 - 钱包账户卡片按 Figma 节点 `677:29231` 调整：`提现` 按钮移动到帐户余额金额右侧，卡片右上角展示 `提现记录`，页面顶部导航不再重复展示该入口。
 - 新增钱包提现记录页 `/wallet/withdraw-records` 和 BFF `/api/bff/wallet/withdraw-records`，接入 Java `/p/userWithdraw/pageDateUserWithdrawCash`，支持按年月分组展示、触底加载更多、错误重试和空态。
 - 钱包页切换“已结算 / 待结算”时只重置并请求订单第一页，订单列表触底后按下一页加载更多，不再把钱包金额和订单分页绑在同一个 BFF 响应里。

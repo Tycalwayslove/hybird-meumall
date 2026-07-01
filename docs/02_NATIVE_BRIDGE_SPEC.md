@@ -167,6 +167,7 @@ type BridgeRoute =
 | `back` | H5 顶部导航返回或 H5 请求原生返回。 | 当前 WebView 可回退则 `goBack()`；否则关闭当前二级 WebView。 |
 | `close_webview` | H5 明确要求关闭当前二级容器。 | 关闭当前栈顶 H5 WebView。 |
 | `settings` | 我的页设置入口。 | 打开原生设置页。 |
+| `history-wallet` | 钱包页右上角历史钱包入口。 | 打开原生历史钱包页。 |
 | `<native-page-route>` | H5 打开其它原生页面。 | route 直接使用原生页面名，如 `address`、`login`；参数放在 `params`。 |
 | `product_detail` | 兼容商品详情语义跳转。 | 根据商品 id 拼接 H5 商品详情 URL 并新开 WebView。 |
 

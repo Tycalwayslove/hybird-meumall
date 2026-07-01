@@ -5,10 +5,10 @@ s
 - [ ] 与 Java / Python 后端确认接收、记录、透传和返回 `x-request-id`，并在入口日志记录 App / 设备 / 系统上下文。
 - [ ] 用 App 注入的有效 `mallToken` 验证首页 `/api/bff/home`、首页推荐 `/api/bff/home/recommend-products`、相似推荐 `/api/bff/home/for-you-products` 均能返回真实数据，并确认 banner `jumpType` 最终跳转语义。
 - [ ] 用 App 注入的有效 `mallToken` 验证我的页 `/api/bff/mine/summary` 和权益中心 `/api/bff/promotion/benefits` 的真实数据、当前等级、等级切换和权益展示。
-- [ ] 用 App 注入的有效 `mallToken` 和 `userInfo` Cookie 验证钱包 `/api/bff/wallet/summary`、订单分页 `/api/bff/wallet/orders`、提现记录 `/api/bff/wallet/withdraw-records`、银行卡列表 `/api/bff/wallet/bank-cards` 和解绑银行卡 `/api/bff/wallet/bank-cards/unbind`；重点确认推广订单 `userId=userInfo.phone`、tab 切换/触底分页、提现记录年月分组分页和通联解绑 `signNum` 取值。
+- [ ] 用 App 注入的有效 `mallToken`、`pythonToken` 和 `userInfo` Cookie 验证钱包 `/api/bff/wallet/summary`、历史状态 `/api/bff/wallet/history-status`、订单分页 `/api/bff/wallet/orders`、提现申请 `/api/bff/wallet/withdraw`、提现记录 `/api/bff/wallet/withdraw-records`、认证信息 `/api/bff/wallet/member-info`、银行卡列表 `/api/bff/wallet/bank-cards`、添加银行卡 `/api/bff/wallet/bank-cards/apply` 和解绑银行卡 `/api/bff/wallet/bank-cards/unbind`；重点确认钱包汇总 `userMobile=userInfo.phone`、推广订单 `userId=userInfo.phone`、历史钱包 `state=1` 时右上角入口展示并发送 `route=history-wallet`、`canWithdrawAmount` 已返回并同时作为账户余额/可提现金额/提现上限、tab 切换/触底分页、认证信息返回会员姓名和身份证号、提现申请只传 `amount`、提现记录年月分组分页、添加只传 `acctNum/cerNum/phone`、解绑只传 `acctNum`。
 - [ ] 接入正式线上日志平台后，将 `[h5-bff-backend-call]` 和 `[h5-bff-route-error]` 纳入可按 `requestId` 检索的日志索引。
 - [ ] 确认推广模块佣金明细、名片、奖励记录列表等剩余真实后端接口、达人等级规则、活动状态和榜单刷新策略；推广首页概览已接 `/p/distribution/home/overview`，激励活动已接 APP 侧 `/p/app/distribution/incentive/*`。
-- [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`）、`route_changed`、手势返回和 URL 白名单。
+- [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`、`history-wallet`）、`route_changed`、手势返回和 URL 白名单。
 - [ ] 确认 v1.2.0 搜索建议、推广商品分类 ID 来源、商品详情收藏状态接口、秒杀购买资格/活动时间接口和原生入口跳转参数；热门搜索词、热榜、搜索结果商品、我的收藏商品和我的足迹已分别接 `/search/hotSearch`、`/search/rankTabs`、`/search/rank/{rankType}`、`/p/app/prod/page`、`/p/user/collection/prods`、`/p/prodBrowseLog/page`。
 - [ ] 用 App 注入的有效 `mallToken` 验证推广首页 `/api/bff/promotion/home`、秒杀商品 `/api/bff/seckill/products` 和推广商品 `/api/bff/promotion/products` 的真实数据、分页、商品详情跳转和分享 payload。
 - [ ] 用 App 注入的有效 `mallToken` 验证活动中心 `/api/bff/promotion/activities`、活动详情 `/api/bff/promotion/activities/[id]`、奖励详情 `/api/bff/promotion/activities/[id]/reward` 和领取奖励 `/api/bff/promotion/activities/rewards/[recordId]/receive`。
@@ -108,6 +108,9 @@ s
 - [x] 完成个人中心二级页首批静态高保真：钱包、我的收藏、我的足迹、我的优惠券和订单列表。
 - [x] 将钱包和银行卡管理接入真实 BFF：钱包汇总和推广订单已拆分为独立 BFF，订单支持 tab 切换和触底分页；银行卡管理接入通联绑卡查询和解绑。
 - [x] 调整钱包账户卡片入口布局：`提现` 靠近帐户余额金额，`提现记录` 放到账户卡片右上角，订单列表保持无筛选、无总述和无详情箭头。
+- [x] 新增钱包提现申请弹窗，接入 `/api/bff/wallet/withdraw` 和 Java `/p/allinpay/member/memberWithdrawApply`；只传 `amount`，前端和 BFF 均校验不超过可提现金额。
 - [x] 新增钱包提现记录页 `/wallet/withdraw-records`，接入 `/api/bff/wallet/withdraw-records` 和 Java `/p/userWithdraw/pageDateUserWithdrawCash`，支持年月分组、空态和触底加载更多。
+- [x] 新增钱包账户管理页 `/wallet/account` 和认证信息页 `/wallet/account/certification`，接入 `/api/bff/wallet/member-info` 和 Java `/p/allinpay/member/getMemberBasicInfoV2`，并在认证信息页复用银行卡列表入口。
+- [x] 新增添加银行卡页 `/wallet/bank-cards/add`，接入 `/api/bff/wallet/bank-cards/apply` 和 Java `/p/allinpay/member/createMemberApply`；解绑银行卡改为只传 `acctNum`。
 - [x] 新增独立 H5 调试 Token 登录页，浏览器无 token 时可手动写入 Java / Python token；2026-07-01 已支持写入 UserInfo JSON，原生 App 信号下不展示。
 - [x] 完成收货地址模块前端闭环：地址列表、新增/编辑地址页、我的页入口、商品详情/订单确认地址选择入口、`addrId` 传递和兼容 App 手势返回的地址选择流。
