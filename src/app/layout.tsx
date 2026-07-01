@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import "@/styles/globals.css";
+import "@/design-system/icons/iconfont.css";
 import { HybridRouteReporter } from "@/lib/navigation";
 import { DebugConsoleLoader } from "@/lib/runtime/DebugConsoleLoader";
 import { DisableViewportZoom } from "@/lib/runtime/DisableViewportZoom";

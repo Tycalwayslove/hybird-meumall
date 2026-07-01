@@ -6,6 +6,7 @@ export { Button, ButtonLink } from "./Button";
 export { DropdownFilterBar, useDropdownFilterBarState } from "./DropdownFilterBar";
 export type { DropdownFilterBarItem, DropdownFilterBarOption } from "./DropdownFilterBar";
 export { EmptyState } from "./EmptyState";
+export { IconFont } from "./IconFont";
 export { Metric } from "./Metric";
 export { ProductImagePlaceholder } from "./ProductImagePlaceholder";
 export { StandardNavPage, TransparentActionNavPage, TransparentNavPage } from "./NavPageShell";

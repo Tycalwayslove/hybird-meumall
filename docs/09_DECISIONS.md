@@ -2,6 +2,37 @@
 
 本文件记录架构和流程决策，采用轻量 ADR 形式。
 
+## ADR-0022 - H5 单色图标使用 iconfont Font class 本地同步
+
+日期：2026-07-01
+
+状态：Accepted
+
+### 背景
+
+H5 需要引入 iconfont 项目 `5196034` 中的图标，并支持后续项目图标持续变化。当前已确认不需要保留多色图标，因此可以选择更轻量的 Font class 方案。H5 运行在 App WebView 和带 basePath 的 Next SSR 环境中，图标资源必须跟随 H5 版本发布、灰度和回滚，不应在构建或运行时隐式读取 iconfont 最新线上资源。
+
+### 决策
+
+- 使用 iconfont Font class 本地同步方案，不使用 Symbol 方案作为当前默认。
+- 字体 family 改为 `MeuMallIconFont`，CSS 基础 class 改为 `meu-iconfont`，避免与其他 iconfont 项目冲突。
+- 字体文件放入 `src/design-system/icons/font/`，通过 `src/design-system/icons/iconfont.css` 的相对 URL 交给 Next 打包。
+- 业务代码只通过 `IconFont` 组件使用图标，优先使用 `iconfont-aliases.ts` 中的英文语义名。
+- `iconfont.generated.ts` 和 `iconfont.css` 由 `scripts/iconfont/sync-font-class.ts` 生成，不手工修改。
+- 后续 iconfont 项目变更时，先下载新的 Font class 包，再运行 `pnpm icons:sync -- --source <iconfont下载目录>` 并提交生成结果。
+
+### 影响
+
+- 图标版本随 H5 代码一起进入发布、灰度和回滚。
+- 页面不会直接依赖 iconfont 平台线上链接，弱网和 WebView 环境更可控。
+- 新图标如果尚未定义英文语义别名，仍可通过自动生成 key 临时使用；正式业务接入前应补充语义别名。
+
+### 备选方案
+
+- 直接引用 iconfont 在线 Font class 链接：拒绝，因为线上链接变化会绕过 H5 版本控制和回滚。
+- 使用 Symbol 方案：当前拒绝，因为已确认不考虑多色图标，Font class 更轻量。
+- 将字体文件放入 `public/assets` 并在 CSS 中写 `/assets/iconfont/...`：拒绝，因为 H5 basePath 和版本路径下容易出现字体资源 404。
+
 ## 决策模板
 
 ```markdown

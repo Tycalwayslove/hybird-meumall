@@ -49,7 +49,7 @@ src/
 - 平台集成放在 hook 或 service module 后面。
 - 深层组件不要直接调用 Native Bridge。
 - 处理 loading、empty、error 和 native capability unsupported 状态。
-- 模拟页面中的 icon 位置暂时使用色块占位，后续统一替换为正式 icon 体系。
+- 通用单色图标优先使用 `IconFont`，不在业务 JSX 中直接写 iconfont 原始 class。
 - 页面入口优先保持薄：只做数据获取、策略选择和页面组件拼装。
 - 复杂页面至少拆分为 page、section component、业务 theme / mock data 三层。
 - 全局复用 UI 优先放入 `src/design-system/components`；只服务单一业务域的组件放在 `src/features/<feature>/components`。
@@ -66,6 +66,15 @@ src/
 - 业务专属视觉参数集中放在 feature 的 `theme/` 目录，不散落到 JSX。
 - 响应式布局明确，并覆盖常见 WebView 宽度。
 - 移动 WebView 不依赖 hover-only 交互。
+
+## Iconfont 规则
+
+- H5 使用 iconfont Font class 本地引入方案，字体资源位于 `src/design-system/icons/font/`。
+- iconfont 全局样式由 `src/design-system/icons/iconfont.css` 提供，并在根 layout 引入。
+- 业务代码通过 `src/design-system/components/IconFont.tsx` 使用图标，例如 `<IconFont name="share" />`。
+- 新增业务语义名时维护 `src/design-system/icons/iconfont-aliases.ts`，页面不直接依赖 `icon-xxx`、`meu-iconfont-xxx` 或拼音类名。
+- `src/design-system/icons/iconfont.generated.ts` 由 `pnpm icons:sync -- --source <iconfont下载目录>` 生成，不手工修改。
+- iconfont 项目更新后，先在 iconfont 后台下载新的 Font class 包，再运行同步命令并提交生成结果，避免构建时动态拉取导致版本不可复现。
 
 ## Native Bridge 规则
 
