@@ -3,13 +3,18 @@ import { getBackendAuthToken, readCookieAuthFromHeader, readPageConfigFromHeader
 
 describe("cookie auth", () => {
   test("reads native runtime cookies on the server side", () => {
-    const auth = readCookieAuthFromHeader("theme=dark; pythonToken=python-token; mallToken=mall-token; statusHeight=44; foo=bar");
+    const userInfo = encodeURIComponent(JSON.stringify({ phone: "37", nickName: "tester" }));
+    const auth = readCookieAuthFromHeader(`theme=dark; pythonToken=python-token; mallToken=mall-token; userInfo=${userInfo}; statusHeight=44; foo=bar`);
 
     expect(auth).toEqual({
       pythonToken: "python-token",
       pythonTokenCookieName: "pythonToken",
       mallToken: "mall-token",
       mallTokenCookieName: "mallToken",
+      userInfo: {
+        phone: "37"
+      },
+      userInfoCookieName: "userInfo",
       statusHeight: 44,
       statusHeightCookieName: "statusHeight"
     });
@@ -20,7 +25,13 @@ describe("cookie auth", () => {
 
     expect(auth.pythonToken).toBeNull();
     expect(auth.mallToken).toBeNull();
+    expect(auth.userInfo).toBeNull();
     expect(auth.statusHeight).toBeNull();
+  });
+
+  test("ignores invalid native user info cookie", () => {
+    expect(readCookieAuthFromHeader("userInfo=not-json").userInfo).toBeNull();
+    expect(readCookieAuthFromHeader(`userInfo=${encodeURIComponent(JSON.stringify({ phone: " " }))}`).userInfo).toBeNull();
   });
 
   test("returns backend-specific auth tokens", () => {

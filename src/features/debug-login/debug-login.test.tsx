@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, test } from "vitest";
-import { DebugTokenLoginForm } from "./DebugTokenLoginForm";
+import { buildDebugUserInfoCookieValue, DebugTokenLoginForm } from "./DebugTokenLoginForm";
 import { resolveDebugLoginAccess } from "./debug-login-access";
 
 describe("debug token login access", () => {
@@ -12,6 +12,27 @@ describe("debug token login access", () => {
 
   test("redirects away when debug cookies already provide both backend tokens", () => {
     expect(resolveDebugLoginAccess({ cookieHeader: "mallToken=java-token; pythonToken=python-token", headers: new Headers() })).toEqual({
+      action: "redirect"
+    });
+  });
+
+  test("allows direct debug login access to fill missing user info", () => {
+    expect(
+      resolveDebugLoginAccess({
+        cookieHeader: "mallToken=java-token; pythonToken=python-token",
+        headers: new Headers(),
+        requireUserInfo: true
+      })
+    ).toEqual({
+      action: "allow"
+    });
+    expect(
+      resolveDebugLoginAccess({
+        cookieHeader: `mallToken=java-token; pythonToken=python-token; userInfo=${encodeURIComponent(JSON.stringify({ phone: "37" }))}`,
+        headers: new Headers(),
+        requireUserInfo: true
+      })
+    ).toEqual({
       action: "redirect"
     });
   });
@@ -32,7 +53,17 @@ describe("debug token login form", () => {
 
     expect(html).toContain("Java Token");
     expect(html).toContain("Python Token");
+    expect(html).toContain("UserInfo JSON");
+    expect(html).toContain("&quot;phone&quot;");
     expect(html).not.toContain("账号");
     expect(html).not.toContain("密码");
+  });
+
+  test("normalizes user info JSON before writing debug cookie", () => {
+    expect(buildDebugUserInfoCookieValue('{ "phone": "37", "nickName": "tester" }')).toBe('{"phone":"37","nickName":"tester"}');
+    expect(buildDebugUserInfoCookieValue("")).toBeNull();
+    expect(buildDebugUserInfoCookieValue('{ "phone": " " }')).toBeNull();
+    expect(buildDebugUserInfoCookieValue('{ "nickName": "tester" }')).toBeNull();
+    expect(buildDebugUserInfoCookieValue("{bad json")).toBeNull();
   });
 });

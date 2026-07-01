@@ -16,7 +16,8 @@ export default async function DebugLoginPage({ searchParams }: DebugLoginPagePro
   const redirectTo = normalizeDebugRedirect(params?.redirect);
   const access = resolveDebugLoginAccess({
     cookieHeader: requestHeaders.get("cookie"),
-    headers: requestHeaders
+    headers: requestHeaders,
+    requireUserInfo: true
   });
 
   if (access.action === "not_found") {

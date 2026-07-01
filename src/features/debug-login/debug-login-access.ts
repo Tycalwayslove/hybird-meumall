@@ -5,16 +5,18 @@ export type DebugLoginAccess = { action: "allow" } | { action: "redirect" } | { 
 export type DebugLoginAccessInput = {
   cookieHeader: string | null | undefined;
   headers: Headers;
+  requireUserInfo?: boolean;
 };
 
 const nativeSignalHeaders = ["x-app-name", "x-app-version", "x-app-build", "x-device-model", "x-os-version", "x-webview-version"];
 
-export function resolveDebugLoginAccess({ cookieHeader, headers }: DebugLoginAccessInput): DebugLoginAccess {
+export function resolveDebugLoginAccess({ cookieHeader, headers, requireUserInfo = false }: DebugLoginAccessInput): DebugLoginAccess {
   const cookies = parseCookieHeader(cookieHeader);
   const hasMallToken = Boolean(cookies.get("mallToken")?.trim());
   const hasPythonToken = Boolean(cookies.get("pythonToken")?.trim());
+  const hasUserInfo = Boolean(cookies.get("userInfo")?.trim());
 
-  if (hasMallToken && hasPythonToken) {
+  if (hasMallToken && hasPythonToken && (hasUserInfo || !requireUserInfo)) {
     return { action: "redirect" };
   }
 

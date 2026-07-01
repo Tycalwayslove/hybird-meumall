@@ -3,8 +3,14 @@ export type CookieAuth = {
   pythonTokenCookieName: string;
   mallToken: string | null;
   mallTokenCookieName: string;
+  userInfo: CookieUserInfo | null;
+  userInfoCookieName: string;
   statusHeight: number | null;
   statusHeightCookieName: string;
+};
+
+export type CookieUserInfo = {
+  phone: string;
 };
 
 export type CookieAuthOptions = {
@@ -12,6 +18,7 @@ export type CookieAuthOptions = {
   mallTokenCookieName?: string;
   pythonTokenCookieName?: string;
   statusHeightCookieName?: string;
+  userInfoCookieName?: string;
 };
 
 export type LocalDevTokenEnv = Readonly<{
@@ -25,11 +32,13 @@ const defaultPythonTokenCookieName = "pythonToken";
 const defaultMallTokenCookieName = "mallToken";
 const defaultStatusHeightCookieName = "statusHeight";
 const defaultPageConfigCookieName = "meu_page_config";
+const defaultUserInfoCookieName = "userInfo";
 
 export function readCookieAuthFromHeader(cookieHeader: string | null | undefined, options: CookieAuthOptions = {}): CookieAuth {
   const pythonTokenCookieName = options.pythonTokenCookieName ?? defaultPythonTokenCookieName;
   const mallTokenCookieName = options.mallTokenCookieName ?? defaultMallTokenCookieName;
   const statusHeightCookieName = options.statusHeightCookieName ?? defaultStatusHeightCookieName;
+  const userInfoCookieName = options.userInfoCookieName ?? defaultUserInfoCookieName;
   const cookies = parseCookieHeader(cookieHeader);
   const localDevTokens = readLocalDevTokens(options.env ?? getRuntimeEnv());
   const pythonCookieToken = normalizeOptionalToken(cookies.get(pythonTokenCookieName));
@@ -40,6 +49,8 @@ export function readCookieAuthFromHeader(cookieHeader: string | null | undefined
     pythonTokenCookieName,
     mallToken: mallCookieToken ?? localDevTokens.mallToken,
     mallTokenCookieName,
+    userInfo: parseUserInfoCookie(cookies.get(userInfoCookieName)),
+    userInfoCookieName,
     statusHeight: parseStatusHeight(cookies.get(statusHeightCookieName)),
     statusHeightCookieName
   };
@@ -101,6 +112,24 @@ function parseStatusHeight(value: string | undefined) {
 
   const height = Number(value);
   return Number.isFinite(height) && height >= 0 ? height : null;
+}
+
+function parseUserInfoCookie(value: string | undefined): CookieUserInfo | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+    const rawPhone = (parsed as { phone?: unknown }).phone;
+    const phone = rawPhone === undefined ? null : normalizeOptionalToken(String(rawPhone));
+    return phone ? { phone } : null;
+  } catch {
+    return null;
+  }
 }
 
 function readLocalDevTokens(env: LocalDevTokenEnv): Pick<CookieAuth, "mallToken" | "pythonToken"> {
