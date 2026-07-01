@@ -42,7 +42,6 @@ export type WalletWithdrawRecordGroupView = {
 export type WalletPageData = {
   modules: {
     orders: Required<WalletJavaPage<WalletJavaPromotionOrder>>;
-    overview?: WalletDistributionOverview;
     wallet: WalletDistributionSummary;
   };
   page: {
@@ -64,6 +63,16 @@ export type WalletSummaryData = {
   };
   view: {
     summary: WalletSummaryView;
+  };
+};
+
+export type WalletHistoryStatusData = {
+  modules: {
+    walletState: WalletPythonWalletStateResponse;
+  };
+  view: {
+    hasHistoryWallet: boolean;
+    state: number;
   };
 };
 
@@ -105,13 +114,25 @@ export type BankCardView = {
   cardTypeText: string;
   id: string;
   maskedCardNo: string;
-  signNum?: string;
+};
+
+export type WalletMemberInfoView = {
+  cerNumText: string;
+  nameText: string;
+};
+
+export type WalletMemberInfoData = {
+  modules: {
+    member: WalletJavaMemberBasicInfo;
+  };
+  view: {
+    member: WalletMemberInfoView;
+  };
 };
 
 export type BankCardsPageData = {
   modules: {
     cards: WalletJavaBankCard[];
-    overview: WalletDistributionOverview;
   };
   view: {
     cards: BankCardView[];
@@ -128,6 +149,27 @@ export type BankCardMutationData = {
   };
 };
 
+export type WalletWithdrawApplyData = {
+  modules: {
+    raw: unknown;
+    wallet: WalletDistributionSummary;
+  };
+  view: {
+    message: string;
+    ok: true;
+  };
+};
+
+export type AddBankCardInput = {
+  acctNum: string;
+  cerNum: string;
+  phone: string;
+};
+
+export type WalletWithdrawApplyInput = {
+  amount: unknown;
+};
+
 export type WalletJavaEnvelope<T> = {
   code?: string;
   data?: T | null;
@@ -135,20 +177,23 @@ export type WalletJavaEnvelope<T> = {
   success?: boolean;
 };
 
+export type WalletPythonWalletStateResponse = {
+  data?: {
+    state?: unknown;
+  } | null;
+  msg?: string;
+  state?: unknown;
+  success?: boolean;
+};
+
 export type WalletDistributionSummary = {
   addupAmount?: unknown;
   applyWithdrawAmount?: unknown;
+  canWithdrawAmount?: unknown;
   extractedAmount?: unknown;
   invalidAmount?: unknown;
   settledAmount?: unknown;
   unsettledAmount?: unknown;
-};
-
-export type WalletDistributionOverview = {
-  userInfo?: {
-    cardNo?: unknown;
-    distributionUserId?: unknown;
-  };
 };
 
 export type WalletJavaPage<T> = {
@@ -190,6 +235,40 @@ export type WalletJavaBankCard = {
   cardType?: unknown;
 };
 
+export type WalletJavaMemberApplyResponse = {
+  respCode?: unknown;
+  respMsg?: unknown;
+  respTraceNum?: unknown;
+  signNum?: unknown;
+};
+
+export type WalletJavaMemberWithdrawApplyResponse = {
+  chnlTradeCode?: unknown;
+  extendParams?: unknown;
+  reqTraceNum?: unknown;
+  respCode?: unknown;
+  respMsg?: unknown;
+  respTraceNum?: unknown;
+  result?: unknown;
+};
+
+export type WalletJavaMemberBasicInfo = {
+  cerNum?: unknown;
+  cerType?: unknown;
+  idValidEndDate?: unknown;
+  idValidStartDate?: unknown;
+  isRealNameAuth?: unknown;
+  isWithdraw?: unknown;
+  memberName?: unknown;
+  memberRole?: unknown;
+  memberStatus?: unknown;
+  memberType?: unknown;
+  name?: unknown;
+  phone?: unknown;
+  realNameAuthTime?: unknown;
+  registerTime?: unknown;
+};
+
 type WalletBackendClient = {
   request<T>(options: BackendRequestOptions): Promise<BackendApiResult<T>>;
 };
@@ -197,16 +276,31 @@ type WalletBackendClient = {
 export async function fetchWalletSummaryData({
   authToken,
   backendClient,
-  route
+  route,
+  walletUserMobile
 }: {
   authToken: string | null;
   backendClient: WalletBackendClient;
   route: string;
+  walletUserMobile?: string | null;
 }): Promise<BackendApiResult<WalletSummaryData>> {
+  const normalizedWalletUserMobile = normalizeText(walletUserMobile);
+  if (!normalizedWalletUserMobile) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        message: "用户手机号缺失，无法获取钱包数据。"
+      })
+    };
+  }
+
+  const query = new URLSearchParams({
+    userMobile: normalizedWalletUserMobile
+  });
   const walletResult = await requestJava<WalletDistributionSummary>({
     authToken,
     backendClient,
-    path: "/p/distribution/wallet/info",
+    path: `/p/distribution/wallet/infoV2?${query.toString()}`,
     route,
     fallbackMessage: "钱包数据获取失败。"
   });
@@ -293,6 +387,64 @@ export async function fetchWalletOrdersData({
   };
 }
 
+export async function fetchWalletHistoryStatusData({
+  authToken,
+  backendClient,
+  route
+}: {
+  authToken: string | null;
+  backendClient: WalletBackendClient;
+  route: string;
+}): Promise<BackendApiResult<WalletHistoryStatusData>> {
+  const response = await backendClient.request<WalletPythonWalletStateResponse>({
+    authRequired: true,
+    authToken,
+    backend: "python",
+    path: "/user/wallet_state",
+    route
+  });
+  if (!response.ok) {
+    return response;
+  }
+
+  if (response.data?.success === false) {
+    return {
+      ok: false,
+      error: createApiError("HTTP_ERROR", {
+        details: { response: response.data },
+        message: normalizeText(response.data.msg, "钱包状态获取失败。"),
+        requestId: response.meta.requestId
+      })
+    };
+  }
+
+  const state = normalizeState(readWalletState(response.data));
+  if (state === null) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        details: { response: response.data },
+        message: "钱包状态字段缺失。",
+        requestId: response.meta.requestId
+      })
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      modules: {
+        walletState: response.data
+      },
+      view: {
+        hasHistoryWallet: state === 1,
+        state
+      }
+    },
+    meta: response.meta
+  };
+}
+
 export async function fetchWalletData(input: {
   authToken: string | null;
   backendClient: WalletBackendClient;
@@ -302,6 +454,7 @@ export async function fetchWalletData(input: {
   route: string;
   size?: number;
   state?: WalletState;
+  walletUserMobile?: string | null;
 }): Promise<BackendApiResult<WalletPageData>> {
   const summaryResult = await fetchWalletSummaryData(input);
   if (!summaryResult.ok) {
@@ -385,11 +538,6 @@ export async function fetchBankCardsData({
   backendClient: WalletBackendClient;
   route: string;
 }): Promise<BackendApiResult<BankCardsPageData>> {
-  const overviewResult = await requestDistributionOverview({ authToken, backendClient, route });
-  if (!overviewResult.ok) {
-    return overviewResult;
-  }
-
   const cardsResult = await requestJava<WalletJavaBankCard[]>({
     authToken,
     backendClient,
@@ -401,21 +549,55 @@ export async function fetchBankCardsData({
     return cardsResult;
   }
 
-  const signNum = normalizeText(overviewResult.data.userInfo?.cardNo);
   const cards = Array.isArray(cardsResult.data) ? cardsResult.data : [];
 
   return {
     ok: true,
     data: {
       modules: {
-        cards,
-        overview: overviewResult.data
+        cards
       },
       view: {
-        cards: cards.map((card) => mapBankCard(card, signNum)).filter(isBankCardView)
+        cards: cards.map(mapBankCard).filter(isBankCardView)
       }
     },
     meta: cardsResult.meta
+  };
+}
+
+export async function fetchWalletMemberInfoData({
+  authToken,
+  backendClient,
+  route
+}: {
+  authToken: string | null;
+  backendClient: WalletBackendClient;
+  route: string;
+}): Promise<BackendApiResult<WalletMemberInfoData>> {
+  const memberResult = await requestJava<WalletJavaMemberBasicInfo>({
+    authToken,
+    backendClient,
+    path: "/p/allinpay/member/getMemberBasicInfoV2",
+    route,
+    fallbackMessage: "认证信息获取失败。"
+  });
+  if (!memberResult.ok) {
+    return memberResult;
+  }
+
+  const member = memberResult.data ?? {};
+
+  return {
+    ok: true,
+    data: {
+      modules: {
+        member
+      },
+      view: {
+        member: mapMemberInfo(member)
+      }
+    },
+    meta: memberResult.meta
   };
 }
 
@@ -423,22 +605,19 @@ export async function unbindBankCard({
   acctNum,
   authToken,
   backendClient,
-  route,
-  signNum
+  route
 }: {
   acctNum: string;
   authToken: string | null;
   backendClient: WalletBackendClient;
   route: string;
-  signNum: string;
 }): Promise<BackendApiResult<BankCardMutationData>> {
   const normalizedAcctNum = normalizeText(acctNum);
-  const normalizedSignNum = normalizeText(signNum);
-  if (!normalizedAcctNum || !normalizedSignNum) {
+  if (!normalizedAcctNum) {
     return {
       ok: false,
       error: createApiError("PARSE_ERROR", {
-        message: "解绑银行卡缺少会员编号或银行卡号。"
+        message: "解绑银行卡缺少银行卡号。"
       })
     };
   }
@@ -447,8 +626,7 @@ export async function unbindBankCard({
     authToken,
     backendClient,
     body: {
-      acctNum: normalizedAcctNum,
-      signNum: normalizedSignNum
+      acctNum: normalizedAcctNum
     },
     method: "POST",
     path: "/p/allinpay/member/unbindBankCardV2",
@@ -474,22 +652,171 @@ export async function unbindBankCard({
   };
 }
 
-async function requestDistributionOverview({
+export async function addBankCard({
+  acctNum,
   authToken,
   backendClient,
+  cerNum,
+  phone,
   route
-}: {
+}: AddBankCardInput & {
   authToken: string | null;
   backendClient: WalletBackendClient;
   route: string;
-}) {
-  return requestJava<WalletDistributionOverview>({
+}): Promise<BackendApiResult<BankCardMutationData>> {
+  const normalizedAcctNum = normalizeText(acctNum);
+  const normalizedCerNum = normalizeText(cerNum);
+  const normalizedPhone = normalizeText(phone);
+  if (!normalizedAcctNum || !normalizedCerNum || !normalizedPhone) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        message: "添加银行卡缺少银行卡号、身份证号或手机号。"
+      })
+    };
+  }
+
+  const result = await requestJava<WalletJavaMemberApplyResponse>({
     authToken,
     backendClient,
-    path: "/p/distribution/home/overview",
+    body: {
+      acctNum: normalizedAcctNum,
+      cerNum: normalizedCerNum,
+      phone: normalizedPhone
+    },
+    method: "POST",
+    path: "/p/allinpay/member/createMemberApply",
     route,
-    fallbackMessage: "推广概览获取失败。"
+    fallbackMessage: "添加银行卡失败。"
   });
+  if (!result.ok) {
+    return result;
+  }
+
+  const respCode = normalizeText(result.data?.respCode);
+  if (respCode && respCode !== "00000") {
+    return {
+      ok: false,
+      error: createApiError("HTTP_ERROR", {
+        details: { response: result.data },
+        message: normalizeText(result.data?.respMsg, "添加银行卡失败。"),
+        requestId: result.meta.requestId
+      })
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      modules: {
+        raw: result.data
+      },
+      view: {
+        ok: true,
+        message: "添加成功"
+      }
+    },
+    meta: result.meta
+  };
+}
+
+export async function applyWalletWithdraw({
+  amount,
+  authToken,
+  backendClient,
+  route,
+  walletUserMobile
+}: WalletWithdrawApplyInput & {
+  authToken: string | null;
+  backendClient: WalletBackendClient;
+  route: string;
+  walletUserMobile?: string | null;
+}): Promise<BackendApiResult<WalletWithdrawApplyData>> {
+  const normalizedAmount = normalizeWithdrawAmount(amount);
+  if (normalizedAmount === null) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        message: "请输入正确的提现金额。"
+      })
+    };
+  }
+
+  const normalizedWalletUserMobile = normalizeText(walletUserMobile);
+  if (!normalizedWalletUserMobile) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        message: "用户手机号缺失，无法校验可提现金额。"
+      })
+    };
+  }
+
+  const query = new URLSearchParams({
+    userMobile: normalizedWalletUserMobile
+  });
+  const walletResult = await requestJava<WalletDistributionSummary>({
+    authToken,
+    backendClient,
+    path: `/p/distribution/wallet/infoV2?${query.toString()}`,
+    route,
+    fallbackMessage: "钱包数据获取失败。"
+  });
+  if (!walletResult.ok) {
+    return walletResult;
+  }
+
+  const withdrawableAmount = normalizeMoney(walletResult.data?.canWithdrawAmount, 0);
+  if (normalizedAmount > withdrawableAmount) {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        message: "提现金额不能超过可提现金额。"
+      })
+    };
+  }
+
+  const result = await requestJava<WalletJavaMemberWithdrawApplyResponse>({
+    authToken,
+    backendClient,
+    body: {
+      amount: normalizedAmount
+    },
+    method: "POST",
+    path: "/p/allinpay/member/memberWithdrawApply",
+    route,
+    fallbackMessage: "提现申请失败。"
+  });
+  if (!result.ok) {
+    return result;
+  }
+
+  const respCode = normalizeText(result.data?.respCode);
+  if (respCode && respCode !== "00000") {
+    return {
+      ok: false,
+      error: createApiError("HTTP_ERROR", {
+        details: { response: result.data },
+        message: normalizeText(result.data?.respMsg, "提现申请失败。"),
+        requestId: result.meta.requestId
+      })
+    };
+  }
+
+  return {
+    ok: true,
+    data: {
+      modules: {
+        raw: result.data,
+        wallet: walletResult.data
+      },
+      view: {
+        ok: true,
+        message: "提现申请已提交"
+      }
+    },
+    meta: result.meta
+  };
 }
 
 async function requestJava<T>({
@@ -554,15 +881,36 @@ function isJavaSuccess(envelope: WalletJavaEnvelope<unknown>) {
   return envelope.success !== false && (envelope.code === undefined || envelope.code === "00000");
 }
 
+function readWalletState(response: WalletPythonWalletStateResponse) {
+  return response.state ?? response.data?.state;
+}
+
+function normalizeState(value: unknown) {
+  const state = Number(value);
+  return Number.isFinite(state) ? state : null;
+}
+
 function mapWalletSummary(summary: WalletDistributionSummary): WalletSummaryView {
+  const canWithdrawAmount = summary.canWithdrawAmount;
   return {
-    balanceText: formatNumber(summary.addupAmount),
+    balanceText: formatNumber(canWithdrawAmount),
     pendingIncomeText: `+${formatNumber(summary.unsettledAmount)}`,
     settledIncomeText: `+${formatNumber(summary.settledAmount)}`,
     unsettledText: formatNumber(summary.unsettledAmount),
     withdrawText: formatNumber(summary.extractedAmount),
-    withdrawableText: formatNumber(summary.settledAmount)
+    withdrawableText: formatNumber(canWithdrawAmount)
   };
+}
+
+function normalizeWithdrawAmount(value: unknown) {
+  if (typeof value === "string" && !value.trim()) {
+    return null;
+  }
+  const amount = normalizeMoney(value, Number.NaN);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+  return amount;
 }
 
 function mapPromotionOrder(order: WalletJavaPromotionOrder, { javaOssAssetBaseUrl }: { javaOssAssetBaseUrl?: string }): WalletOrderView | null {
@@ -655,7 +1003,7 @@ function mapWithdrawStatusText(status: WalletWithdrawStatus) {
   return "待支付";
 }
 
-function mapBankCard(card: WalletJavaBankCard, signNum: string): BankCardView | null {
+function mapBankCard(card: WalletJavaBankCard): BankCardView | null {
   if (String(card.bindStatus ?? "1") === "2") {
     return null;
   }
@@ -669,8 +1017,14 @@ function mapBankCard(card: WalletJavaBankCard, signNum: string): BankCardView | 
     bankName: normalizeText(card.bankName, "银行卡"),
     cardTypeText: String(card.cardType) === "1" ? "信用卡" : String(card.cardType) === "0" ? "储蓄卡" : "银行卡",
     id: acctNum,
-    maskedCardNo: maskBankCardNo(acctNum),
-    ...(signNum ? { signNum } : {})
+    maskedCardNo: maskBankCardNo(acctNum)
+  };
+}
+
+function mapMemberInfo(member: WalletJavaMemberBasicInfo): WalletMemberInfoView {
+  return {
+    cerNumText: maskCertificateNo(normalizeText(member.cerNum)),
+    nameText: normalizeText(member.memberName, normalizeText(member.name, "--"))
   };
 }
 
@@ -760,4 +1114,14 @@ function maskBankCardNo(acctNum: string) {
   const digits = acctNum.replace(/\s+/g, "");
   const tail = digits.slice(-4);
   return tail ? `**** **** **** ${tail}` : "**** **** ****";
+}
+
+function maskCertificateNo(value: string) {
+  if (!value) {
+    return "--";
+  }
+  if (value.length <= 8) {
+    return value;
+  }
+  return `${value.slice(0, 3)}${"*".repeat(Math.max(value.length - 7, 4))}${value.slice(-4)}`;
 }

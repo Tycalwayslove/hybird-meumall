@@ -127,6 +127,7 @@ describe("hybrid navigation", () => {
 
     navigator.openNativePage("settings");
     navigator.openNativePage("address", { source: "mine" });
+    navigator.openNativePage("history-wallet");
 
     expect(messages).toEqual([
       {
@@ -144,6 +145,13 @@ describe("hybrid navigation", () => {
           params: {
             source: "mine"
           }
+        }
+      },
+      {
+        module: "router",
+        action: "navigate",
+        payload: {
+          route: "history-wallet"
         }
       }
     ]);

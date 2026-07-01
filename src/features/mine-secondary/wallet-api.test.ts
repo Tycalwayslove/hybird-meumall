@@ -19,15 +19,23 @@ describe("wallet browser api", () => {
     });
 
     await api.getWalletSummary();
+    await api.getWalletHistoryStatus();
     await api.getWalletOrders({ current: 2, size: 10, state: "pending" });
     await api.getWithdrawRecords({ current: 3, size: 20 });
+    await api.applyWithdraw({ amount: 99.5 });
     await api.getBankCards();
-    await api.unbindBankCard({ acctNum: "6222020202025211", signNum: "DU7788" });
+    await api.getMemberInfo();
+    await api.addBankCard({ acctNum: "6222020202025211", cerNum: "440101199001011234", phone: "13800138000" });
+    await api.unbindBankCard({ acctNum: "6222020202025211" });
 
     expect(requests).toEqual([
       {
         method: undefined,
         path: "/api/bff/wallet/summary"
+      },
+      {
+        method: undefined,
+        path: "/api/bff/wallet/history-status"
       },
       {
         method: undefined,
@@ -38,11 +46,25 @@ describe("wallet browser api", () => {
         path: "/api/bff/wallet/withdraw-records?current=3&size=20"
       },
       {
+        body: { amount: 99.5 },
+        method: "POST",
+        path: "/api/bff/wallet/withdraw"
+      },
+      {
         method: undefined,
         path: "/api/bff/wallet/bank-cards"
       },
       {
-        body: { acctNum: "6222020202025211", signNum: "DU7788" },
+        method: undefined,
+        path: "/api/bff/wallet/member-info"
+      },
+      {
+        body: { acctNum: "6222020202025211", cerNum: "440101199001011234", phone: "13800138000" },
+        method: "POST",
+        path: "/api/bff/wallet/bank-cards/apply"
+      },
+      {
+        body: { acctNum: "6222020202025211" },
         method: "POST",
         path: "/api/bff/wallet/bank-cards/unbind"
       }

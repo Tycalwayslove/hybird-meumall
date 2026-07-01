@@ -21,7 +21,18 @@ import type {
   JavaRefundOrder
 } from "./server/orders-real-service";
 import type { CollectionMutationData, CollectionsPageData, JavaFavoriteProductGroup, JavaFootprintProduct } from "./server/collections-real-service";
-import type { BankCardMutationData, BankCardsPageData, WalletOrdersPageData, WalletState, WalletSummaryData, WalletWithdrawRecordsPageData } from "./server/wallet-real-service";
+import type {
+  AddBankCardInput,
+  BankCardMutationData,
+  BankCardsPageData,
+  WalletHistoryStatusData,
+  WalletMemberInfoData,
+  WalletOrdersPageData,
+  WalletState,
+  WalletSummaryData,
+  WalletWithdrawApplyData,
+  WalletWithdrawRecordsPageData
+} from "./server/wallet-real-service";
 
 type AddressHttpClient = {
   request<T>(path: string, options?: H5RequestOptions): Promise<H5BffResult<T>>;
@@ -172,15 +183,33 @@ export type GetWalletWithdrawRecordsInput = {
   size?: number;
 };
 
+export type ApplyWalletWithdrawInput = {
+  amount: number | string;
+};
+
 export type UnbindBankCardInput = {
   acctNum: string;
-  signNum: string;
 };
 
 export function createWalletApi(client: AddressHttpClient) {
   return {
+    addBankCard(input: AddBankCardInput) {
+      return client.request<BankCardMutationData>("/api/bff/wallet/bank-cards/apply", {
+        body: input,
+        method: "POST"
+      });
+    },
+    applyWithdraw(input: ApplyWalletWithdrawInput) {
+      return client.request<WalletWithdrawApplyData>("/api/bff/wallet/withdraw", {
+        body: input,
+        method: "POST"
+      });
+    },
     getBankCards() {
       return client.request<BankCardsPageData>("/api/bff/wallet/bank-cards");
+    },
+    getMemberInfo() {
+      return client.request<WalletMemberInfoData>("/api/bff/wallet/member-info");
     },
     getWalletOrders({ current = 1, size = 10, state = "settled" }: GetWalletInput = {}) {
       const query = new URLSearchParams({
@@ -189,6 +218,9 @@ export function createWalletApi(client: AddressHttpClient) {
         state
       });
       return client.request<WalletOrdersPageData>(`/api/bff/wallet/orders?${query.toString()}`);
+    },
+    getWalletHistoryStatus() {
+      return client.request<WalletHistoryStatusData>("/api/bff/wallet/history-status");
     },
     getWalletSummary() {
       return client.request<WalletSummaryData>("/api/bff/wallet/summary");
