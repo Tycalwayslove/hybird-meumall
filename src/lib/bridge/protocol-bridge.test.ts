@@ -240,7 +240,7 @@ describe("protocol bridge", () => {
       timeoutMs: 100
     });
 
-    const promise = bridge.rpc("payment.pay", {
+    const promise = bridge.rpc("paymentStartCashier", {
       orderNumbers: "O202606290001",
       payType: 7,
       provider: "alipay",
@@ -250,7 +250,7 @@ describe("protocol bridge", () => {
     expect(messages).toEqual([
       {
         module: "rpc",
-        action: "payment.pay",
+        action: "paymentStartCashier",
         callbackId: "cb_payment",
         payload: {
           orderNumbers: "O202606290001",
@@ -282,26 +282,35 @@ describe("protocol bridge", () => {
       timeoutMs: 100
     });
 
-    const promise = bridge.rpc("payment.pay", {
+    const promise = bridge.rpc("paymentStartCashier", {
       bizOrderNo: "TL202606300001",
+      chnlFrontParamInfo: {
+        appletPayParams: "{\"reqsn\":\"O202606300001\"}"
+      },
       miniProgram: {
-        appId: "wxef277996acc166c3",
-        originalId: "gh_e64a1a89a0ad",
-        path: "pages/orderDetail/orderDetail?cusid=990581007426001&appid=002",
-        query: {
-          appid: "002",
-          cusid: "990581007426001"
+        appId: "wx264f4850dc92b03d",
+        cashierAppId: "wxef277996acc166c3",
+        extraData: {
+          allinpayParams: {
+            appid: "002",
+            cusid: "990581007426001"
+          },
+          bizOrderNo: "TL202606300001",
+          orderNumbers: "O202606300001",
+          reqsn: "O202606300001",
+          returnToCaller: true
         },
-        queryString: "cusid=990581007426001&appid=002",
+        launchMode: "embedded-mini-program",
+        path: "package-pay/pages/allinpay-bridge/allinpay-bridge",
         type: "wechat"
       },
       orderNumbers: "O202606300001",
-      paymentMode: "wechat-mini-program",
+      paymentMode: "allinpay-mini-program-bridge",
       payType: 8,
       provider: "allinpay",
       sdkPayload: {
-        appid: "002",
-        cusid: "990581007426001"
+        bizOrderNo: "TL202606300001",
+        miniprogramPayInfo_VSP: "{\"cusid\":\"990581007426001\",\"appid\":\"002\"}"
       },
       settlementProvider: "allinpay"
     });
@@ -309,28 +318,37 @@ describe("protocol bridge", () => {
     expect(messages).toEqual([
       {
         module: "rpc",
-        action: "payment.pay",
+        action: "paymentStartCashier",
         callbackId: "cb_allinpay_wechat",
         payload: {
           bizOrderNo: "TL202606300001",
+          chnlFrontParamInfo: {
+            appletPayParams: "{\"reqsn\":\"O202606300001\"}"
+          },
           miniProgram: {
-            appId: "wxef277996acc166c3",
-            originalId: "gh_e64a1a89a0ad",
-            path: "pages/orderDetail/orderDetail?cusid=990581007426001&appid=002",
-            query: {
-              appid: "002",
-              cusid: "990581007426001"
+            appId: "wx264f4850dc92b03d",
+            cashierAppId: "wxef277996acc166c3",
+            extraData: {
+              allinpayParams: {
+                appid: "002",
+                cusid: "990581007426001"
+              },
+              bizOrderNo: "TL202606300001",
+              orderNumbers: "O202606300001",
+              reqsn: "O202606300001",
+              returnToCaller: true
             },
-            queryString: "cusid=990581007426001&appid=002",
+            launchMode: "embedded-mini-program",
+            path: "package-pay/pages/allinpay-bridge/allinpay-bridge",
             type: "wechat"
           },
           orderNumbers: "O202606300001",
-          paymentMode: "wechat-mini-program",
+          paymentMode: "allinpay-mini-program-bridge",
           payType: 8,
           provider: "allinpay",
           sdkPayload: {
-            appid: "002",
-            cusid: "990581007426001"
+            bizOrderNo: "TL202606300001",
+            miniprogramPayInfo_VSP: "{\"cusid\":\"990581007426001\",\"appid\":\"002\"}"
           },
           settlementProvider: "allinpay"
         }

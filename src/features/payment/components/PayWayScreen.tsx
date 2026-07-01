@@ -187,8 +187,9 @@ async function executePayment({
     if (!bridge.isAvailable()) {
       throw new Error("当前 App 版本暂不支持支付，请升级后重试。");
     }
-    const nativeResult = await bridge.rpc("payment.pay", {
+    const nativeResult = await bridge.rpc("paymentStartCashier", {
       ...(execution.bizOrderNo ? { bizOrderNo: execution.bizOrderNo } : {}),
+      ...(execution.chnlFrontParamInfo ? { chnlFrontParamInfo: execution.chnlFrontParamInfo } : {}),
       ...(execution.miniProgram ? { miniProgram: execution.miniProgram } : {}),
       orderNumbers: execution.orderNumbers,
       ...(execution.paymentMode ? { paymentMode: execution.paymentMode } : {}),

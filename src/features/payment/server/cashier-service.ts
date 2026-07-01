@@ -79,9 +79,10 @@ export type PaymentExecution =
   | {
       type: "native-sdk";
       bizOrderNo?: string;
+      chnlFrontParamInfo?: Record<string, string>;
       miniProgram?: PaymentMiniProgramPayload;
       orderNumbers: string;
-      paymentMode?: "app-sdk" | "wechat-mini-program";
+      paymentMode?: "app-sdk" | "allinpay-mini-program-bridge";
       payType: 7 | 8;
       paymentPayload: unknown;
       provider: "alipay" | "wechat" | "allinpay";
@@ -102,12 +103,23 @@ export type PaymentExecution =
 
 export type PaymentMiniProgramPayload = {
   appId: string;
-  originalId: string;
+  cashierAppId?: string;
+  extraData?: {
+    allinpayParams?: Record<string, string>;
+    bizOrderNo?: string;
+    orderNumbers?: string;
+    reqsn?: string;
+    returnToCaller?: boolean;
+    [key: string]: unknown;
+  };
+  launchMode?: "embedded-mini-program";
   path: string;
-  query: Record<string, string>;
-  queryString: string;
   type: "wechat";
 };
+
+const MEUMALL_PAYMENT_BRIDGE_MINI_PROGRAM_APP_ID = "wx264f4850dc92b03d";
+const MEUMALL_PAYMENT_BRIDGE_MINI_PROGRAM_PATH = "package-pay/pages/allinpay-bridge/allinpay-bridge";
+const ALLINPAY_CASHIER_MINI_PROGRAM_APP_ID = "wxef277996acc166c3";
 
 export type OrderPaymentData = {
   debugRaw?: {
@@ -669,14 +681,16 @@ function normalizePaymentExecution({
   payType: 7 | 8;
 }): PaymentExecution {
   const provider = payType === 7 ? "alipay" : "wechat";
-  const allinpayWechatMiniProgram = paySettlementType === 1 && payType === 8 ? createAllinpayWechatMiniProgramPayload(payResult) : undefined;
+  const allinpayWechatMiniProgram =
+    paySettlementType === 1 && payType === 8 ? createAllinpayWechatMiniProgramPayload({ orderNumbers, payResult }) : undefined;
   if (allinpayWechatMiniProgram) {
     return {
       bizOrderNo: extractBizOrderNo(payResult),
+      ...(allinpayWechatMiniProgram.chnlFrontParamInfo ? { chnlFrontParamInfo: allinpayWechatMiniProgram.chnlFrontParamInfo } : {}),
       miniProgram: allinpayWechatMiniProgram.miniProgram,
       orderNumbers,
-      paymentMode: "wechat-mini-program",
-      paymentPayload: allinpayWechatMiniProgram.rawPayload,
+      paymentMode: "allinpay-mini-program-bridge",
+      paymentPayload: payResult,
       payType,
       provider: "allinpay",
       settlementProvider: "allinpay",
@@ -708,7 +722,7 @@ function normalizePaymentExecution({
 
   return {
     orderNumbers,
-    paymentPayload: payType === 8 ? normalizeWechatAppPayInfo(payResult) : payResult,
+    paymentPayload: payResult,
     paymentMode: "app-sdk",
     payType,
     provider,
@@ -716,25 +730,41 @@ function normalizePaymentExecution({
   };
 }
 
-function createAllinpayWechatMiniProgramPayload(payResult: JavaOrderPayResult) {
-  const rawPayload = extractAllinpayWechatPayload(payResult);
+function createAllinpayWechatMiniProgramPayload({ orderNumbers, payResult }: { orderNumbers: string; payResult: JavaOrderPayResult }) {
+  const frontParamInfo = extractAllinpayChnlFrontParamInfo(payResult);
+  const rawPayload = frontParamInfo ?? extractAllinpayWechatPayload(payResult);
   if (!rawPayload) {
     return undefined;
   }
 
-  const query = normalizeStringRecord(rawPayload);
-  const queryString = new URLSearchParams(query).toString();
+  const allinpayParams = normalizeStringRecord(rawPayload);
+  const bizOrderNo = extractBizOrderNo(payResult);
+  const reqsn = extractAllinpayReqsn(allinpayParams, payResult);
   return {
+    ...(frontParamInfo ? { chnlFrontParamInfo: allinpayParams } : {}),
     rawPayload,
     miniProgram: {
-      appId: "wxef277996acc166c3",
-      originalId: "gh_e64a1a89a0ad",
-      path: queryString ? `pages/orderDetail/orderDetail?${queryString}` : "pages/orderDetail/orderDetail",
-      query,
-      queryString,
+      appId: MEUMALL_PAYMENT_BRIDGE_MINI_PROGRAM_APP_ID,
+      cashierAppId: ALLINPAY_CASHIER_MINI_PROGRAM_APP_ID,
+      extraData: {
+        allinpayParams,
+        ...(bizOrderNo ? { bizOrderNo } : {}),
+        orderNumbers,
+        ...(reqsn ? { reqsn } : {}),
+        returnToCaller: true
+      },
+      launchMode: "embedded-mini-program" as const,
+      path: MEUMALL_PAYMENT_BRIDGE_MINI_PROGRAM_PATH,
       type: "wechat" as const
     }
   };
+}
+
+function extractAllinpayChnlFrontParamInfo(payResult: JavaOrderPayResult) {
+  if (!isRecord(payResult) || !isAllinpayAcceptedResult(payResult.result)) {
+    return undefined;
+  }
+  return parsePaymentObject(payResult.chnlFrontParamInfo);
 }
 
 function extractAllinpayWechatPayload(payResult: JavaOrderPayResult) {
@@ -753,6 +783,27 @@ function extractAllinpayWechatPayload(payResult: JavaOrderPayResult) {
   }
 
   return hasAllinpayMiniProgramKeys(payResult) ? payResult : undefined;
+}
+
+function extractAllinpayReqsn(allinpayParams: Record<string, string>, payResult: JavaOrderPayResult) {
+  const appletPayParams = parsePaymentObject(allinpayParams.appletPayParams);
+  const reqsnFromApplet = appletPayParams ? normalizeOptionalText(appletPayParams.reqsn) : undefined;
+  if (reqsnFromApplet) {
+    return reqsnFromApplet;
+  }
+
+  if (allinpayParams.reqsn) {
+    return allinpayParams.reqsn;
+  }
+
+  if (!isRecord(payResult)) {
+    return undefined;
+  }
+  return normalizeOptionalText(payResult.reqsn ?? payResult.reqTraceNum ?? payResult.respTraceNum);
+}
+
+function isAllinpayAcceptedResult(value: unknown) {
+  return value === 0 || value === "0";
 }
 
 function parsePaymentObject(value: unknown): Record<string, unknown> | undefined {
@@ -786,22 +837,7 @@ function extractBizOrderNo(payResult: JavaOrderPayResult) {
   if (!isRecord(payResult)) {
     return undefined;
   }
-  return normalizeOptionalText(payResult.bizOrderNo ?? payResult.orderNo ?? payResult.orderNumber);
-}
-
-function normalizeWechatAppPayInfo(payResult: JavaOrderPayResult): unknown {
-  if (!isRecord(payResult)) {
-    return payResult;
-  }
-  return {
-    appid: payResult.appId ?? payResult.appid,
-    noncestr: payResult.nonceStr ?? payResult.noncestr,
-    package: payResult.packageValue ?? payResult.package,
-    partnerid: payResult.partnerId ?? payResult.partnerid,
-    prepayid: payResult.prepayId ?? payResult.prepayid,
-    sign: payResult.sign,
-    timestamp: payResult.timeStamp ?? payResult.timestamp
-  };
+  return normalizeOptionalText(payResult.bizOrderNo ?? payResult.orderNo ?? payResult.orderNumber ?? payResult.reqTraceNum ?? payResult.respTraceNum);
 }
 
 function normalizeAllinpayOrderStatus(status: unknown): AllinpayOrderStatusData["view"]["normalizedStatus"] {

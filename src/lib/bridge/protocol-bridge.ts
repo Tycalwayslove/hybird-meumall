@@ -54,25 +54,35 @@ export type BridgeAddressLocation = Omit<BridgeAddress, "addrId" | "commonAddr" 
   name?: string | null;
 };
 
-export type BridgePaymentPayRequest = {
-  bizOrderNo?: string;
-  miniProgram?: {
-    appId: string;
-    originalId: string;
-    path: string;
-    query: Record<string, string>;
-    queryString: string;
-    type: "wechat";
+export type BridgePaymentMiniProgramPayload = {
+  appId: string;
+  cashierAppId?: string;
+  extraData?: {
+    allinpayParams?: Record<string, string>;
+    bizOrderNo?: string;
+    orderNumbers?: string;
+    reqsn?: string;
+    returnToCaller?: boolean;
+    [key: string]: unknown;
   };
+  launchMode?: "embedded-mini-program";
+  path: string;
+  type: "wechat";
+};
+
+export type BridgePaymentStartCashierRequest = {
+  bizOrderNo?: string;
+  chnlFrontParamInfo?: Record<string, string>;
+  miniProgram?: BridgePaymentMiniProgramPayload;
   orderNumbers: string;
   payType: 7 | 8;
-  paymentMode?: "app-sdk" | "wechat-mini-program";
+  paymentMode?: "app-sdk" | "allinpay-mini-program-bridge";
   provider: "alipay" | "wechat" | "allinpay";
   sdkPayload: unknown;
   settlementProvider?: "allinpay";
 };
 
-export type BridgePaymentPayResponse = {
+export type BridgePaymentStartCashierResponse = {
   message?: string;
   nativeCode?: string;
   status: "cancelled" | "failed" | "success" | "unknown";
@@ -127,7 +137,7 @@ export type RpcResponseMap = {
   "address.chooseLocation": {
     location?: BridgeAddressLocation | null;
   };
-  "payment.pay": BridgePaymentPayResponse;
+  paymentStartCashier: BridgePaymentStartCashierResponse;
   "payment.openUrl": BridgePaymentOpenUrlResponse;
 };
 
@@ -147,7 +157,7 @@ export type RpcRequestMap = {
     addrId: string;
   };
   "address.chooseLocation": undefined;
-  "payment.pay": BridgePaymentPayRequest;
+  paymentStartCashier: BridgePaymentStartCashierRequest;
   "payment.openUrl": BridgePaymentOpenUrlRequest;
 };
 

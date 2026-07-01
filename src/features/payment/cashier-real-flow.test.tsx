@@ -192,6 +192,51 @@ describe("cashier real flow service", () => {
     ]);
   });
 
+  it("passes complete Java payment data to native sdk payloads", async () => {
+    const javaPaymentData = {
+      appId: "wx-app-id",
+      extraDebugField: "keep-me",
+      nonceStr: "nonce-value",
+      packageValue: "Sign=WXPay",
+      partnerId: "partner-id",
+      prepayId: "prepay-id",
+      sign: "sign-value",
+      timeStamp: "1770000000"
+    };
+    const backendClient = createFakeBackendClient({
+      "/sys/config/paySettlementType": {
+        code: "00000",
+        data: 0,
+        success: true
+      },
+      "/p/order/pay": {
+        code: "00000",
+        data: javaPaymentData,
+        success: true
+      }
+    });
+
+    const result = await createOrderPaymentData({
+      backendClient,
+      clientContext: { platform: "android" },
+      orderNumbers: "O202606300002",
+      payType: 8,
+      returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606300002"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view.execution).toMatchObject({
+        orderNumbers: "O202606300002",
+        paymentMode: "app-sdk",
+        paymentPayload: javaPaymentData,
+        payType: 8,
+        provider: "wechat",
+        type: "native-sdk"
+      });
+    }
+  });
+
   it("submits allinpay WeChat requests to Java and maps them to mini program cashier payloads", async () => {
     const backendClient = createFakeBackendClient({
       "/sys/config/paySettlementType": {
@@ -226,24 +271,28 @@ describe("cashier real flow service", () => {
         execution: {
           bizOrderNo: "TL202606300001",
           miniProgram: {
-            appId: "wxef277996acc166c3",
-            originalId: "gh_e64a1a89a0ad",
-            path: "pages/orderDetail/orderDetail?cusid=990581007426001&appid=002&trxamt=12990&reqsn=O202606300001",
-            query: {
-              appid: "002",
-              cusid: "990581007426001",
+            appId: "wx264f4850dc92b03d",
+            cashierAppId: "wxef277996acc166c3",
+            extraData: {
+              allinpayParams: {
+                appid: "002",
+                cusid: "990581007426001",
+                reqsn: "O202606300001",
+                trxamt: "12990"
+              },
+              bizOrderNo: "TL202606300001",
+              orderNumbers: "O202606300001",
               reqsn: "O202606300001",
-              trxamt: "12990"
+              returnToCaller: true
             },
-            queryString: "cusid=990581007426001&appid=002&trxamt=12990&reqsn=O202606300001",
+            launchMode: "embedded-mini-program",
+            path: "package-pay/pages/allinpay-bridge/allinpay-bridge",
             type: "wechat"
           },
-          paymentMode: "wechat-mini-program",
+          paymentMode: "allinpay-mini-program-bridge",
           paymentPayload: {
-            appid: "002",
-            cusid: "990581007426001",
-            reqsn: "O202606300001",
-            trxamt: "12990"
+            bizOrderNo: "TL202606300001",
+            miniprogramPayInfo_VSP: "{\"cusid\":\"990581007426001\",\"appid\":\"002\",\"trxamt\":\"12990\",\"reqsn\":\"O202606300001\"}"
           },
           payType: 8,
           provider: "allinpay",
@@ -266,6 +315,80 @@ describe("cashier real flow service", () => {
         path: "/p/order/pay"
       }
     ]);
+  });
+
+  it("maps successful allinpay front channel params to native payment payloads", async () => {
+    const appletPayParams = JSON.stringify({
+      appid: "00000086",
+      body: "臻选有机纯牛奶3.6g乳蛋白光明200mLX24盒新老包装随机发货",
+      cusid: "660584053996480",
+      expiretime: "20260630180739",
+      orgid: "660584053994LJC",
+      paytype: "W06",
+      reqsn: "20260630173754208901021131",
+      trxamt: "1"
+    });
+    const chnlFrontParamInfo = {
+      appletPayParams,
+      frontExt: "keep-front-param"
+    };
+    const javaPaymentData = {
+      channelParamInfo: null,
+      chnlFrontParamInfo: JSON.stringify(chnlFrontParamInfo),
+      respCode: "66666",
+      respMsg: "业务已受理",
+      respTraceNum: "20260630173754208901021131",
+      reqTraceNum: "2606300000012651",
+      result: "0"
+    };
+    const backendClient = createFakeBackendClient({
+      "/sys/config/paySettlementType": {
+        code: "00000",
+        data: 1,
+        success: true
+      },
+      "/p/order/pay": {
+        code: "00000",
+        data: javaPaymentData,
+        success: true
+      }
+    });
+
+    const result = await createOrderPaymentData({
+      backendClient,
+      clientContext: { platform: "ios" },
+      orderNumbers: "O202606300003",
+      payType: 8,
+      returnUrl: "https://hybird.aigcpop.com/h5-v/v1.0.8/pay-result?orderNumbers=O202606300003"
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view.execution).toMatchObject({
+        bizOrderNo: "2606300000012651",
+        chnlFrontParamInfo,
+        miniProgram: {
+          appId: "wx264f4850dc92b03d",
+          cashierAppId: "wxef277996acc166c3",
+          extraData: {
+            allinpayParams: chnlFrontParamInfo,
+            bizOrderNo: "2606300000012651",
+            orderNumbers: "O202606300003",
+            reqsn: "20260630173754208901021131",
+            returnToCaller: true
+          },
+          launchMode: "embedded-mini-program",
+          path: "package-pay/pages/allinpay-bridge/allinpay-bridge",
+          type: "wechat"
+        },
+        paymentMode: "allinpay-mini-program-bridge",
+        paymentPayload: javaPaymentData,
+        payType: 8,
+        provider: "allinpay",
+        settlementProvider: "allinpay",
+        type: "native-sdk"
+      });
+    }
   });
 });
 

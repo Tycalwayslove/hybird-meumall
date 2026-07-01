@@ -121,7 +121,7 @@ type BridgeResult<T> =
 | rpc/getTokens | 调试中 | 统一信封 RPC，原生当前只返回 debug token。 |
 | rpc/getDeviceInfo | 调试中 | 统一信封 RPC，原生当前只返回 debug 设备信息。 |
 | rpc/address.* | 调试中 | 地址能力 RPC，H5 商品详情、订单确认和地址管理页优先使用；原生 debug receiver 当前返回调试地址。 |
-| rpc/payment.pay | 对接中 | H5 收银台请求原生拉起 App 内支付宝/微信 SDK；测试环境通联微信支付会通过该 RPC 请求原生打开微信小程序收银台。 |
+| rpc/paymentStartCashier | 对接中 | H5 收银台请求原生拉起 App 内支付宝/微信 SDK；测试环境通联微信支付会通过该 RPC 请求原生打开喵呜小程序支付桥页。 |
 | rpc/payment.openUrl | 对接中 | H5 收银台请求原生打开通联支付宝支付 URL；原生 debug receiver 当前会尝试打开外部 URL。 |
 | router/navigate | 调试中 | H5 发出导航信封，原生当前只接收记录。 |
 | event/token_expired | 调试中 | H5 发出 token 失效事件，原生当前只接收记录。 |
@@ -226,64 +226,73 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 
 `address.chooseLocation` 当前只做 Bridge 能力预留：H5 发起 RPC 并输出 `[MeuMall][address-location]` console 日志；App 未接入时页面提示“定位能力等待 App Bridge 接入”，不会伪造定位结果。
 
-## rpc/payment.* 支付能力
+## rpc/payment* 支付能力
 
 收银台 `/pay-way` 点击“确定支付”后，H5 先请求自身 BFF 创建后端支付参数，再按 BFF 返回的 `execution.type` 调 Native Bridge：
 
 | action | payload | resolve data | H5 使用场景 |
 | --- | --- | --- | --- |
-| `payment.pay` | `{ provider, payType, orderNumbers, sdkPayload, paymentMode?, settlementProvider?, miniProgram?, bizOrderNo? }` | `{ status, message? }` | 普通 App 内支付宝/微信 SDK 支付；或通联微信小程序收银台。 |
+| `paymentStartCashier` | `{ provider, payType, orderNumbers, sdkPayload, paymentMode?, settlementProvider?, chnlFrontParamInfo?, miniProgram?, bizOrderNo? }` | `{ status, message? }` | 普通 App 内支付宝/微信 SDK 支付；或通联微信通过喵呜小程序支付桥页进入通联收银台。 |
 | `payment.openUrl` | `{ provider: "allinpay", url, orderNumbers, bizOrderNo? }` | `{ opened, status, message? }` | 通联支付宝 URL 支付；App 打开外部 URL 后 H5 进入 `/pay-result` 回查。 |
 
-`payment.pay` 请求示例：
+`paymentStartCashier` 请求示例：
 
 ```json
 {
   "module": "rpc",
-  "action": "payment.pay",
+  "action": "paymentStartCashier",
   "callbackId": "cb_xxx",
   "payload": {
     "provider": "alipay",
     "payType": 7,
     "orderNumbers": "NO202606290001",
     "sdkPayload": {
+      "bizOrderNo": "PAY202606290001",
       "orderInfo": "alipay_sdk_order_info"
     }
   }
 }
 ```
 
-通联微信小程序收银台请求示例：
+通联微信小程序支付桥请求示例：
 
 ```json
 {
   "module": "rpc",
-  "action": "payment.pay",
+  "action": "paymentStartCashier",
   "callbackId": "cb_xxx",
   "payload": {
     "provider": "allinpay",
     "settlementProvider": "allinpay",
-    "paymentMode": "wechat-mini-program",
+    "paymentMode": "allinpay-mini-program-bridge",
     "payType": 8,
     "orderNumbers": "NO202606300001",
-    "bizOrderNo": "TL202606300001",
+    "bizOrderNo": "2606300000012651",
     "sdkPayload": {
-      "cusid": "990581007426001",
-      "appid": "002",
-      "trxamt": "12990",
-      "reqsn": "NO202606300001"
+      "result": "0",
+      "reqTraceNum": "2606300000012651",
+      "respTraceNum": "20260630173754208901021131",
+      "chnlFrontParamInfo": "{\"appletPayParams\":\"{\\\"reqsn\\\":\\\"20260630173754208901021131\\\",\\\"cusid\\\":\\\"660584053996480\\\",\\\"trxamt\\\":\\\"1\\\"}\"}",
+      "respCode": "66666",
+      "respMsg": "业务已受理"
+    },
+    "chnlFrontParamInfo": {
+      "appletPayParams": "{\"reqsn\":\"20260630173754208901021131\",\"cusid\":\"660584053996480\",\"trxamt\":\"1\"}"
     },
     "miniProgram": {
       "type": "wechat",
-      "appId": "wxef277996acc166c3",
-      "originalId": "gh_e64a1a89a0ad",
-      "path": "pages/orderDetail/orderDetail?cusid=990581007426001&appid=002&trxamt=12990&reqsn=NO202606300001",
-      "queryString": "cusid=990581007426001&appid=002&trxamt=12990&reqsn=NO202606300001",
-      "query": {
-        "cusid": "990581007426001",
-        "appid": "002",
-        "trxamt": "12990",
-        "reqsn": "NO202606300001"
+      "appId": "wx264f4850dc92b03d",
+      "cashierAppId": "wxef277996acc166c3",
+      "launchMode": "embedded-mini-program",
+      "path": "package-pay/pages/allinpay-bridge/allinpay-bridge",
+      "extraData": {
+        "allinpayParams": {
+          "appletPayParams": "{\"reqsn\":\"20260630173754208901021131\",\"cusid\":\"660584053996480\",\"trxamt\":\"1\"}"
+        },
+        "orderNumbers": "NO202606300001",
+        "bizOrderNo": "2606300000012651",
+        "reqsn": "20260630173754208901021131",
+        "returnToCaller": true
       }
     }
   }
@@ -292,10 +301,10 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 
 通联微信处理规则：
 
-- H5 只在 Java `/p/order/pay` 返回通联小程序支付字段时生成 `paymentMode="wechat-mini-program"`。
-- App 收到该模式时，不走普通微信 App 支付参数解析；应使用微信 OpenSDK 拉起小程序，`userName/originalId=gh_e64a1a89a0ad`，`path` 直接使用 `miniProgram.path`。
-- `sdkPayload` 保留 Java 原始通联字段，原生不要重新改写字段名或重排签名字段；需要日志排查时可和 H5 console 中 `[MeuMall][order-pay][h5-response]` 对照。
-- 微信小程序收银台打开成功不等同于支付成功。App 若只能确认“已打开”，建议 resolve `{ "status": "unknown", "message": "已打开微信收银台" }`，H5 会进入结果页并回查订单状态。
+- H5 优先在 Java `/p/order/pay` 返回 `result=0` 且 `chnlFrontParamInfo` 可解析时生成 `paymentMode="allinpay-mini-program-bridge"`。
+- App 收到该模式时，不走普通微信 App 支付参数解析，也不要直接打开通联小程序收银台；应使用 `miniProgram.appId=wx264f4850dc92b03d` 和 `miniProgram.path=package-pay/pages/allinpay-bridge/allinpay-bridge` 打开喵呜小程序支付桥页。
+- `sdkPayload` 固定透传 Java `/p/order/pay` 返回的完整 `data`，不是 H5 提取后的子集；`chnlFrontParamInfo` 是 H5 对 `sdkPayload.chnlFrontParamInfo` 执行 JSON.parse 后得到的对象，会把该对象内所有顶层参数都传给原生；`miniProgram.extraData.allinpayParams` 与 `chnlFrontParamInfo` 保持一致，并由小程序桥页原样传给通联收银台。需要日志排查时可和 H5 console 中 `[MeuMall][order-pay][h5-response]` 对照。
+- 喵呜小程序支付桥页打开成功不等同于支付成功。App 若只能确认“已打开”，建议 resolve `{ "status": "unknown", "message": "已打开喵呜支付桥" }`，H5 会进入结果页并回查订单状态。
 - 通联微信小程序收银台参考通联文档：<https://prodoc.allinpay.com/doc/732/>。
 
 `payment.openUrl` 请求示例：
@@ -316,8 +325,8 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 
 H5 处理规则：
 
-- `payment.pay` 普通 SDK resolve `status=success/paid` 后进入 `/pay-result?sts=1`；`status=cancelled/failed/unknown` 进入结果页并展示可重试状态。
-- `payment.pay` 通联微信小程序收银台 resolve 后优先进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>`；如果没有 `bizOrderNo`，则回读 `/api/bff/order-pay-info`。
+- `paymentStartCashier` 普通 SDK resolve `status=success/paid` 后进入 `/pay-result?sts=1`；`status=cancelled/failed/unknown` 进入结果页并展示可重试状态。
+- `paymentStartCashier` 通联微信小程序支付桥 resolve 后优先进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>`；如果没有 `bizOrderNo`，则回读 `/api/bff/order-pay-info`。
 - `payment.openUrl` resolve `opened=true` 后进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>`，结果页调用 `/api/bff/allinpay-order-status` 回查。
 - Bridge 不可用时，普通 App 内 SDK 支付无法降级，H5 展示“请在 App 内完成支付”；通联 URL 支付可临时使用 `window.location.assign(url)` 作为浏览器调试兜底。
 - App 生产实现必须校验支付 URL scheme / host 白名单，不应打开任意 URL。
