@@ -25,8 +25,8 @@ export function PromotionActivityDetailScreen({ data }: { data: PromotionActivit
       className="bg-fill-page"
       contentClassName="bg-fill-page pb-8"
       foreground="light"
-      rightHref={data.rewardRecordHref}
-      rightText="奖励记录"
+      rightHref={data.ruleHref}
+      rightText="活动规则"
     >
       <section
         className="relative aspect-[375/399] overflow-visible"
@@ -43,8 +43,6 @@ export function PromotionActivityDetailScreen({ data }: { data: PromotionActivit
         >
           <img alt="" aria-hidden="true" className="absolute inset-0 size-full object-cover" src={data.bannerUrl ?? localAssetUrl(data.heroBackgroundAssetKey)} />
 
-          <ActivityHeroTitle data={data} />
-          <HeroBadge text={data.badgeText} />
           <HeroMetrics data={data} />
           <ActivityAction data={data} />
         </div>
@@ -76,35 +74,6 @@ export function PromotionActivityDetailScreen({ data }: { data: PromotionActivit
   );
 }
 
-function ActivityHeroTitle({ data }: { data: PromotionActivityDetailData }) {
-  const highlightColor = data.title.highlightTone === "order" ? activityDetailTheme.orderTitleColor : activityDetailTheme.pkTitleColor;
-  const titleText = `${data.title.prefix}${data.title.highlight}${data.title.suffix}`;
-
-  return (
-    <h1
-      aria-label={titleText}
-      className="absolute left-1/2 top-[75px] w-full -translate-x-1/2 text-center text-[44px] font-black leading-[48px] tracking-normal text-text-primary"
-      style={{
-        textShadow: activityDetailTheme.heroTitleShadow,
-        WebkitTextStroke: `4px ${activityDetailTheme.heroTitleStroke}`,
-        paintOrder: "stroke fill"
-      }}
-    >
-      <span>{data.title.prefix}</span>
-      <span style={{ color: highlightColor }}>{data.title.highlight}</span>
-      <span>{data.title.suffix}</span>
-    </h1>
-  );
-}
-
-function HeroBadge({ text }: { text: string }) {
-  return (
-    <div className="absolute left-1/2 top-[144px] -translate-x-1/2 rounded-pill px-1.5 py-px text-[13px] font-semibold leading-[18px] text-text-inverse" style={{ backgroundColor: activityDetailTheme.badgeBackground }}>
-      {text}
-    </div>
-  );
-}
-
 function HeroMetrics({ data }: { data: PromotionActivityDetailData }) {
   if (data.metrics.kind === "single") {
     return (
@@ -130,6 +99,10 @@ function HeroMetrics({ data }: { data: PromotionActivityDetailData }) {
 }
 
 function ActivityAction({ data }: { data: PromotionActivityDetailData }) {
+  if (data.actionVisible === false) {
+    return null;
+  }
+
   const content = (
     <>
       <span>{data.statusText}</span>
@@ -183,9 +156,11 @@ function ProgressCard({ progress }: { progress: PromotionActivityDetailData["pro
   return (
     <div className="flex w-full flex-col gap-4 overflow-hidden rounded-[12px] bg-fill-page px-2.5 pb-2 pt-2.5">
       <div className="flex w-full flex-col gap-[10px]">
-        <p className="text-[16px] font-semibold leading-[22px] text-text-primary">
-          {renderHighlightedNumber(progress.completedText)}
-        </p>
+        {progress.completedText ? (
+          <p className="text-[16px] font-semibold leading-[22px] text-text-primary">
+            {renderHighlightedNumber(progress.completedText)}
+          </p>
+        ) : null}
         <p className="text-[14px] font-medium leading-5 text-text-secondary">{renderHighlightedNumber(progress.hintText)}</p>
       </div>
 

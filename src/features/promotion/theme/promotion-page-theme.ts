@@ -3,6 +3,7 @@ import type { ActivityStatus, RankCenterCard } from "../types";
 export const activityStatusTone: Record<ActivityStatus, string> = {
   claiming: "bg-price text-text-inverse",
   active: "bg-success-subtle text-success-strong",
+  paused: "bg-fill-muted text-text-disabled",
   ended: "bg-fill-muted text-text-disabled"
 };
 

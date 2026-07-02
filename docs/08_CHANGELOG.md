@@ -2,6 +2,32 @@
 
 所有重要的项目、工作流、架构、发布、Bridge、主题和 API 变更都记录在这里。
 
+## 2026-07-02 - 活动中心历史活动与分页状态联调
+
+### 变更
+
+- 新增 `/promotion/activities/[id]/reward` 奖励领取/查看页；活动详情 `displayState=4` 跳 `?mode=receive`，`displayState=5` 跳 `?mode=view`。
+- 奖励页接入 `/api/bff/promotion/activities/[id]/reward` -> Java `/p/app/distribution/incentive/reward/detail/{id}`，展示“恭喜您”、活动完成文案和全部奖励。
+- 奖励列表按 `deliverState` 展示：`0` 为“领取”并 PATCH `/api/bff/promotion/activities/rewards/[recordId]/receive`，`1/2` 为“查看”并打开奖励详情弹层。
+- `/promotion/activities` 按新接口口径拆成两次真实 BFF 查询：`displayStates=[1,2,3,4]` 展示进行中，`displayStates=[0]` 展示已暂停；顶部进行中数量取 `ongoingActivityCount`。
+- 新增 `/promotion/activities/history` 历史活动页，使用 `displayStates=[6]`，历史页不展示底部历史活动入口。
+- 活动中心和历史活动补齐骨架屏、空态和加载更多；`createPromotionApi.getActivities` 支持统一传递 `displayStates`。
+- 活动详情 mapper 对后端可选数组和富文本字段做防御，避免真实数据结构不完整时点击活动详情触发 JS 异常。
+- 活动详情 BFF 只请求 `/p/app/distribution/incentive/detail/{id}`；奖励详情接口由独立奖励页请求，避免详情页因奖励接口异常阻塞活动基础信息展示。
+- 活动详情 `banner` 支持按 `JAVA_OSS_ASSET_BASE_URL` 拼接 Java 返回的相对路径，修复 `/banner/*.jpg` 无法展示的问题。
+- 活动详情顶部不再展示活动标题和 `ruleSummary` 规则摘要；底部主按钮按 `displayState` 映射：`2` 展示“去带货”，`4` 展示“去领奖”，`5` 展示“查看奖励”，`0/1/3` 不展示按钮。
+- 活动详情导航栏右侧入口从“奖励记录”改为“活动规则”，点击进入 `/promotion/activities/[id]/rules`，规则页展示后端 `ruleContent` 清洗后的富文本。
+- H5 dev 启动脚本显式追加 `--webpack`，规避 Next 16 默认 Turbopack dev 在 `/promotion/activities/[id]` 动态 App Router 页服务端模板中触发 `ReferenceError: require is not defined`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts`：通过，3 files / 36 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint 'src/app/promotion/activities/[slug]/rules/page.tsx' src/features/promotion/components/PromotionActivityDetailScreen.tsx src/features/promotion/components/PromotionActivityRulesScreen.tsx src/features/promotion/server/promotion-incentive-activities-real-service.ts src/features/promotion/rule-content.ts src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/promotion-service.test.ts`：通过，0 errors，1 warning；warning 为详情页既有 `<img>` 规则提示。
+- `pnpm run ai:check-docs-sync --strict`：通过。
+- `pnpm test:dev-script`：通过。
+- HTTP 冒烟：`/hybird/promotion/activities/101` 返回 200，未再出现 `require is not defined`；无 token 时页面展示“活动详情加载失败 / Unauthorized”。
+
 ## 2026-07-01 - 接入 iconfont Font class 图标体系
 
 ### 变更

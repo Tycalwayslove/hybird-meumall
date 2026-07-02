@@ -11,7 +11,7 @@ s
 - [ ] 与 iOS / Android 确认 H5 路由 Bridge 最终实现：`webview`、`tab`、`back`、`close_webview`、原生页直接 route（如 `settings`、`history-wallet`）、`route_changed`、手势返回和 URL 白名单。
 - [ ] 确认 v1.2.0 搜索建议、推广商品分类 ID 来源、商品详情收藏状态接口、秒杀购买资格/活动时间接口和原生入口跳转参数；热门搜索词、热榜、搜索结果商品、我的收藏商品和我的足迹已分别接 `/search/hotSearch`、`/search/rankTabs`、`/search/rank/{rankType}`、`/p/app/prod/page`、`/p/user/collection/prods`、`/p/prodBrowseLog/page`。
 - [ ] 用 App 注入的有效 `mallToken` 验证推广首页 `/api/bff/promotion/home`、秒杀商品 `/api/bff/seckill/products` 和推广商品 `/api/bff/promotion/products` 的真实数据、分页、商品详情跳转和分享 payload。
-- [ ] 用 App 注入的有效 `mallToken` 验证活动中心 `/api/bff/promotion/activities`、活动详情 `/api/bff/promotion/activities/[id]`、奖励详情 `/api/bff/promotion/activities/[id]/reward` 和领取奖励 `/api/bff/promotion/activities/rewards/[recordId]/receive`。
+- [ ] 用 App 注入的有效 `mallToken` 验证活动中心 `/api/bff/promotion/activities?displayStates=1&displayStates=2&displayStates=3&displayStates=4`、已暂停活动 `displayStates=0`、历史活动 `/promotion/activities/history` 使用 `displayStates=6`、活动详情 `/api/bff/promotion/activities/[id]` 只请求详情接口、详情页 `displayState` 按钮展示规则、活动规则页 `/promotion/activities/[id]/rules` 展示 `ruleContent`、奖励页 `/promotion/activities/[id]/reward?mode=receive|view` 独立请求奖励详情、领取奖励 `/api/bff/promotion/activities/rewards/[recordId]/receive` 和奖励详情弹层。
 - [ ] 用 App 注入的有效 `mallToken` 验证卖手活动 `/seller/activities`、活动配置 `/seller/activities/[activityId]`、选择商品和商品设置链路；重点确认 `/p/sellerActivity/detail` 对未配置商品的返回、`batchStatus` 批量部分失败策略和 `saveOrUpdate` SKU 活动价校验。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 的真实数据链路。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。

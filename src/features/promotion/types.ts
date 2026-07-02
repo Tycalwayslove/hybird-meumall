@@ -10,7 +10,7 @@ export type RankingPeriod = "day" | "week" | "month";
 
 export type RewardRecordTab = "settled" | "pending";
 
-export type ActivityStatus = "claiming" | "active" | "ended";
+export type ActivityStatus = "claiming" | "active" | "paused" | "ended";
 
 export type PromotionProfile = {
   nickname: string;
@@ -82,6 +82,14 @@ export type PromotionActivity = {
   progressPercent: number;
 };
 
+export type PromotionActivitiesPage = {
+  current: number;
+  size: number;
+  total?: number;
+  pages?: number;
+  hasMore: boolean;
+};
+
 export type PromotionActivitiesData = {
   activeCount: number;
   rewardRecordHref: string;
@@ -99,7 +107,10 @@ export type PromotionActivityDetailData = {
   };
   heroBackgroundAssetKey: LocalAssetKey;
   rewardRecordHref: string;
+  ruleContentHtml?: string;
+  ruleHref?: string;
   badgeText: string;
+  actionVisible?: boolean;
   statusText: string;
   statusKind: "primary" | "neutral";
   actionHref?: string;
@@ -119,7 +130,7 @@ export type PromotionActivityDetailData = {
         }>;
       };
   progress: {
-    completedText: string;
+    completedText?: string;
     hintText: string;
     percent: number;
     complete?: boolean;
@@ -144,6 +155,29 @@ export type PromotionActivityDetailData = {
       typeText: string;
     }>;
   }>;
+};
+
+export type PromotionActivityRewardItem = {
+  id: string;
+  title: string;
+  description?: string;
+  statusText?: string;
+  statusKind: "ready" | "pending" | "done";
+  actionText: "领取" | "查看";
+  canReceive: boolean;
+  addressText?: string;
+  addressId?: number;
+};
+
+export type PromotionActivityRewardData = {
+  activityId: string;
+  activityTitle: string;
+  completion: {
+    activityLine: string;
+    actionText: string;
+    valueText?: string;
+  };
+  rewards: PromotionActivityRewardItem[];
 };
 
 export type RewardRecordSummary = {

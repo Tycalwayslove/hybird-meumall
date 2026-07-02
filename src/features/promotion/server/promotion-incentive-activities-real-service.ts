@@ -2,7 +2,14 @@ import { createApiError } from "@/lib/api/errors";
 import type { ClientRequestContext } from "@/lib/http/client-context";
 import type { BackendApiResult, BackendRequestOptions } from "@/server/http/backend-client";
 import { getJavaResponseCodeMeta, mapJavaBusinessCodeToApiErrorCode } from "@/server/http/java-response-codes";
-import type { ActivityStatus, PromotionActivitiesData, PromotionActivityDetailData } from "../types";
+import { sanitizePromotionRuleContent } from "../rule-content";
+import type {
+  ActivityStatus,
+  PromotionActivitiesData,
+  PromotionActivitiesPage,
+  PromotionActivityDetailData,
+  PromotionActivityRewardData
+} from "../types";
 
 type PromotionIncentiveBackendClient = {
   request<T>(options: BackendRequestOptions): Promise<BackendApiResult<T>>;
@@ -44,6 +51,7 @@ export type DistributionIncentivePageVO = {
   size?: number;
   current?: number;
   pages?: number;
+  ongoingActivityCount?: number;
   [key: string]: unknown;
 };
 
@@ -82,7 +90,9 @@ export type DistributionIncentiveProgressVO = {
   saleRank?: number;
   gmvRank?: number;
   currentProgress?: number;
+  alreadyRewardId?: number;
   alreadyRewardIds?: number[];
+  isAwarded?: number;
   [key: string]: unknown;
 };
 
@@ -145,13 +155,7 @@ export type DistributionIncentiveAppRewardRecordVO = {
 };
 
 export type PromotionIncentiveActivitiesBffData = PromotionActivitiesData & {
-  page: {
-    current: number;
-    size: number;
-    total?: number;
-    pages?: number;
-    hasMore: boolean;
-  };
+  page: PromotionActivitiesPage;
   modules: {
     activityPage: DistributionIncentivePageVO;
     activities: DistributionIncentiveCardPageVO[];
@@ -173,6 +177,7 @@ export type PromotionIncentiveActivityDetailBffData = PromotionActivityDetailDat
 };
 
 export type PromotionIncentiveRewardDetailBffData = {
+  view: PromotionActivityRewardData | null;
   reward: DistributionIncentiveAppRewardRecordVO | null;
   modules: {
     reward: DistributionIncentiveAppRewardRecordVO | null;
@@ -188,6 +193,7 @@ export type FetchPromotionIncentiveActivitiesOptions = {
   backendClient: PromotionIncentiveBackendClient;
   clientContext?: ClientRequestContext;
   current?: number;
+  displayStates?: number[];
   includeDebugRaw?: boolean;
   orderBy?: string | null;
   size?: number;
@@ -217,6 +223,7 @@ export async function fetchPromotionIncentiveActivitiesData({
   backendClient,
   clientContext,
   current = 1,
+  displayStates,
   includeDebugRaw = false,
   orderBy,
   size = 10
@@ -227,6 +234,7 @@ export async function fetchPromotionIncentiveActivitiesData({
     size: String(page.size)
   });
   appendOptionalParam(query, "orderBy", orderBy);
+  appendArrayParam(query, "displayStates", displayStates);
 
   const result = await backendClient.request<PromotionIncentiveServerResponse<DistributionIncentivePageVO>>({
     authRequired,
@@ -293,31 +301,11 @@ export async function fetchPromotionIncentiveActivityDetailData({
     return detail;
   }
 
-  const rewardResult = await backendClient.request<PromotionIncentiveServerResponse<DistributionIncentiveAppRewardRecordVO>>({
-    authRequired,
-    authToken,
-    backend: "java",
-    clientContext,
-    method: "GET",
-    path: `/p/app/distribution/incentive/reward/detail/${normalizedActivityId}`,
-    route: `/promotion/activities/${normalizedActivityId}`
-  });
-  if (!rewardResult.ok) {
-    return rewardResult;
-  }
-
-  const reward = unwrapOptionalPromotionIncentiveData(rewardResult.data, rewardResult.meta.requestId, "/promotion/activities/reward");
-  if (!reward.ok) {
-    return reward;
-  }
-
   return {
     ok: true,
     data: createPromotionIncentiveActivityDetailBffData({
       detail: detail.data,
-      rawDetail: includeDebugRaw ? detailResult.data : undefined,
-      rawReward: includeDebugRaw ? rewardResult.data : undefined,
-      reward: reward.data
+      rawDetail: includeDebugRaw ? detailResult.data : undefined
     }),
     meta: detailResult.meta
   };
@@ -361,13 +349,10 @@ export async function fetchPromotionIncentiveRewardDetailData({
 
   return {
     ok: true,
-    data: {
-      ...(includeDebugRaw ? { debugRaw: { reward: rewardResult.data } } : {}),
-      modules: {
-        reward: reward.data ?? null
-      },
-      reward: reward.data ?? null
-    },
+    data: createPromotionIncentiveRewardDetailBffData({
+      rawReward: includeDebugRaw ? rewardResult.data : undefined,
+      reward: reward.data
+    }),
     meta: rewardResult.meta
   };
 }
@@ -433,7 +418,7 @@ export function createPromotionIncentiveActivitiesBffData({
 
   return {
     ...(raw === undefined ? {} : { debugRaw: { activityPage: raw } }),
-    activeCount: activities.filter((activity) => activity.displayState === 2 || activity.displayState === 4).length,
+    activeCount: normalizeOptionalNonNegativeInteger(pagedActivities.ongoingActivityCount) ?? activities.filter((activity) => [1, 2, 3, 4].includes(activity.displayState ?? -1)).length,
     items: activities.map(mapActivityCard),
     modules: {
       activities,
@@ -462,7 +447,7 @@ export function createPromotionIncentiveActivityDetailBffData({
   reward?: DistributionIncentiveAppRewardRecordVO;
 }): PromotionIncentiveActivityDetailBffData {
   const incentiveType = normalizeIncentiveType(detail.incentiveType);
-  const status = mapActivityStatus(detail.displayState);
+  const action = buildDetailAction(detail.displayState);
   const titleParts = splitActivityTitle(detail.title, incentiveType);
   const rewardItems = mapRewardItems(detail.rewards, reward);
 
@@ -473,7 +458,8 @@ export function createPromotionIncentiveActivityDetailBffData({
         ...(rawReward === undefined ? {} : { reward: rawReward })
       }
     }),
-    actionHref: status === "active" ? "/promotion/products" : undefined,
+    ...(action.href === undefined ? {} : { actionHref: action.href.replace(":activityId", String(detail.id ?? "")) }),
+    actionVisible: action.visible,
     badgeText: buildBadgeText(detail, incentiveType),
     bannerUrl: normalizeImageUrl(detail.banner),
     canReceiveReward: rewardItems.some((item) => item.canReceive),
@@ -487,15 +473,171 @@ export function createPromotionIncentiveActivityDetailBffData({
     periodText: buildPeriodText(detail.startTime, detail.endTime),
     progress: buildDetailProgress(detail, incentiveType),
     rewardRecordHref: "/promotion/activities/reward-records",
+    ruleContentHtml: sanitizePromotionRuleContent(optionalText(detail.ruleContent)),
+    ruleHref: `/promotion/activities/${detail.id ?? ""}/rules`,
     rewards: rewardItems,
     rules: buildDetailRules(detail, incentiveType),
-    statusKind: status === "claiming" || rewardItems.some((item) => item.canReceive) ? "primary" : "neutral",
-    statusText: buildDetailStatusText(status, rewardItems),
+    statusKind: action.kind,
+    statusText: action.text,
     title: {
       ...titleParts,
       highlightTone: incentiveType === 1 || incentiveType === 2 ? "order" : "pk"
     }
   };
+}
+
+export function createPromotionIncentiveRewardDetailBffData({
+  rawReward,
+  reward
+}: {
+  rawReward?: PromotionIncentiveServerResponse<DistributionIncentiveAppRewardRecordVO>;
+  reward?: DistributionIncentiveAppRewardRecordVO;
+}): PromotionIncentiveRewardDetailBffData {
+  const normalizedReward = reward ?? null;
+
+  return {
+    ...(rawReward === undefined ? {} : { debugRaw: { reward: rawReward } }),
+    modules: {
+      reward: normalizedReward
+    },
+    reward: normalizedReward,
+    view: normalizedReward ? mapRewardDetailView(normalizedReward) : null
+  };
+}
+
+function mapRewardDetailView(reward: DistributionIncentiveAppRewardRecordVO): PromotionActivityRewardData {
+  const activityTitle = optionalText(reward.incentiveTitle) || "激励活动";
+
+  return {
+    activityId: String(reward.id ?? ""),
+    activityTitle,
+    completion: buildRewardCompletion(reward, activityTitle),
+    rewards: asArray(reward.details).map(mapRewardDetailItem)
+  };
+}
+
+function buildRewardCompletion(
+  reward: DistributionIncentiveAppRewardRecordVO,
+  activityTitle: string
+): PromotionActivityRewardData["completion"] {
+  const incentiveType = normalizeIncentiveType(reward.incentiveType);
+  const fallbackDescription = optionalText(reward.rewardDescription);
+  const activityLine = `您在"${activityTitle}"活动中`;
+
+  if (incentiveType === 1) {
+    const value = normalizeOptionalNonNegativeInteger(reward.saleCount);
+    return {
+      activityLine,
+      actionText: "成功完成销量",
+      ...(value === undefined ? { valueText: fallbackDescription } : { valueText: `${formatAmount(value)}单` })
+    };
+  }
+
+  if (incentiveType === 2) {
+    const value = normalizeOptionalNonNegativeNumber(reward.gmv);
+    return {
+      activityLine,
+      actionText: "成功完成销售额",
+      ...(value === undefined ? { valueText: fallbackDescription } : { valueText: formatAmount(value) })
+    };
+  }
+
+  if (incentiveType === 3) {
+    const rank = normalizeOptionalNonNegativeInteger(reward.saleRank);
+    return {
+      activityLine,
+      actionText: "成功完成销量排名",
+      ...(rank === undefined || rank === 0 ? { valueText: fallbackDescription } : { valueText: `第${rank}名` })
+    };
+  }
+
+  const rank = normalizeOptionalNonNegativeInteger(reward.gmvRank);
+  return {
+    activityLine,
+    actionText: "成功完成销售额排名",
+    ...(rank === undefined || rank === 0 ? { valueText: fallbackDescription } : { valueText: `第${rank}名` })
+  };
+}
+
+function mapRewardDetailItem(detail: DistributionIncentiveAppRewardRecordDetailVO): PromotionActivityRewardData["rewards"][number] {
+  const statusKind = rewardDetailStatusKind(detail.deliverState);
+  const addressText = buildRewardAddressText(detail);
+
+  return {
+    ...(detail.addrId === undefined ? {} : { addressId: detail.addrId }),
+    ...(addressText === undefined ? {} : { addressText }),
+    actionText: statusKind === "ready" ? "领取" : "查看",
+    canReceive: statusKind === "ready",
+    description: rewardDetailDescription(detail),
+    id: String(detail.id ?? detail.prizeName ?? ""),
+    statusKind,
+    ...(statusKind === "ready" ? {} : { statusText: deliverStateText(detail.deliverState) }),
+    title: rewardDetailTitle(detail)
+  };
+}
+
+function rewardDetailStatusKind(deliverState: number | undefined): PromotionActivityRewardData["rewards"][number]["statusKind"] {
+  if (deliverState === 0) {
+    return "ready";
+  }
+  if (deliverState === 2) {
+    return "done";
+  }
+  return "pending";
+}
+
+function rewardDetailTitle(detail: DistributionIncentiveAppRewardRecordDetailVO) {
+  const name = optionalText(detail.prizeName) || prizeTypeText(detail.prizeType);
+  if (detail.prizeType === 1 && detail.cashAmount !== undefined) {
+    return `${name}+${formatAmount(detail.cashAmount)}`;
+  }
+
+  const count = normalizeOptionalNonNegativeInteger(detail.prizeCount);
+  if (count === undefined || count <= 1 || /\d/.test(name)) {
+    return name;
+  }
+
+  return `${name}${count}${prizeCountUnit(detail.prizeType)}`;
+}
+
+function prizeCountUnit(prizeType: number | undefined) {
+  if (prizeType === 2) {
+    return "张";
+  }
+  if (prizeType === 3) {
+    return "件";
+  }
+  return "份";
+}
+
+function rewardDetailDescription(detail: DistributionIncentiveAppRewardRecordDetailVO) {
+  if (detail.prizeType === 1) {
+    return "现金奖励将直接发放到您的钱包";
+  }
+  if (detail.prizeType === 2) {
+    return "优惠券奖励将发放到您的账户";
+  }
+  if (detail.prizeType === 3) {
+    return detail.deliverType === 2 ? "实物奖励将按照填写地址发放" : "实物奖励请按平台通知领取";
+  }
+  return undefined;
+}
+
+function buildRewardAddressText(detail: DistributionIncentiveAppRewardRecordDetailVO) {
+  const areaText = [detail.province, detail.city, detail.area, detail.address]
+    .map(optionalText)
+    .filter(Boolean)
+    .join("");
+  const contactText = [detail.receiver, detail.mobile]
+    .map(optionalText)
+    .filter(Boolean)
+    .join(" ");
+
+  if (!areaText && !contactText) {
+    return undefined;
+  }
+
+  return [areaText, contactText].filter(Boolean).join("；");
 }
 
 function unwrapPromotionIncentiveData<T>(
@@ -580,7 +722,7 @@ function mapActivityCard(activity: DistributionIncentiveCardPageVO) {
   const progressInfo = buildCardProgress(activity, incentiveType);
 
   return {
-    description: activity.description?.trim() || activity.ruleSummary?.trim() || incentiveTypeText(incentiveType),
+    description: optionalText(activity.description) || optionalText(activity.ruleSummary) || incentiveTypeText(incentiveType),
     href: `/promotion/activities/${activity.id}`,
     iconKind: incentiveType === 1 || incentiveType === 2 ? "order" as const : "pk" as const,
     id: String(activity.id ?? ""),
@@ -589,42 +731,42 @@ function mapActivityCard(activity: DistributionIncentiveCardPageVO) {
     progressPercent: progressInfo.percent ?? progress,
     progressValue: progressInfo.value,
     status,
-    statusText: statusText(activity.displayState),
+    statusText: cardStatusText(activity.displayState),
     tag: incentiveTypeText(incentiveType),
-    title: activity.title?.trim() || incentiveTypeText(incentiveType)
+    title: optionalText(activity.title) || incentiveTypeText(incentiveType)
   };
 }
 
 function buildCardProgress(activity: DistributionIncentiveCardPageVO, incentiveType: number) {
   if (incentiveType === 1) {
     return {
-      label: "当前销量",
+      label: "目前进度:",
       percent: normalizePercent(activity.currentProgress),
-      value: `${normalizeNonNegativeNumber(activity.saleCount)}单`
+      value: `${normalizePercent(activity.currentProgress)}%`
     };
   }
   if (incentiveType === 2) {
     return {
-      label: "当前GMV",
+      label: "目前进度:",
       percent: normalizePercent(activity.currentProgress),
-      value: `¥${formatAmount(activity.gmv)}`
+      value: `${normalizePercent(activity.currentProgress)}%`
     };
   }
   if (incentiveType === 3) {
     const threshold = normalizeOptionalNonNegativeInteger(activity.rankThresholdVal);
     const rank = normalizeOptionalNonNegativeInteger(activity.saleRank);
     return {
-      label: threshold === undefined ? "当前排名" : `目标进入TOP${threshold}`,
+      label: "目前排名:",
       percent: buildRankProgress(rank, threshold),
-      value: rank === undefined ? "暂未上榜" : `第${rank}名`
+      value: rank === undefined ? "--" : String(rank)
     };
   }
   const threshold = normalizeOptionalNonNegativeInteger(activity.rankThresholdVal);
   const rank = normalizeOptionalNonNegativeInteger(activity.gmvRank);
   return {
-    label: threshold === undefined ? "当前排名" : `目标进入TOP${threshold}`,
+    label: "目前排名:",
     percent: buildRankProgress(rank, threshold),
-    value: rank === undefined ? "暂未上榜" : `第${rank}名`
+    value: rank === undefined ? "--" : String(rank)
   };
 }
 
@@ -643,7 +785,7 @@ function buildDetailMetrics(
   if (incentiveType === 2) {
     return {
       kind: "single",
-      label: "累计GMV",
+      label: "累计销售额",
       value: formatAmount(detail.progress?.gmv ?? reward?.gmv)
     };
   }
@@ -660,7 +802,7 @@ function buildDetailMetrics(
     kind: "split",
     items: [
       { label: "当前排名", value: rankText(detail.progress?.gmvRank ?? reward?.gmvRank) },
-      { label: "累计GMV", value: formatAmount(detail.progress?.gmv ?? reward?.gmv) }
+      { label: "销售额", value: formatAmount(detail.progress?.gmv ?? reward?.gmv) }
     ]
   };
 }
@@ -668,16 +810,16 @@ function buildDetailMetrics(
 function buildDetailProgress(detail: DistributionIncentiveAppDetailVO, incentiveType: number): PromotionActivityDetailData["progress"] {
   const rewards = sortRewards(detail.rewards);
   const completedCount = normalizeOptionalNonNegativeInteger(detail.completedDistributorCount);
-  const completedText = completedCount === undefined ? "当前活动进度统计中" : `当前活动已有${completedCount}位达人完成`;
-  const alreadyRewardIds = new Set((detail.progress?.alreadyRewardIds ?? []).map(String));
-  const percent = incentiveType === 1 || incentiveType === 2 ? normalizePercent(detail.progress?.currentProgress) : buildRankProgress(currentRank(detail.progress, incentiveType), lastRankThreshold(rewards));
+  const completedText = completedCount === undefined ? "当前活动进度统计中" : `当前活动已有${completedCount}人完成`;
+  const percent = normalizePercent(detail.progress?.currentProgress);
+  const amountLabels = incentiveType === 1 || incentiveType === 2 ? buildRewardAmountLabels(rewards) : undefined;
 
   return {
-    amountLabels: incentiveType === 2 ? rewards.map((reward) => `${formatAmount(reward.thresholdVal)}元`) : undefined,
+    amountLabels,
     complete: percent >= 100,
-    completedText,
-    hintText: buildProgressHint(detail, incentiveType, alreadyRewardIds),
-    milestoneLabels: rewards.length > 0 ? rewards.map((reward) => rewardMilestoneLabel(reward, incentiveType)) : defaultMilestoneLabels(incentiveType),
+    completedText: incentiveType === 1 || incentiveType === 2 ? completedText : undefined,
+    hintText: buildProgressHint(detail, incentiveType),
+    milestoneLabels: buildProgressMilestoneLabels(rewards, incentiveType),
     percent
   };
 }
@@ -691,7 +833,7 @@ function buildDetailRules(detail: DistributionIncentiveAppDetailVO, incentiveTyp
 
   return {
     columns: incentiveType === 1 || incentiveType === 2 ? ["达标条件", "奖励"] : ["排名区间", "奖励"],
-    description: detail.ruleSummary?.trim() || detail.ruleContent?.replace(/<[^>]*>/g, "").trim() || "活动规则以页面展示和后端结算结果为准",
+    description: stripHtml(optionalText(detail.ruleContent)) || "活动规则以页面展示和后端结算结果为准",
     rows: rows.length > 0 ? rows : [["活动规则", "奖励待公布"]]
   };
 }
@@ -700,7 +842,11 @@ function mapRewardItems(
   rewards: DistributionIncentiveRewardVO[] | undefined,
   rewardRecord: DistributionIncentiveAppRewardRecordVO | undefined
 ): NonNullable<PromotionActivityDetailData["rewards"]> {
-  const recordDetails = rewardRecord?.details ?? [];
+  if (rewardRecord === undefined) {
+    return [];
+  }
+
+  const recordDetails = asArray(rewardRecord?.details);
   return sortRewards(rewards).map((reward) => {
     const fallbackDetails = String(rewardRecord?.rewardId ?? "") === String(reward.id ?? "") ? recordDetails : [];
     const canReceive = fallbackDetails.some((detail) => detail.deliverState === 0);
@@ -717,30 +863,51 @@ function mapRewardItems(
       })),
       receiveRecordId: receiveDetail?.id === undefined ? undefined : String(receiveDetail.id),
       statusText: canReceive ? "待领取" : rewardRecord?.isAwarded === 1 ? "已获奖" : "未达标",
-      title: reward.description?.trim() || rewardMilestoneLabel(reward, normalizeIncentiveType(rewardRecord?.incentiveType))
+      title: optionalText(reward.description) || rewardMilestoneLabel(reward, normalizeIncentiveType(rewardRecord?.incentiveType))
     };
   });
 }
 
-function buildDetailStatusText(
-  status: ActivityStatus,
-  rewards: NonNullable<PromotionActivityDetailData["rewards"]>
-) {
-  if (rewards.some((reward) => reward.canReceive)) {
-    return "去领奖";
+function buildDetailAction(displayState: number | undefined): {
+  href?: string;
+  kind: PromotionActivityDetailData["statusKind"];
+  text: string;
+  visible: boolean;
+} {
+  switch (displayState) {
+    case 2:
+      return {
+        href: "/promotion/products",
+        kind: "primary",
+        text: "去带货",
+        visible: true
+      };
+    case 4:
+      return {
+        href: "/promotion/activities/:activityId/reward?mode=receive",
+        kind: "primary",
+        text: "去领奖",
+        visible: true
+      };
+    case 5:
+      return {
+        href: "/promotion/activities/:activityId/reward?mode=view",
+        kind: "primary",
+        text: "查看奖励",
+        visible: true
+      };
+    default:
+      return {
+        kind: "neutral",
+        text: "",
+        visible: false
+      };
   }
-  if (status === "claiming") {
-    return "领奖中";
-  }
-  if (status === "active") {
-    return "去带货";
-  }
-  return "活动已结束";
 }
 
 function splitActivityTitle(title: string | undefined, incentiveType: number) {
-  const fallbackHighlight = incentiveType === 1 ? "销量" : incentiveType === 2 ? "GMV" : "PK";
-  const value = title?.trim();
+  const fallbackHighlight = incentiveType === 1 ? "销量" : incentiveType === 2 ? "销售额" : "PK";
+  const value = optionalText(title);
   if (!value) {
     return {
       prefix: "",
@@ -767,36 +934,89 @@ function splitActivityTitle(title: string | undefined, incentiveType: number) {
 }
 
 function buildBadgeText(detail: DistributionIncentiveAppDetailVO, incentiveType: number) {
-  if (detail.ruleSummary?.trim()) {
-    return detail.ruleSummary.trim();
+  const ruleSummary = optionalText(detail.ruleSummary);
+  if (ruleSummary) {
+    return ruleSummary;
   }
   if (incentiveType === 1) {
     return "销量达标可获激励";
   }
   if (incentiveType === 2) {
-    return "GMV达标可获激励";
+    return "销售额达标可获激励";
   }
   return "排名达标可获激励";
 }
 
-function buildProgressHint(
-  detail: DistributionIncentiveAppDetailVO,
-  incentiveType: number,
-  alreadyRewardIds: Set<string>
-) {
+function buildProgressHint(detail: DistributionIncentiveAppDetailVO, incentiveType: number) {
   const rewards = sortRewards(detail.rewards);
-  const nextReward = rewards.find((reward) => !alreadyRewardIds.has(String(reward.id ?? "")));
+  if (incentiveType === 1 || incentiveType === 2) {
+    return buildThresholdProgressHint(detail, rewards, incentiveType);
+  }
+  return buildRankProgressHint(detail, rewards, incentiveType);
+}
+
+function buildThresholdProgressHint(
+  detail: DistributionIncentiveAppDetailVO,
+  rewards: DistributionIncentiveRewardVO[],
+  incentiveType: number
+) {
+  const progress = detail.progress;
+  const currentValue = normalizeNonNegativeNumber(incentiveType === 1 ? progress?.saleCount : progress?.gmv);
+  const alreadyRewardIds = collectAlreadyRewardIds(progress);
+  const achievedReward = findLastAchievedReward(rewards, alreadyRewardIds);
+  const nextReward = rewards.find((reward) => {
+    if (alreadyRewardIds.has(String(reward.id ?? ""))) {
+      return false;
+    }
+    const threshold = normalizeOptionalNonNegativeNumber(reward.thresholdVal);
+    return threshold === undefined || currentValue < threshold;
+  });
+
   if (!nextReward) {
-    return "您已完成当前活动目标，请关注奖励发放状态";
+    return buildAwardedHint(progress, achievedReward) || "您已完成当前活动目标，请关注奖励发放状态";
   }
 
-  if (incentiveType === 1) {
-    return `再完成至${formatAmount(nextReward.thresholdVal)}单可获得${rewardPrizeText(nextReward.prizes) || "奖励"}`;
+  const nextThreshold = normalizeOptionalNonNegativeNumber(nextReward.thresholdVal);
+  const remaining = nextThreshold === undefined ? undefined : Math.max(0, nextThreshold - currentValue);
+  const unit = incentiveType === 1 ? "单" : "销售额";
+  const nextPrize = rewardNextPrizeText(nextReward);
+  const achievedText = achievedReward ? `您已获得${rewardAchievedPrizeText(achievedReward)}，` : "";
+  const remainingText = remaining === undefined ? `完成${rewardMilestoneLabel(nextReward, incentiveType)}` : `再完成${formatAmount(remaining)}${unit}`;
+
+  return `${achievedText}${remainingText}可获得${nextPrize}`;
+}
+
+function buildRankProgressHint(
+  detail: DistributionIncentiveAppDetailVO,
+  rewards: DistributionIncentiveRewardVO[],
+  incentiveType: number
+) {
+  const progress = detail.progress;
+  const rank = normalizeOptionalNonNegativeInteger(currentRank(progress, incentiveType));
+  const alreadyRewardIds = collectAlreadyRewardIds(progress);
+  const achievedReward = findLastAchievedReward(rewards, alreadyRewardIds) ?? findReachedRankReward(rewards, rank);
+  const nextReward = rewards.find((reward) => {
+    if (alreadyRewardIds.has(String(reward.id ?? ""))) {
+      return false;
+    }
+    const targetRank = rewardRankTarget(reward);
+    return targetRank === undefined || rank === undefined || rank === 0 || rank > targetRank;
+  });
+
+  if (!nextReward) {
+    return buildAwardedHint(progress, achievedReward) || "您已进入目标排名，请关注结算结果";
   }
-  if (incentiveType === 2) {
-    return `再完成至${formatAmount(nextReward.thresholdVal)}元GMV可获得${rewardPrizeText(nextReward.prizes) || "奖励"}`;
+
+  const targetRank = rewardRankTarget(nextReward);
+  const targetText = progressRankLabel(nextReward);
+  const nextPrize = rewardNextPrizeText(nextReward);
+  const achievedText = achievedReward ? `您已进入${progressRankLabel(achievedReward)}，` : "";
+
+  if (rank === undefined || rank === 0 || targetRank === undefined) {
+    return `${achievedText}进入${targetText}可获得${nextPrize}`;
   }
-  return `进入${rewardMilestoneLabel(nextReward, incentiveType)}可获得${rewardPrizeText(nextReward.prizes) || "奖励"}`;
+
+  return `${achievedText}再提升${Math.max(0, rank - targetRank)}名可进入${targetText}，可获得${nextPrize}`;
 }
 
 function rewardMilestoneLabel(reward: DistributionIncentiveRewardVO, incentiveType: number) {
@@ -809,11 +1029,97 @@ function rewardMilestoneLabel(reward: DistributionIncentiveRewardVO, incentiveTy
   if (reward.rankFrom !== undefined && reward.rankTo !== undefined) {
     return reward.rankFrom === reward.rankTo ? `第${reward.rankFrom}名` : `第${reward.rankFrom}-${reward.rankTo}名`;
   }
-  return reward.description?.trim() || "排名达标";
+  return optionalText(reward.description) || "排名达标";
+}
+
+function buildProgressMilestoneLabels(rewards: DistributionIncentiveRewardVO[], incentiveType: number) {
+  if (rewards.length === 0) {
+    return defaultMilestoneLabels(incentiveType);
+  }
+  if (incentiveType === 1) {
+    return ["0单", ...rewards.map((reward) => rewardMilestoneLabel(reward, incentiveType))];
+  }
+  if (incentiveType === 2) {
+    return ["0元", ...rewards.map((reward) => rewardMilestoneLabel(reward, incentiveType))];
+  }
+  return rewards.map(progressRankLabel);
+}
+
+function buildRewardAmountLabels(rewards: DistributionIncentiveRewardVO[]) {
+  if (rewards.length === 0) {
+    return undefined;
+  }
+  return ["0元", ...rewards.map((reward) => rewardAmountLabel(reward))];
+}
+
+function rewardAmountLabel(reward: DistributionIncentiveRewardVO) {
+  const cashPrize = asArray(reward.prizes).find((prize) => prize.prizeType === 1 && prize.cashAmount !== undefined);
+  if (cashPrize?.cashAmount !== undefined) {
+    return `${formatAmount(cashPrize.cashAmount)}元`;
+  }
+  return rewardPrizeText(reward.prizes) || "奖励";
+}
+
+function rewardAchievedPrizeText(reward: DistributionIncentiveRewardVO) {
+  const cashPrize = asArray(reward.prizes).find((prize) => prize.prizeType === 1 && prize.cashAmount !== undefined);
+  if (cashPrize?.cashAmount !== undefined) {
+    return `${formatAmount(cashPrize.cashAmount)}元激励金`;
+  }
+  return rewardPrizeText(reward.prizes) || "奖励";
+}
+
+function rewardNextPrizeText(reward: DistributionIncentiveRewardVO) {
+  const cashPrize = asArray(reward.prizes).find((prize) => prize.prizeType === 1 && prize.cashAmount !== undefined);
+  if (cashPrize?.cashAmount !== undefined) {
+    return `${formatAmount(cashPrize.cashAmount)}元奖励`;
+  }
+  return rewardPrizeText(reward.prizes) || "奖励";
+}
+
+function collectAlreadyRewardIds(progress: DistributionIncentiveProgressVO | undefined) {
+  const ids = new Set<string>();
+  if (progress?.alreadyRewardId !== undefined) {
+    ids.add(String(progress.alreadyRewardId));
+  }
+  asArray(progress?.alreadyRewardIds).forEach((id) => ids.add(String(id)));
+  return ids;
+}
+
+function findLastAchievedReward(rewards: DistributionIncentiveRewardVO[], alreadyRewardIds: Set<string>) {
+  return [...rewards].reverse().find((reward) => alreadyRewardIds.has(String(reward.id ?? "")));
+}
+
+function findReachedRankReward(rewards: DistributionIncentiveRewardVO[], rank: number | undefined) {
+  if (rank === undefined || rank === 0) {
+    return undefined;
+  }
+  return [...rewards].reverse().find((reward) => {
+    const targetRank = rewardRankTarget(reward);
+    return targetRank !== undefined && rank <= targetRank;
+  });
+}
+
+function buildAwardedHint(progress: DistributionIncentiveProgressVO | undefined, reward: DistributionIncentiveRewardVO | undefined) {
+  if (progress?.isAwarded === 1 && reward) {
+    return `您已获得${rewardAchievedPrizeText(reward)}，请关注奖励发放状态`;
+  }
+  return undefined;
+}
+
+function rewardRankTarget(reward: DistributionIncentiveRewardVO) {
+  return normalizeOptionalNonNegativeInteger(reward.rankTo ?? reward.rankFrom);
+}
+
+function progressRankLabel(reward: DistributionIncentiveRewardVO) {
+  const targetRank = rewardRankTarget(reward);
+  if (targetRank !== undefined && targetRank > 0) {
+    return `TOP${targetRank}`;
+  }
+  return optionalText(reward.description) || "目标排名";
 }
 
 function rewardPrizeText(prizes: DistributionIncentivePrizeVO[] | undefined) {
-  return (prizes ?? [])
+  return asArray(prizes)
     .map((prize) => {
       const name = prize.prizeName?.trim() || prize.name?.trim() || prizeTypeText(prize.prizeType);
       const count = normalizeOptionalNonNegativeInteger(prize.prizeCount);
@@ -827,17 +1133,27 @@ function rewardPrizeText(prizes: DistributionIncentivePrizeVO[] | undefined) {
 }
 
 function sortRewards(rewards: DistributionIncentiveRewardVO[] | undefined) {
-  return [...(rewards ?? [])].sort((left, right) => normalizeSort(left.sort) - normalizeSort(right.sort));
+  return [...asArray(rewards)].sort((left, right) => normalizeSort(left.sort) - normalizeSort(right.sort));
 }
 
 function mapActivityStatus(displayState: number | undefined): ActivityStatus {
+  if (displayState === 0) {
+    return "paused";
+  }
   if (displayState === 4) {
     return "claiming";
   }
-  if (displayState === 5) {
+  if (displayState === 5 || displayState === 6) {
     return "ended";
   }
   return "active";
+}
+
+function cardStatusText(displayState: number | undefined) {
+  if (displayState === 1 || displayState === 2) {
+    return undefined;
+  }
+  return statusText(displayState);
 }
 
 function statusText(displayState: number | undefined) {
@@ -854,6 +1170,8 @@ function statusText(displayState: number | undefined) {
       return "领奖中";
     case 5:
       return "已结束";
+    case 6:
+      return "已结束";
     default:
       return "活动中";
   }
@@ -864,11 +1182,11 @@ function incentiveTypeText(incentiveType: number) {
     case 1:
       return "销量达标";
     case 2:
-      return "GMV达标";
+      return "销售额达标";
     case 3:
       return "销量排行";
     case 4:
-      return "GMV排行";
+      return "销售额排行";
     default:
       return "激励活动";
   }
@@ -916,11 +1234,31 @@ function formatDate(value: string) {
   return value.trim();
 }
 
+function asArray<T>(value: T[] | null | undefined) {
+  return Array.isArray(value) ? value : [];
+}
+
+function optionalText(value: unknown) {
+  return typeof value === "string" ? value.trim() : undefined;
+}
+
+function stripHtml(value: string | undefined) {
+  return value?.replace(/<[^>]*>/g, "").trim();
+}
+
 function appendOptionalParam(searchParams: URLSearchParams, key: string, value: string | number | null | undefined) {
   if (value === undefined || value === null || value === "") {
     return;
   }
   searchParams.set(key, String(value));
+}
+
+function appendArrayParam(searchParams: URLSearchParams, key: string, values: number[] | undefined) {
+  (values ?? []).forEach((value) => {
+    if (Number.isFinite(value)) {
+      searchParams.append(key, String(value));
+    }
+  });
 }
 
 function normalizeIdParam(value: string) {
@@ -950,6 +1288,10 @@ function normalizeOptionalNonNegativeInteger(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.floor(value) : undefined;
 }
 
+function normalizeOptionalNonNegativeNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
+}
+
 function normalizeNonNegativeNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 }
@@ -974,15 +1316,6 @@ function rankText(value: unknown) {
 
 function currentRank(progress: DistributionIncentiveProgressVO | undefined, incentiveType: number) {
   return incentiveType === 3 ? progress?.saleRank : progress?.gmvRank;
-}
-
-function lastRankThreshold(rewards: DistributionIncentiveRewardVO[]) {
-  return rewards.reduce<number | undefined>((threshold, reward) => {
-    if (reward.rankTo === undefined) {
-      return threshold;
-    }
-    return threshold === undefined ? reward.rankTo : Math.max(threshold, reward.rankTo);
-  }, undefined);
 }
 
 function buildRankProgress(rank: number | undefined, threshold: number | undefined) {
@@ -1023,5 +1356,15 @@ function hasMorePages({
 
 function normalizeImageUrl(value: string | undefined) {
   const imagePath = value?.trim();
-  return imagePath || undefined;
+  if (!imagePath) {
+    return undefined;
+  }
+  if (/^(https?:|data:|blob:)/i.test(imagePath)) {
+    return imagePath;
+  }
+  const assetBaseUrl = process.env.JAVA_OSS_ASSET_BASE_URL?.trim();
+  if (!assetBaseUrl) {
+    return imagePath;
+  }
+  return `${assetBaseUrl.replace(/\/+$/, "")}/${imagePath.replace(/^\/+/, "")}`;
 }

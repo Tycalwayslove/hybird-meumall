@@ -14,6 +14,7 @@ export async function GET(request: Request) {
       backendClient: context.backendClient,
       clientContext: context.clientContext,
       current: Number(searchParams.get("current") ?? 1),
+      displayStates: getNumericArrayParam(searchParams, "displayStates"),
       includeDebugRaw: shouldIncludeDebugRaw(request),
       orderBy: searchParams.get("orderBy") ?? "-createTime",
       size: Number(searchParams.get("size") ?? 10)
@@ -41,6 +42,14 @@ export async function GET(request: Request) {
       }
     );
   }
+}
+
+function getNumericArrayParam(searchParams: URLSearchParams, key: string) {
+  return searchParams
+    .getAll(key)
+    .flatMap((value) => value.split(","))
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value));
 }
 
 function shouldIncludeDebugRaw(request: Request) {

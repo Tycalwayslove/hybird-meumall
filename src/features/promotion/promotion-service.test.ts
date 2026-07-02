@@ -143,10 +143,17 @@ describe("promotion service", () => {
 
   it("renders activity center cards and reward record as links", () => {
     const html = withVersionBasePath(() =>
-      renderToStaticMarkup(createElement(PromotionActivitiesScreen, { data: getPromotionActivities() }))
+      renderToStaticMarkup(createElement(PromotionActivitiesScreen, {
+        ongoingData: withActivityPage(getPromotionActivities()),
+        pausedData: withActivityPage({
+          activeCount: 0,
+          items: [],
+          rewardRecordHref: "/promotion/activities/reward-records"
+        })
+      }))
     );
 
-    expect(html).toContain('href="/promotion/activities/reward-records"');
+    expect(html).toContain('href="/promotion/activities/history"');
     expect(html).toContain('href="/promotion/activities/open-order-july"');
     expect(html).toContain('href="/promotion/activities/pk-july"');
     expect(html).toContain('href="/promotion/activities/pk-june"');
@@ -172,7 +179,9 @@ describe("promotion service", () => {
     );
 
     expect(html).toContain("fixed left-1/2 top-0 z-40");
-    expect(html).toContain("7月PK有礼");
+    expect(html).toContain('href="/promotion/activities/pk-july/rules"');
+    expect(html).toContain("活动规则");
+    expect(html).not.toContain("7月PK有礼");
     expect(html).toContain(`src="${versionBasePath}/assets/promotion/activity-details/pk-hero-bg.png"`);
     expect(html).toContain("--activity-scale");
     expect(html).toContain("translateX(-50%) scale(var(--activity-scale))");
@@ -513,6 +522,22 @@ describe("promotion ranking real api service", () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 });
+
+function withActivityPage(data: ReturnType<typeof getPromotionActivities>) {
+  return {
+    ...data,
+    modules: {
+      activities: [],
+      activityPage: {}
+    },
+    page: {
+      current: 1,
+      hasMore: false,
+      size: 10,
+      total: data.items.length
+    }
+  };
+}
 
 function makeBackendSuccess<T>(data: T): BackendApiResult<T> {
   return {

@@ -88,13 +88,18 @@ describe("promotion api", () => {
     } as { request: PromotionHttpClient["request"] & ReturnType<typeof vi.fn> };
     const api = createPromotionApi(client);
 
-    await api.getActivities({ current: 2, orderBy: "-createTime", size: 6 });
+    await api.getActivities({ current: 2, displayStates: [1, 2, 3, 4], orderBy: "-createTime", size: 6 });
     await api.getActivityDetail(1001);
     await api.getActivityReward(1001);
+    await api.receiveActivityReward(9001, { addressId: 3001 });
 
-    expect(client.request).toHaveBeenNthCalledWith(1, "/api/bff/promotion/activities?current=2&orderBy=-createTime&size=6");
+    expect(client.request).toHaveBeenNthCalledWith(1, "/api/bff/promotion/activities?current=2&displayStates=1&displayStates=2&displayStates=3&displayStates=4&orderBy=-createTime&size=6");
     expect(client.request).toHaveBeenNthCalledWith(2, "/api/bff/promotion/activities/1001");
     expect(client.request).toHaveBeenNthCalledWith(3, "/api/bff/promotion/activities/1001/reward");
+    expect(client.request).toHaveBeenNthCalledWith(4, "/api/bff/promotion/activities/rewards/9001/receive", {
+      body: { addressId: 3001 },
+      method: "PATCH"
+    });
   });
 });
 

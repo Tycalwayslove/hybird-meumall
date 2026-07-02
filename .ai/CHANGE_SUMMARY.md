@@ -1,5 +1,21 @@
 # 变更摘要
 
+## 2026-07-02 - 推广激励奖励领取/查看页
+
+### 变更
+
+- 新增 `/promotion/activities/[id]/reward?mode=receive|view`，承接活动详情“去领奖”和“查看奖励”按钮。
+- 奖励页接入奖励详情 BFF `/api/bff/promotion/activities/[id]/reward`，展示活动完成文案、全部奖励列表和奖励详情底部弹层。
+- 奖励列表按 `deliverState` 展示“领取”或“查看”；领取按钮调用 `PATCH /api/bff/promotion/activities/rewards/[recordId]/receive`。
+- `createPromotionApi` 增加 `receiveActivityReward`，继续复用统一 Promotion API。
+- 新增本地礼盒图标资源 `promotion.rewardGiftIcon`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts`：通过，3 files / 36 tests。
+- `pnpm typecheck`：通过。
+- 飞书同步：页面清单 revision 66；H5 BFF/API 对接说明已追加奖励领取/查看页说明。
+
 ## 2026-07-01 - 钱包账户管理与认证信息页
 
 ### 变更
@@ -301,6 +317,21 @@
 ### 风险
 
 - 实物奖励领取需要地址选择，当前只完成 BFF `addressId` 转发能力；完整前端地址选择交互后置。
+
+## 2026-07-02 - 活动中心历史活动与分页状态联调
+
+### 变更
+
+- `/promotion/activities` 按新接口口径拆成进行中和已暂停两次查询，分别传 `displayStates=[1,2,3,4]` 与 `[0]`。
+- 新增 `/promotion/activities/history`，传 `displayStates=[6]` 展示历史活动，且历史页不展示底部历史入口。
+- 活动中心和历史活动补齐骨架屏、空态、加载更多；统一 Promotion API 支持 `displayStates`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts`：通过，3 files / 30 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/promotion/server/promotion-incentive-activities-real-service.ts src/features/promotion/components/PromotionActivitiesScreen.tsx src/app/promotion/activities/page.tsx src/app/promotion/activities/history/page.tsx src/app/api/bff/promotion/activities/route.ts src/features/promotion/api.ts src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts`：通过，0 errors。
+- `pnpm run ai:check-docs-sync --strict`：通过。
 
 ## 2026-06-29 - 收银台真实支付发起与通联链路
 
@@ -2646,3 +2677,34 @@
 ### 后续
 
 - 用 App 注入的真实 `mallToken` 和 `userInfo` Cookie 联调 Java 返回数据，重点确认推广订单 `userId=userInfo.phone` 和解绑银行卡 `signNum` 取值。
+
+## 2026-07-02 - 活动详情动态路由 dev runtime 修复
+
+### 变更
+
+- 将 H5 本地 dev 脚本显式切到 `next dev --webpack`，覆盖子项目 `dev/dev:local/dev:test/dev:prod`、根目录 `dev:h5` 和 `scripts/root/dev-all.sh`。
+- 修复默认 Turbopack dev 下访问 `/promotion/activities/[id]` 时，Next 16 动态 App Router 页模板在 ESM 环境调用 `require('path')` 导致的 `ReferenceError: require is not defined`。
+
+### 验证
+
+- `pnpm test:dev-script` 通过。
+- `pnpm typecheck` 通过。
+- 重启 H5 dev 后确认启动日志为 `Next.js 16.2.6 (webpack)`。
+- HTTP 冒烟：`/hybird/promotion/activities/101` 返回 200，展示活动详情错误态；`/hybird/api/bff/promotion/activities/101` 在无 token 下返回 401 可恢复错误。
+
+## 2026-07-02 - 活动详情暂停奖励接口聚合
+
+### 变更
+
+- `/promotion/activities/[id]` BFF 聚合时，活动详情接口 `/p/app/distribution/incentive/detail/{id}` 保持强依赖。
+- 暂时不再调用奖励详情接口 `/p/app/distribution/incentive/reward/detail/{id}`；后续领奖逻辑明确后再接回。
+- 未拿到奖励详情记录时，页面隐藏“我的奖励”区块，只展示活动进度和奖励规则。
+- 活动详情 `banner` 支持按 `JAVA_OSS_ASSET_BASE_URL` 拼接 Java 返回的相对路径，修复 `/banner/*.jpg` 无法展示的问题。
+- 活动详情顶部不再展示活动标题和 `ruleSummary` 规则摘要；详情按钮按 `displayState` 映射，`0/1/3` 隐藏，`2` 展示“去带货”，`4` 展示“去领奖”，`5` 展示“查看奖励”。
+- 活动详情导航栏右侧入口从“奖励记录”改为“活动规则”，点击进入 `/promotion/activities/[id]/rules`，规则页展示清洗后的 `ruleContent` 富文本。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts` 通过，3 files / 34 tests。
+- `pnpm typecheck` 通过。
+- `pnpm exec eslint 'src/app/promotion/activities/[slug]/rules/page.tsx' src/features/promotion/components/PromotionActivityDetailScreen.tsx src/features/promotion/components/PromotionActivityRulesScreen.tsx src/features/promotion/server/promotion-incentive-activities-real-service.ts src/features/promotion/rule-content.ts src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/promotion-service.test.ts` 通过，0 errors，1 warning；warning 为详情页既有 `<img>` 规则提示。

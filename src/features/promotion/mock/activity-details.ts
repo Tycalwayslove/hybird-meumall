@@ -24,6 +24,8 @@ export const promotionActivityDetails: Record<string, PromotionActivityDetailDat
     },
     heroBackgroundAssetKey: "promotion.activityDetailHero.order",
     rewardRecordHref: "/promotion/activities/reward-records",
+    ruleContentHtml: "活动期间累计有效订单达到目标即可获得对应奖励，奖励以平台结算结果为准。",
+    ruleHref: "/promotion/activities/open-order-july/rules",
     badgeText: "10单以上可获额外激励",
     statusText: "去带货",
     statusKind: "primary",
@@ -35,7 +37,7 @@ export const promotionActivityDetails: Record<string, PromotionActivityDetailDat
       value: "15"
     },
     progress: {
-      completedText: "当前活动已有1718完成",
+      completedText: "当前活动已有1718人完成",
       hintText: "您已获得5元激励金，再完成5单可获得10元奖励",
       percent: 55,
       amountLabels: ["0元", "5元", "10元"],
@@ -53,6 +55,8 @@ export const promotionActivityDetails: Record<string, PromotionActivityDetailDat
     },
     heroBackgroundAssetKey: "promotion.activityDetailHero.pk",
     rewardRecordHref: "/promotion/activities/reward-records",
+    ruleContentHtml: baseRules.description,
+    ruleHref: "/promotion/activities/pk-july/rules",
     badgeText: "销售额TOP10可获额外激励",
     statusText: "去领奖",
     statusKind: "primary",
@@ -65,8 +69,7 @@ export const promotionActivityDetails: Record<string, PromotionActivityDetailDat
       ]
     },
     progress: {
-      completedText: "当前活动已有1718完成",
-      hintText: "再完成50,000销售额可进入TOP10",
+      hintText: "再提升8名可进入TOP10，可获得10元奖励",
       percent: 55,
       milestoneLabels: ["TOP20", "TOP10", "TOP1"]
     },
@@ -82,6 +85,8 @@ export const promotionActivityDetails: Record<string, PromotionActivityDetailDat
     },
     heroBackgroundAssetKey: "promotion.activityDetailHero.pk",
     rewardRecordHref: "/promotion/activities/reward-records",
+    ruleContentHtml: baseRules.description,
+    ruleHref: "/promotion/activities/pk-june/rules",
     badgeText: "销售额TOP10可获额外激励",
     statusText: "活动已结束",
     statusKind: "neutral",
@@ -94,8 +99,7 @@ export const promotionActivityDetails: Record<string, PromotionActivityDetailDat
       ]
     },
     progress: {
-      completedText: "当前活动已有1718完成",
-      hintText: "再完成50,000销售额可进入TOP10",
+      hintText: "再提升8名可进入TOP10，可获得10元奖励",
       percent: 55,
       milestoneLabels: ["TOP20", "TOP10", "TOP1"]
     },

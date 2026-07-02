@@ -48,6 +48,7 @@ export const localAssetPaths = {
   "promotion.rewardRecordIcon.settled": "/assets/promotion/reward-records/settled-reward-icon.png",
   "promotion.rewardRecordIcon.pending": "/assets/promotion/reward-records/pending-reward-icon.png",
   "promotion.rewardRecordsBg": "/assets/shared/green-hero-bg.png",
+  "promotion.rewardGiftIcon": "/assets/promotion/rewards/gift-box.png",
   "promotion.rankingHeroBg": "/assets/shared/green-hero-bg.png",
   "promotion.rankingPodium.first": "/assets/promotion/ranking/ranking-podium-card-first.png",
   "promotion.rankingPodium.second": "/assets/promotion/ranking/ranking-podium-card-second.png",

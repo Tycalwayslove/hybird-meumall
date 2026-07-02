@@ -13,17 +13,32 @@ export default async function PromotionActivitiesPage() {
     headers: new Headers(requestHeaders)
   });
   const context = createBffRequestContext(request);
-  const result = await fetchPromotionIncentiveActivitiesData({
-    authRequired: true,
-    authToken: context.getAuthToken("java"),
-    backendClient: context.backendClient,
-    clientContext: context.clientContext,
-    orderBy: "-createTime"
-  });
+  const [ongoingResult, pausedResult] = await Promise.all([
+    fetchPromotionIncentiveActivitiesData({
+      authRequired: true,
+      authToken: context.getAuthToken("java"),
+      backendClient: context.backendClient,
+      clientContext: context.clientContext,
+      displayStates: [1, 2, 3, 4],
+      orderBy: "-createTime"
+    }),
+    fetchPromotionIncentiveActivitiesData({
+      authRequired: true,
+      authToken: context.getAuthToken("java"),
+      backendClient: context.backendClient,
+      clientContext: context.clientContext,
+      displayStates: [0],
+      orderBy: "-createTime"
+    })
+  ]);
 
-  if (!result.ok) {
-    return <PromotionErrorState description={result.error.message} title="活动中心加载失败" />;
+  if (!ongoingResult.ok) {
+    return <PromotionErrorState description={ongoingResult.error.message} title="活动中心加载失败" />;
   }
 
-  return <PromotionActivitiesScreen data={result.data} />;
+  if (!pausedResult.ok) {
+    return <PromotionErrorState description={pausedResult.error.message} title="活动中心加载失败" />;
+  }
+
+  return <PromotionActivitiesScreen ongoingData={ongoingResult.data} pausedData={pausedResult.data} />;
 }
