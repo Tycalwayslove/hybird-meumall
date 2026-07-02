@@ -934,7 +934,7 @@ function RankingProductCard({ product, rank }: { product: SearchProduct; rank: n
                 <span className={styles.currency}>￥</span>
                 {product.price}
               </span>
-              <span className={styles.originalPrice}>￥{product.originalPrice}</span>
+              <SearchPriceSubText product={product} variant="ranking" />
             </p>
             <p className={styles.sold}>{product.soldText}</p>
           </div>
@@ -961,11 +961,28 @@ function SearchResultProductCard({ product }: { product: SearchResultProduct }) 
         <p className={styles.resultPrice}>
           <span className={styles.currency}>￥</span>
           {product.price}
-          <span>￥{product.originalPrice}</span>
+          <SearchPriceSubText product={product} variant="result" />
         </p>
       </div>
     </Link>
   );
+}
+
+function SearchPriceSubText({ product, variant }: { product: SearchProduct; variant: "ranking" | "result" }) {
+  const priceSubText = product.priceSubText ?? {
+    kind: "original" as const,
+    text: `￥${product.originalPrice}`
+  };
+  const className =
+    priceSubText.kind === "discount"
+      ? variant === "ranking"
+        ? styles.discountText
+        : styles.resultDiscountText
+      : variant === "ranking"
+        ? styles.originalPrice
+        : styles.resultOriginalPrice;
+
+  return <span className={className}>{priceSubText.text}</span>;
 }
 
 function ProductBadge({ product }: { product: SearchProduct }) {

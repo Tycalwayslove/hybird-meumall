@@ -610,8 +610,12 @@
 }
 
 .priceGroup {
+  display: flex;
   min-width: 0;
-  white-space: nowrap;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 4px;
+  row-gap: 0;
 }
 
 .price {
@@ -630,8 +634,15 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  margin-left: 2px;
   text-decoration: line-through;
+}
+
+.discountText {
+  color: rgb(var(--mm-color-price-default));
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
 }
 
 .sold {
@@ -1157,6 +1168,10 @@
 }
 
 .resultPrice {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 3px;
   margin: 5px 0 0;
   color: rgb(var(--mm-color-price-default));
   font-size: 20px;
@@ -1164,12 +1179,19 @@
   line-height: 24px;
 }
 
-.resultPrice > span:last-child {
-  margin-left: 3px;
+.resultOriginalPrice {
   color: rgb(var(--mm-color-text-placeholder));
   font-size: 16px;
   font-weight: 600;
   text-decoration: line-through;
+}
+
+.resultDiscountText {
+  color: rgb(var(--mm-color-price-default));
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
 }
 
 .rankingPage {

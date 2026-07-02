@@ -46,6 +46,7 @@ describe("search products real api service", () => {
           imageUrl: "https://oss.example.com/product/milk.png",
           originalPrice: 29.9,
           price: 19.9,
+          priceSubText: { kind: "discount", text: "平台优惠5元" },
           soldText: "已售 2300",
           tag: "热卖",
           title: "有机鲜牛乳"
@@ -212,6 +213,7 @@ describe("search products real api service", () => {
 
 const sampleProducts: ProductCardVO[] = [
   {
+    discountAmount: 5,
     displayPrice: 19.9,
     isHot: true,
     oriPrice: 29.9,

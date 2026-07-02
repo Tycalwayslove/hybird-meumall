@@ -21,6 +21,10 @@ export type HomeProductCard = {
   href: string;
   badge: "热卖" | "推荐";
   price: string;
+  priceSubText?: {
+    kind: "discount" | "original";
+    text: string;
+  };
   originalPrice: string;
   soldText: string;
   promoType?: "seckill" | "talent";

@@ -303,6 +303,7 @@ describe("home BFF service", () => {
         imageUrl: "https://cdn.example.com/product.png",
         originalPrice: "29.9",
         price: "19.9",
+        priceSubText: { kind: "discount", text: "平台优惠3元" },
         promoType: "seckill",
         soldText: "已售 123",
         title: "达人推荐短袖"
@@ -379,6 +380,7 @@ describe("home BFF service", () => {
     if (result.ok) {
       expect(result.data.view.products[0]).toMatchObject({
         id: "2001",
+        priceSubText: { kind: "discount", text: "平台优惠3元" },
         title: "达人推荐短袖"
       });
       expect(result.data.page.hasMore).toBe(true);

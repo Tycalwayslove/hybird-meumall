@@ -100,6 +100,10 @@ export type SearchRankingBffData = {
       imageUrl?: string;
       originalPrice: number;
       price: number;
+      priceSubText?: {
+        kind: "discount" | "original";
+        text: string;
+      };
       soldText: string;
       title: string;
     }>;
@@ -140,6 +144,10 @@ export type SearchProductsBffData = {
       imageUrl?: string;
       originalPrice: number;
       price: number;
+      priceSubText?: {
+        kind: "discount" | "original";
+        text: string;
+      };
       soldText: string;
       tag: "热卖" | "推荐";
       title: string;
@@ -524,14 +532,17 @@ function mapRankingProduct(product: ProductCardVO, assetBaseUrl?: string): Searc
   const soldNum = normalizeNumber(product.soldNum, 0);
   const displayPrice = normalizeNumber(product.displayPrice, NaN);
   const price = Number.isFinite(displayPrice) ? displayPrice : normalizeNumber(product.price, 0);
+  const originalPrice = normalizeNumber(product.oriPrice, price);
+  const discountAmount = normalizeNumber(product.discountAmount, 0);
   return {
     ...(mapRankingBadge(product) ? { badge: mapRankingBadge(product) } : {}),
     feature: soldNum > 0 ? `近30天热卖 ${formatSoldCount(soldNum)}` : "近30天热卖",
     href: id ? `/product/${id}` : "/product",
     id,
     ...optionalImageUrl("imageUrl", resolveJavaImageUrl(product.pic, assetBaseUrl)),
-    originalPrice: normalizeNumber(product.oriPrice, price),
+    originalPrice,
     price,
+    priceSubText: buildPriceSubText(originalPrice, discountAmount),
     soldText: `已售: ${formatSoldCount(soldNum)}`,
     title: normalizeText(product.prodName)
   };
@@ -669,6 +680,24 @@ function normalizeRankType(value: unknown): 1 | 2 {
 function normalizeNumber(value: unknown, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function buildPriceSubText(originalPrice: number, discountAmount: number) {
+  if (Number.isFinite(discountAmount) && discountAmount > 0) {
+    return {
+      kind: "discount" as const,
+      text: `平台优惠${formatPrice(discountAmount)}元`
+    };
+  }
+
+  return {
+    kind: "original" as const,
+    text: `￥${formatPrice(originalPrice)}`
+  };
+}
+
+function formatPrice(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }
 
 function normalizeText(value: unknown) {

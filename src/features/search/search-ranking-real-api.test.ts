@@ -49,6 +49,7 @@ describe("search ranking real api service", () => {
           imageUrl: "https://oss.example.com/rank/prod-1000054.png",
           originalPrice: 399,
           price: 188,
+          priceSubText: { kind: "discount", text: "平台优惠12元" },
           soldText: "已售: 2300",
           title: "有机鲜牛乳"
         },
@@ -60,6 +61,7 @@ describe("search ranking real api service", () => {
           imageUrl: "https://cdn.example.com/prod-1000055.png",
           originalPrice: 299,
           price: 158,
+          priceSubText: { kind: "original", text: "￥299" },
           soldText: "已售: 98",
           title: "冷链牛排套装"
         }
@@ -222,6 +224,7 @@ const sampleTabs: ProdRankTabDto[] = [
 
 const sampleProducts: ProductCardVO[] = [
   {
+    discountAmount: 12,
     displayPrice: 188,
     isHot: true,
     oriPrice: 399,

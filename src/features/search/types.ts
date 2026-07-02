@@ -28,6 +28,10 @@ export type SearchProduct = {
   imageTone?: SearchProductImageTone;
   originalPrice: number;
   price: number;
+  priceSubText?: {
+    kind: "discount" | "original";
+    text: string;
+  };
   soldText: string;
   title: string;
 };

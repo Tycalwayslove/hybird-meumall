@@ -514,6 +514,14 @@
   text-decoration: line-through;
 }
 
+.discountText {
+  color: rgb(var(--mm-color-price-default));
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 17px;
+  white-space: nowrap;
+}
+
 .loadMore {
   display: flex;
   min-height: 52px;

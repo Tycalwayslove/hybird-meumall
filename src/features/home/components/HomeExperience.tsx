@@ -361,10 +361,23 @@ function ProductCard({
             <span className={styles.priceSymbol}>￥</span>
             {product.price}
           </span>
-          <span className={styles.originalPrice}>￥{product.originalPrice}</span>
+          <HomePriceSubText product={product} />
         </div>
       </div>
     </HybridLink>
+  );
+}
+
+function HomePriceSubText({ product }: { product: HomeProductCard }) {
+  const priceSubText = product.priceSubText ?? {
+    kind: "original" as const,
+    text: `￥${product.originalPrice}`
+  };
+
+  return (
+    <span className={priceSubText.kind === "discount" ? styles.discountText : styles.originalPrice}>
+      {priceSubText.text}
+    </span>
   );
 }
 

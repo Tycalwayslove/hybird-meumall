@@ -102,24 +102,25 @@ export type IPageAppRecommendProdVO = {
 };
 
 export type AppRecommendCouponVO = {
-  cashCondition?: number;
+  cashCondition?: number | string | null;
   couponId?: number;
   couponName?: string;
   couponType?: number;
   couponUserId?: number;
-  reduceAmount?: number;
+  reduceAmount?: number | string | null;
   [key: string]: unknown;
 };
 
 export type AppRecommendProdVO = {
   activityTag?: number;
   bestCoupon?: AppRecommendCouponVO | null;
-  commissionAmount?: number;
-  couponDiscountAmount?: number;
-  darenPrice?: number;
+  commissionAmount?: number | string | null;
+  couponDiscountAmount?: number | string | null;
+  darenPrice?: number | string | null;
+  discountAmount?: number | string | null;
   hasMultiSku?: boolean;
   pic?: string;
-  price?: number;
+  price?: number | string | null;
   prodId?: number;
   prodName?: string;
   prodTag?: string;
@@ -576,8 +577,9 @@ function mapProducts(products: AppRecommendProdVO[] | undefined, assetBaseUrl?: 
   return (products ?? [])
     .filter((product) => product.prodId !== undefined && product.prodName)
     .map((product) => {
-      const displayPrice = product.darenPrice ?? product.price ?? 0;
-      const originalPrice = product.price ?? displayPrice;
+      const displayPrice = normalizeNumber(product.darenPrice, normalizeNumber(product.price, 0));
+      const originalPrice = normalizeNumber(product.price, displayPrice);
+      const discountAmount = normalizeNumber(product.discountAmount ?? product.couponDiscountAmount ?? product.bestCoupon?.reduceAmount, 0);
 
       return {
         badge: product.prodTag === "热卖" ? "热卖" : "推荐",
@@ -586,6 +588,7 @@ function mapProducts(products: AppRecommendProdVO[] | undefined, assetBaseUrl?: 
         ...optionalImageUrl("imageUrl", resolveJavaImageUrl(product.pic, assetBaseUrl)),
         originalPrice: formatPrice(originalPrice),
         price: formatPrice(displayPrice),
+        priceSubText: buildPriceSubText(originalPrice, discountAmount),
         promoType: product.activityTag === 2 ? "seckill" : "talent",
         soldText: `已售 ${formatCount(product.soldNum ?? 0)}`,
         title: product.prodName ?? ""
@@ -626,6 +629,25 @@ function normalizeText(value: unknown, fallback: string) {
 
 function formatPrice(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function normalizeNumber(value: unknown, fallback: number) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function buildPriceSubText(originalPrice: number, discountAmount: number) {
+  if (Number.isFinite(discountAmount) && discountAmount > 0) {
+    return {
+      kind: "discount" as const,
+      text: `平台优惠${formatPrice(discountAmount)}元`
+    };
+  }
+
+  return {
+    kind: "original" as const,
+    text: `￥${formatPrice(originalPrice)}`
+  };
 }
 
 function formatCount(value: number) {
