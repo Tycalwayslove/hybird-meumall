@@ -1,5 +1,4 @@
 import { PromotionProductsScreen } from "@/features/promotion/components/PromotionProductsScreen";
-import type { PromotionProductsFilter } from "@/features/promotion/mock/products";
 
 type PromotionProductsPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -7,9 +6,9 @@ type PromotionProductsPageProps = {
 
 export default async function PromotionProductsPage({ searchParams }: PromotionProductsPageProps) {
   const params = await searchParams;
-  const filter = normalizeParam(params?.filter) as PromotionProductsFilter | undefined;
+  const incentiveId = normalizeParam(params?.incentiveId);
 
-  return <PromotionProductsScreen filter={filter ?? "none"} />;
+  return <PromotionProductsScreen incentiveId={incentiveId || undefined} />;
 }
 
 function normalizeParam(value: string | string[] | undefined) {

@@ -63,13 +63,14 @@ describe("promotion api", () => {
     const api = createPromotionApi(client);
 
     await api.getProducts({
-      categoryId2: 10,
+      categoryId: 10,
       current: 2,
-      prodName: "短袖",
-      sort: 4
+      incentiveId: 102,
+      keyword: "短袖",
+      orderBy: "-commission"
     });
 
-    expect(client.request).toHaveBeenCalledWith("/api/bff/promotion/products?categoryId2=10&current=2&prodName=%E7%9F%AD%E8%A2%96&size=10&sort=4");
+    expect(client.request).toHaveBeenCalledWith("/api/bff/promotion/products?categoryId=10&current=2&incentiveId=102&keyword=%E7%9F%AD%E8%A2%96&orderBy=-commission&size=10");
   });
 
   test("centralizes promotion incentive activity endpoints", async () => {

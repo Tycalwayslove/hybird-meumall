@@ -92,6 +92,18 @@ describe("navigation page shells", () => {
     expect(html).toContain("榜单内容");
   });
 
+  test("renders standard nav page with a right action", () => {
+    const html = renderToStaticMarkup(
+      <StandardNavPage title="限时秒杀" backHref="/seller/activities" rightNode={<button type="button">批量编辑</button>}>
+        <div>活动商品</div>
+      </StandardNavPage>
+    );
+
+    expect(html).toContain("限时秒杀");
+    expect(html).toContain("批量编辑");
+    expect(html).toContain("活动商品");
+  });
+
   test("renders transparent nav page with fixed header and unpadded full-screen content", () => {
     const html = renderToStaticMarkup(
       <TransparentNavPage backHref="/promotion/rank-center">

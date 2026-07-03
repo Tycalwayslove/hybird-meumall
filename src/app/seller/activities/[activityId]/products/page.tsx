@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EmptyState, StandardNavPage } from "@/design-system";
 import { SellerActivityProductSelectScreen } from "@/features/seller-activity/components/SellerActivityScreens";
 import { fetchSellerAvailableProductsData } from "@/features/seller-activity/server/seller-activity-service";
+import { DEFAULT_PROMOTION_PRODUCT_ORDER_BY } from "@/features/promotion/promotion-product-query";
 import { createBffRequestContext } from "@/server/http/bff-context";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function SellerActivityProductSelectPage({ params }: Seller
     backendClient: context.backendClient,
     clientContext: context.clientContext,
     javaOssAssetBaseUrl: process.env.JAVA_OSS_ASSET_BASE_URL,
+    orderBy: DEFAULT_PROMOTION_PRODUCT_ORDER_BY,
     size: 10
   });
 

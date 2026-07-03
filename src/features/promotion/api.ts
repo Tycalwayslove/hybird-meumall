@@ -28,12 +28,12 @@ export type PromotionRankingOptions = {
 };
 
 export type PromotionProductsParams = {
-  categoryId2?: number;
-  categoryId3?: number;
+  categoryId?: number | string;
   current?: number;
-  prodName?: string;
+  incentiveId?: number | string;
+  keyword?: string;
+  orderBy?: string;
   size?: number;
-  sort?: number;
 };
 
 export type PromotionActivityListParams = {
@@ -82,12 +82,12 @@ export function createPromotionApi(client: PromotionHttpClient) {
     getProducts(params: PromotionProductsParams = {}) {
       return client.request<PromotionProductsBffData>(
         withQuery("/api/bff/promotion/products", {
-          categoryId2: params.categoryId2,
-          categoryId3: params.categoryId3,
+          categoryId: params.categoryId,
           current: params.current ?? 1,
-          prodName: params.prodName,
-          size: params.size ?? 10,
-          sort: params.sort
+          incentiveId: params.incentiveId,
+          keyword: params.keyword,
+          orderBy: params.orderBy,
+          size: params.size ?? 10
         })
       );
     }

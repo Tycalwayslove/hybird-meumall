@@ -52,7 +52,6 @@
 }
 
 .activityTitleRow,
-.configHeader,
 .batchBar,
 .selectHeader,
 .formBottomBar {
@@ -93,17 +92,6 @@
 
 .activityCount strong {
   color: rgb(var(--mm-color-brand-active));
-}
-
-.configHeader {
-  padding: 10px 12px 4px;
-}
-
-.configHeader h1 {
-  margin: 0;
-  color: rgb(var(--mm-color-text-primary));
-  font-size: 17px;
-  font-weight: 900;
 }
 
 .textButton {
@@ -274,6 +262,14 @@
   min-height: 420px;
 }
 
+.stateBlock {
+  display: flex;
+  min-height: 460px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+}
+
 .skeletonCard {
   min-height: 136px;
   border-radius: 8px;
@@ -290,6 +286,20 @@
   color: rgb(var(--mm-color-text-secondary));
   font-size: 13px;
   font-weight: 700;
+}
+
+.loadMoreDone {
+  margin: 2px 0 0;
+  color: rgb(var(--mm-color-text-disabled));
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 32px;
+  text-align: center;
+}
+
+.queryControls {
+  position: sticky;
+  top: 0;
 }
 
 .bottomAdd {
@@ -454,42 +464,48 @@ a.primaryButton {
 
 .searchBox {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 62px;
+  grid-template-columns: minmax(0, 1fr) 56px;
   gap: 8px;
-  padding: 10px 12px;
+  min-height: 48px;
+  align-items: center;
+  padding: 4px 14px;
   background: rgb(var(--mm-color-fill-white));
 }
 
 .searchBox input {
   min-width: 0;
-  height: 38px;
-  border: 1px solid rgb(var(--mm-color-brand-normal));
+  height: 40px;
+  border: 0;
   border-radius: 999px;
   outline: 0;
-  padding: 0 14px;
+  padding: 0 16px;
+  background: rgb(var(--mm-color-fill-page));
   color: rgb(var(--mm-color-text-primary));
   font-size: 14px;
 }
 
 .searchBox button {
-  height: 38px;
+  height: 34px;
   border: 0;
   border-radius: 999px;
   background: rgb(var(--mm-color-brand-hover));
   color: rgb(var(--mm-color-text-primary));
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
 }
 
 .filterRow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-height: 44px;
+  align-items: center;
   background: rgb(var(--mm-color-fill-white));
   border-top: 1px solid rgb(var(--mm-color-line-light));
+  padding: 0 12px;
 }
 
 .filterRow button {
-  height: 40px;
+  height: 44px;
   border: 0;
   background: transparent;
   color: rgb(var(--mm-color-text-secondary));
@@ -504,8 +520,8 @@ a.primaryButton {
 .selectButton {
   align-self: end;
   justify-self: end;
-  min-width: 76px;
-  height: 32px;
+  min-width: 88px;
+  height: 34px;
   border-radius: 999px;
   background: rgb(var(--mm-color-brand-hover));
   color: rgb(var(--mm-color-text-primary));
@@ -517,29 +533,88 @@ a.primaryButton {
   text-decoration: none;
 }
 
-.formContent {
-  padding: 12px;
-}
-
-.formCard,
-.hintPanel,
-.skuCard {
-  border-radius: 8px;
-  background: rgb(var(--mm-color-fill-white));
-  padding: 12px;
-}
-
-.formProduct {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
+.availableProductCard {
+  position: relative;
+  min-height: 144px;
+  grid-template-columns: 88px minmax(0, 1fr);
   gap: 10px;
+  padding: 6px 10px 8px 6px;
+}
+
+.availableProductCard .productImage,
+.availableProductCard .productImageReal {
+  width: 88px;
+  height: 88px;
+  border-radius: 8px;
+}
+
+.availableProductCard .cardInfo {
+  position: relative;
+  min-height: 130px;
+}
+
+.availableProductCard .cardTitle {
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.availableProductCard .metaText {
+  margin-top: 4px;
+}
+
+.availableProductCard .priceLine {
+  margin-top: 5px;
+  padding-right: 92px;
+}
+
+.availableProductCard .price {
+  font-size: 20px;
+  line-height: 26px;
+}
+
+.availableProductCard .commission {
+  position: absolute;
+  top: 62px;
+  right: 0;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  margin: 0;
+  color: rgb(var(--mm-color-text-secondary));
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.availableProductCard .commission strong {
+  color: rgb(var(--mm-color-price-default));
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.availableProductCard .selectButton {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.formContent {
+  padding: 10px 0 calc(env(safe-area-inset-bottom) + 96px);
+}
+
+.formProductCard {
+  display: grid;
+  min-height: 100px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 10px;
+  background: rgb(var(--mm-color-fill-white));
+  padding: 6px 12px;
 }
 
 .formImage,
 .formImageReal {
-  width: 76px;
-  height: 76px;
-  border-radius: 6px;
+  width: 88px;
+  height: 88px;
+  border-radius: 8px;
 }
 
 .formImageReal {
@@ -547,41 +622,126 @@ a.primaryButton {
   object-fit: cover;
 }
 
-.hintPanel {
-  margin-top: 10px;
-  background: #fff8e7;
-  color: #a15b12;
-  font-size: 12px;
+.formProductInfo {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.formProductInfo h2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.formProductInfo .commission {
+  display: inline-flex;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(var(--mm-color-brand-subtle));
+  color: rgb(var(--mm-color-text-primary));
+  margin-top: 4px;
+  padding: 1px 4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.formPriceRow {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.formPriceRow p {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 3px;
+  margin: 0;
+  color: rgb(var(--mm-color-price-default));
+  font-size: 14px;
   font-weight: 700;
+  line-height: 20px;
+}
+
+.formPriceRow strong {
+  color: rgb(var(--mm-color-price-default));
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 24px;
+}
+
+.formPriceRow .originalPrice {
+  color: rgb(var(--mm-color-text-disabled));
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.formPriceRow > span {
+  flex: 0 0 auto;
+  color: rgb(var(--mm-color-text-disabled));
+  font-size: 12px;
+  font-weight: 600;
   line-height: 18px;
 }
 
-.fieldList {
+.formTip {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+  align-items: center;
+  gap: 4px;
+  min-height: 17px;
+  margin: 16px 12px 10px;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 17px;
 }
 
-.fieldRow {
-  display: grid;
-  grid-template-columns: 94px minmax(0, 1fr);
+.formTipIcon {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
   align-items: center;
-  min-height: 44px;
-  border-radius: 8px;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgb(var(--mm-color-brand-hover));
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 14px;
+}
+
+.settingGroup {
+  overflow: hidden;
+  background: rgb(var(--mm-color-fill-white));
+}
+
+.settingRow {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  min-height: 52px;
   background: rgb(var(--mm-color-fill-white));
   padding: 0 12px;
 }
 
-.fieldRow label,
-.skuCard label {
+.settingRow + .settingRow {
+  border-top: 1px solid rgb(var(--mm-color-line-light));
+}
+
+.settingRow label {
   color: rgb(var(--mm-color-text-primary));
   font-size: 14px;
   font-weight: 800;
+  line-height: 21px;
 }
 
-.fieldRow input,
-.skuCard input {
+.settingRow input {
   width: 100%;
   min-width: 0;
   border: 0;
@@ -592,6 +752,49 @@ a.primaryButton {
   text-align: right;
 }
 
+.dateRangeControls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  color: rgb(var(--mm-color-text-disabled));
+  font-size: 12px;
+}
+
+.dateRangeControls input {
+  height: 32px;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 12px;
+}
+
+.amountInput {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  color: rgb(var(--mm-color-text-primary));
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.amountInput input {
+  width: 86px;
+  flex: 0 1 86px;
+  color: rgb(var(--mm-color-text-disabled));
+}
+
+.amountInput input::placeholder {
+  color: rgb(var(--mm-color-text-disabled));
+}
+
+.settingValue {
+  justify-self: end;
+  color: rgb(var(--mm-color-text-secondary));
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 21px;
+}
+
 .stepper {
   display: flex;
   justify-self: end;
@@ -600,40 +803,58 @@ a.primaryButton {
 }
 
 .stepper button {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: 0;
   border-radius: 50%;
   background: #f2f3f5;
   color: rgb(var(--mm-color-text-primary));
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 900;
 }
 
 .skuSection {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
-.skuCard h3 {
-  margin: 0 0 8px;
-  color: rgb(var(--mm-color-text-primary));
+.skuSettingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skuTitle {
+  margin: 0 12px;
+  color: rgb(var(--mm-color-text-secondary));
   font-size: 14px;
-  font-weight: 900;
-}
-
-.skuInputRow {
-  display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
+  font-weight: 700;
+  line-height: 21px;
 }
 
 .formBottomBar {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  min-height: calc(env(safe-area-inset-bottom) + 78px);
+  background: rgb(var(--mm-color-fill-page));
+  box-shadow: none;
+  padding: 0 12px calc(env(safe-area-inset-bottom) + 34px);
+}
+
+.formBottomBar .secondaryButton,
+.formBottomBar .primaryButton {
+  width: 100%;
+  height: 44px;
+  border-radius: 999px;
+  font-size: 16px;
+}
+
+.formBottomBar .secondaryButton {
+  border: 1px solid rgb(var(--mm-color-line-strong));
+  background: rgb(var(--mm-color-fill-white));
 }
 
 @keyframes shimmer {

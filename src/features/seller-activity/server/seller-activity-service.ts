@@ -340,7 +340,6 @@ export async function fetchSellerAvailableProductsData({
   const pageParams = normalizePageParams({ current, size });
   const query = new URLSearchParams({
     current: String(pageParams.current),
-    incentiveId: String(activityId),
     size: String(pageParams.size)
   });
   appendOptionalParam(query, "keyword", keyword);

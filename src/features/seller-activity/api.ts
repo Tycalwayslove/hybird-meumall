@@ -22,7 +22,7 @@ export type SellerActivityProductsParams = {
 };
 
 export type SellerAvailableProductsParams = {
-  categoryId?: number;
+  categoryId?: number | string;
   current?: number;
   keyword?: string;
   orderBy?: string;

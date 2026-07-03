@@ -2,21 +2,21 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
 
-import { DropdownFilterBar, EmptyState, ProductImagePlaceholder, StandardNavPage, useDropdownFilterBarState } from "@/design-system";
-import type { DropdownFilterBarItem } from "@/design-system";
-import { createWindowProtocolBridge, type NativeEventMap, type ProtocolBridge } from "@/lib/bridge/protocol-bridge";
+import { EmptyState, ProductImagePlaceholder, StandardNavPage } from "@/design-system";
 import { localAssetUrl } from "@/lib/assets";
+import { createWindowProtocolBridge, type NativeEventMap, type ProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createH5Client } from "@/lib/http";
 import { HybridLink } from "@/lib/navigation";
 
 import { createPromotionApi, type PromotionApi } from "../api";
-import { promotionProductFilters, type PromotionProductItem, type PromotionProductsFilter } from "../mock/products";
+import type { PromotionProductItem } from "../mock/products";
+import { DEFAULT_PROMOTION_PRODUCT_ORDER_BY, type PromotionProductQueryValue } from "../promotion-product-query";
+import { PromotionProductQueryControls } from "./PromotionProductQueryControls";
 import styles from "./PromotionProductsScreen.module.css";
 
 type PromotionProductsScreenProps = {
-  filter?: PromotionProductsFilter;
+  incentiveId?: string;
   initialProducts?: PromotionProductItem[];
   promotionProductsApi?: Pick<PromotionApi, "getProducts">;
 };
@@ -35,26 +35,16 @@ type PromotionProductsPageState = {
 
 const PROMOTION_PRODUCTS_PAGE_SIZE = 10;
 
-export function PromotionProductsScreen({ filter = "none", initialProducts = [], promotionProductsApi }: PromotionProductsScreenProps) {
+export function PromotionProductsScreen({ incentiveId, initialProducts = [], promotionProductsApi }: PromotionProductsScreenProps) {
   const bridge = useMemo(() => createWindowProtocolBridge(), []);
   const defaultPromotionProductsApi = useMemo(() => createPromotionApi(createH5Client()), []);
   const api = promotionProductsApi ?? defaultPromotionProductsApi;
-  const filterState = useDropdownFilterBarState<PromotionProductsFilter>({
-    initialActiveKey: filter === "none" ? "sales" : filter,
-    initialExpandedKey: hasDropdownOptions(filter) ? filter : null,
-    initialSelectedOptions: {
-      category: promotionProductFilters.categories[1] ?? promotionProductFilters.categories[0] ?? "",
-      commission: "commission_amount_desc",
-      property: promotionProductFilters.properties[0] ?? "",
-      price: "price_asc"
-    },
-    isDropdownKey: hasDropdownOptions
+  const [queryValue, setQueryValue] = useState<PromotionProductQueryValue>({
+    keyword: "",
+    orderBy: DEFAULT_PROMOTION_PRODUCT_ORDER_BY
   });
-  const { activeKey: activeFilter, expandedKey: expandedFilter, selectedOptions } = filterState;
-  const [searchInput, setSearchInput] = useState("");
-  const [searchKeyword, setSearchKeyword] = useState("");
   const [pageState, setPageState] = useState<PromotionProductsPageState>(() =>
-    createInitialPromotionProductsPageState(getPromotionProducts(activeFilter, selectedOptions, initialProducts))
+    createInitialPromotionProductsPageState(initialProducts)
   );
   const loadingRef = useRef(false);
   const pageStateRef = useRef(pageState);
@@ -78,10 +68,12 @@ export function PromotionProductsScreen({ filter = "none", initialProducts = [],
       try {
         const currentPage = append ? pageStateRef.current.page.current + 1 : 1;
         const result = await api.getProducts({
+          categoryId: queryValue.categoryId,
           current: currentPage,
-          prodName: searchKeyword || undefined,
-          size: PROMOTION_PRODUCTS_PAGE_SIZE,
-          sort: mapPromotionProductsSort(activeFilter, selectedOptions)
+          incentiveId,
+          keyword: queryValue.keyword || undefined,
+          orderBy: queryValue.orderBy,
+          size: PROMOTION_PRODUCTS_PAGE_SIZE
         });
 
         if (!result.success) {
@@ -109,7 +101,7 @@ export function PromotionProductsScreen({ filter = "none", initialProducts = [],
         loadingRef.current = false;
       }
     },
-    [activeFilter, api, searchKeyword, selectedOptions]
+    [api, incentiveId, queryValue]
   );
 
   useEffect(() => {
@@ -118,10 +110,12 @@ export function PromotionProductsScreen({ filter = "none", initialProducts = [],
     async function loadInitialProducts() {
       try {
         const result = await api.getProducts({
+          categoryId: queryValue.categoryId,
           current: 1,
-          prodName: searchKeyword || undefined,
-          size: PROMOTION_PRODUCTS_PAGE_SIZE,
-          sort: mapPromotionProductsSort(activeFilter, selectedOptions)
+          incentiveId,
+          keyword: queryValue.keyword || undefined,
+          orderBy: queryValue.orderBy,
+          size: PROMOTION_PRODUCTS_PAGE_SIZE
         });
         if (disposed) {
           return;
@@ -147,12 +141,7 @@ export function PromotionProductsScreen({ filter = "none", initialProducts = [],
     return () => {
       disposed = true;
     };
-  }, [activeFilter, api, searchKeyword, selectedOptions]);
-
-  function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSearchKeyword(searchInput.trim());
-  }
+  }, [api, incentiveId, queryValue]);
 
   return (
     <StandardNavPage title="推广商品" backHref="/promotion" className={styles.screen} contentClassName={styles.content}>
@@ -162,20 +151,8 @@ export function PromotionProductsScreen({ filter = "none", initialProducts = [],
           您是平台的<span>“黄金达人”</span>，带货佣金每单将膨胀<span>50%</span>
         </span>
       </section>
-      <form className={styles.searchBox} role="search" onSubmit={handleSearchSubmit}>
-        <span aria-hidden="true" className={styles.searchIcon} style={{ backgroundImage: `url(${localAssetUrl("common.icon.search")})` }} />
-        <input name="keyword" placeholder="请输入商品名称搜索" type="search" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} />
-        <button type="submit">搜索</button>
-      </form>
-      <DropdownFilterBar
-        className={styles.filterBar}
-        expandedKey={expandedFilter}
-        items={createFilterItems(activeFilter, selectedOptions)}
-        onItemSelect={filterState.onItemSelect}
-        onOptionSelect={filterState.onOptionSelect}
-        onRequestClose={filterState.closeDropdown}
-      />
-      <main key={`${activeFilter}-${Object.values(selectedOptions).join("-")}`} className={styles.list} aria-label="推广商品列表">
+      <PromotionProductQueryControls className={styles.queryControls} value={queryValue} onChange={setQueryValue} />
+      <main key={`${queryValue.keyword}-${queryValue.categoryId ?? ""}-${queryValue.orderBy}`} className={styles.list} aria-label="推广商品列表">
         {pageState.products.length === 0 && pageState.status !== "loading" ? <EmptyState className={styles.emptyState} text="暂无推广商品" /> : null}
         {pageState.products.map((product) => (
           <PromotionProductCard key={product.id} bridge={bridge} product={product} />
@@ -184,74 +161,6 @@ export function PromotionProductsScreen({ filter = "none", initialProducts = [],
       </main>
     </StandardNavPage>
   );
-}
-
-function hasDropdownOptions(filter: PromotionProductsFilter) {
-  return filter === "category" || filter === "commission" || filter === "property" || filter === "price";
-}
-
-function createFilterItems(filter: PromotionProductsFilter, selectedOptions: Record<string, string>): DropdownFilterBarItem[] {
-  const commissionOptions = ["commission_amount_desc", "commission_amount_asc", "commission_rate_desc", "commission_rate_asc"];
-
-  return [
-    {
-      key: "category",
-      label: "商品分类",
-      href: "/promotion/products?filter=category",
-      active: filter === "category",
-      selectedOptionKey: selectedOptions.category,
-      options: promotionProductFilters.categories.map((label, index) => ({
-        key: label,
-        label,
-        href: `/promotion/products?category=${encodeURIComponent(label)}`,
-        selected: selectedOptions.category ? selectedOptions.category === label : index === 1
-      }))
-    },
-    {
-      key: "commission",
-      label: "佣金属性",
-      href: "/promotion/products?filter=commission",
-      active: filter === "commission",
-      selectedOptionKey: selectedOptions.commission,
-      options: promotionProductFilters.commissions.map((label, index) => ({
-        key: commissionOptions[index] ?? label,
-        label,
-        href: `/promotion/products?commissionSort=${index}`,
-        selected: selectedOptions.commission === (commissionOptions[index] ?? label)
-      }))
-    },
-    {
-      key: "property",
-      label: "商品属性",
-      href: "/promotion/products?filter=property",
-      active: filter === "property",
-      selectedOptionKey: selectedOptions.property,
-      options: promotionProductFilters.properties.map((label, index) => ({
-        key: label,
-        label,
-        href: `/promotion/products?property=${index}`,
-        selected: selectedOptions.property ? selectedOptions.property === label : index === 0
-      }))
-    },
-    {
-      key: "sales",
-      label: "销量",
-      href: "/promotion/products?filter=sales",
-      active: filter === "sales",
-      showCaret: false
-    },
-    {
-      key: "price",
-      label: "价格",
-      href: "/promotion/products?filter=price",
-      active: filter === "price",
-      selectedOptionKey: selectedOptions.price,
-      options: [
-        { key: "price_asc", label: "价格从低到高", href: "/promotion/products?priceSort=asc", selected: selectedOptions.price === "price_asc" },
-        { key: "price_desc", label: "价格从高到低", href: "/promotion/products?priceSort=desc", selected: selectedOptions.price === "price_desc" }
-      ]
-    }
-  ];
 }
 
 function createInitialPromotionProductsPageState(products: PromotionProductItem[]): PromotionProductsPageState {
@@ -264,59 +173,6 @@ function createInitialPromotionProductsPageState(products: PromotionProductItem[
     products,
     status: "idle"
   };
-}
-
-function getPromotionProducts(filter: PromotionProductsFilter, selectedOptions: Record<string, string>, sourceProducts: PromotionProductItem[]) {
-  const products = sourceProducts.map((product, index) => {
-    const categoryText = selectedOptions.category && filter === "category" ? `${selectedOptions.category} · ` : "";
-    const propertyBoost = filter === "property" && selectedOptions.property !== "全部商品" ? `【${selectedOptions.property}】` : "";
-
-    return {
-      ...product,
-      id: `${product.id}-${filter}-${selectedOptions.category}-${selectedOptions.commission}-${selectedOptions.property}-${selectedOptions.price}`,
-      title: `${categoryText}${propertyBoost}${product.title}`,
-      sales: product.sales + (filter === "sales" ? (sourceProducts.length - index) * 18 : 0),
-      estimatedCommission: product.estimatedCommission + (filter === "commission" ? index * 4 : 0),
-      userPrice: product.userPrice + (filter === "price" ? index * 12 : 0)
-    };
-  });
-
-  if (filter === "price") {
-    return [...products].sort((a, b) => selectedOptions.price === "price_desc" ? b.userPrice - a.userPrice : a.userPrice - b.userPrice);
-  }
-
-  if (filter === "commission") {
-    return [...products].sort((a, b) =>
-      selectedOptions.commission.includes("asc")
-        ? a.estimatedCommission - b.estimatedCommission
-        : b.estimatedCommission - a.estimatedCommission
-    );
-  }
-
-  if (filter === "sales") {
-    return [...products].sort((a, b) => b.sales - a.sales);
-  }
-
-  return products;
-}
-
-export function mapPromotionProductsSort(filter: PromotionProductsFilter, selectedOptions: Record<string, string>) {
-  if (filter === "price") {
-    return selectedOptions.price === "price_desc" ? 2 : 3;
-  }
-  if (filter === "commission") {
-    if (selectedOptions.commission === "commission_amount_asc") {
-      return 5;
-    }
-    if (selectedOptions.commission === "commission_rate_desc") {
-      return 6;
-    }
-    if (selectedOptions.commission === "commission_rate_asc") {
-      return 7;
-    }
-    return 4;
-  }
-  return 1;
 }
 
 type PromotionShareBridge = Pick<ProtocolBridge, "emit" | "isAvailable">;

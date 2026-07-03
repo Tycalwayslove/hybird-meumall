@@ -2,9 +2,10 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { FormEvent } from "react";
 
 import { EmptyState, ProductImagePlaceholder, StandardNavPage, cn } from "@/design-system";
+import { PromotionProductQueryControls } from "@/features/promotion/components/PromotionProductQueryControls";
+import { DEFAULT_PROMOTION_PRODUCT_ORDER_BY, type PromotionProductQueryValue } from "@/features/promotion/promotion-product-query";
 import { createH5Client } from "@/lib/http";
 import { buildClientHref, HybridLink } from "@/lib/navigation";
 
@@ -60,11 +61,13 @@ type ProductListState = {
 
 export function SellerActivityProductsScreen({
   activityId,
+  activityTitle,
   initialPage,
   initialProducts,
   sellerActivityApi
 }: {
   activityId: string;
+  activityTitle?: string;
   initialPage: SellerActivityPage;
   initialProducts: SellerActivityProduct[];
   sellerActivityApi?: Pick<SellerActivityApi, "batchStatus" | "getActivityProducts">;
@@ -179,19 +182,26 @@ export function SellerActivityProductsScreen({
   const batchActionLabel = status === 1 ? "暂停" : "开始";
   const batchActionStatus = status === 1 ? 0 : 1;
   const allSelected = listState.products.length > 0 && listState.products.every((product) => product.id && selectedIds.has(product.id));
+  const title = activityTitle?.trim() || "活动配置";
+  const canBatchEdit = listState.status !== "skeleton" && listState.products.length > 0;
+  const batchEditButton = (
+    <button className={styles.textButton} type="button" onClick={() => {
+      setEditing((value) => !value);
+      setSelectedIds(new Set());
+    }}>
+      {editing ? "完成" : "批量编辑"}
+    </button>
+  );
 
   return (
-    <StandardNavPage title="活动配置" backHref="/seller/activities" className={styles.screen} contentClassName={styles.content}>
+    <StandardNavPage
+      title={title}
+      backHref="/seller/activities"
+      rightNode={canBatchEdit ? batchEditButton : null}
+      className={styles.screen}
+      contentClassName={styles.content}
+    >
       {toast ? <div className={styles.toast}>{toast}</div> : null}
-      <div className={styles.configHeader}>
-        <h1>活动商品</h1>
-        <button className={styles.textButton} type="button" onClick={() => {
-          setEditing((value) => !value);
-          setSelectedIds(new Set());
-        }}>
-          {editing ? "完成" : "批量编辑"}
-        </button>
-      </div>
       <div className={styles.tabs}>
         <button className={cn(styles.tabButton, status === 1 && styles.tabActive)} type="button" onClick={() => switchStatus(1)}>进行中</button>
         <button className={cn(styles.tabButton, status === 0 && styles.tabActive)} type="button" onClick={() => switchStatus(0)}>已暂停</button>
@@ -217,7 +227,7 @@ export function SellerActivityProductsScreen({
           </button>
         ) : null}
       </main>
-      {editing ? (
+      {editing && canBatchEdit ? (
         <div className={styles.batchBar}>
           <div className={styles.batchLeft}>
             <button className={cn(styles.checkButton, allSelected && styles.checkButtonActive)} type="button" onClick={toggleAll}>{allSelected ? "✓" : ""}</button>
@@ -330,24 +340,28 @@ export function SellerActivityProductSelectScreen({
 }) {
   const defaultApi = useMemo(() => createSellerActivityApi(createH5Client()), []);
   const api = sellerActivityApi ?? defaultApi;
-  const [keywordInput, setKeywordInput] = useState("");
-  const [keyword, setKeyword] = useState("");
-  const [orderBy, setOrderBy] = useState("sold_num_desc");
+  const [queryValue, setQueryValue] = useState<PromotionProductQueryValue>({
+    keyword: "",
+    orderBy: DEFAULT_PROMOTION_PRODUCT_ORDER_BY
+  });
   const [state, setState] = useState<AvailableState>({ page: initialPage, products: initialProducts, status: "idle" });
   const stateRef = useRef(state);
+  const didMountRef = useRef(false);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
   const loadProducts = useCallback(
-    async (options: { append?: boolean; keywordValue?: string; orderByValue?: string } = {}) => {
+    async (options: { append?: boolean; queryValue?: PromotionProductQueryValue } = {}) => {
+      const activeQuery = options.queryValue ?? queryValue;
       setState((current) => ({ ...current, status: options.append ? "loadingMore" : "skeleton" }));
       try {
         const result = await api.getAvailableProducts(activityId, {
+          categoryId: activeQuery.categoryId,
           current: options.append ? stateRef.current.page.current + 1 : 1,
-          keyword: options.keywordValue ?? keyword,
-          orderBy: options.orderByValue ?? orderBy,
+          keyword: activeQuery.keyword || undefined,
+          orderBy: activeQuery.orderBy,
           size: PAGE_SIZE
         });
         if (!result.success) {
@@ -363,43 +377,46 @@ export function SellerActivityProductSelectScreen({
         setState((current) => ({ ...current, status: "error" }));
       }
     },
-    [activityId, api, keyword, orderBy]
+    [activityId, api, queryValue]
   );
 
-  function submitSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const nextKeyword = keywordInput.trim();
-    setKeyword(nextKeyword);
-    void loadProducts({ keywordValue: nextKeyword });
-  }
+  useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    void loadProducts({ queryValue });
+  }, [loadProducts, queryValue]);
 
-  function changeOrderBy(nextOrderBy: string) {
-    setOrderBy(nextOrderBy);
-    void loadProducts({ orderByValue: nextOrderBy });
-  }
+  const hasProducts = state.products.length > 0;
+  const isSkeleton = state.status === "skeleton";
+  const isInitialError = state.status === "error" && !hasProducts;
+  const isEmpty = !isSkeleton && !isInitialError && !hasProducts;
+  const showLoadMore = !isSkeleton && hasProducts && state.page.hasMore;
+  const showNoMore = !isSkeleton && hasProducts && !state.page.hasMore && state.status !== "error";
+  const loadMoreText = state.status === "loadingMore" ? "加载中..." : state.status === "error" ? "加载失败，点击重试" : "加载更多";
 
   return (
     <StandardNavPage title="选择商品" backHref={`/seller/activities/${activityId}`} className={styles.screen} contentClassName={styles.content}>
-      <form className={styles.searchBox} onSubmit={submitSearch}>
-        <input placeholder="请输入商品名称搜索" value={keywordInput} onChange={(event) => setKeywordInput(event.target.value)} />
-        <button type="submit">搜索</button>
-      </form>
-      <div className={styles.filterRow}>
-        <button type="button">商品分类</button>
-        <button type="button">佣金属性</button>
-        <button className={orderBy === "sold_num_desc" ? styles.filterActive : undefined} type="button" onClick={() => changeOrderBy("sold_num_desc")}>销量</button>
-        <button className={orderBy === "price_asc" ? styles.filterActive : undefined} type="button" onClick={() => changeOrderBy(orderBy === "price_asc" ? "price_desc" : "price_asc")}>价格</button>
-      </div>
+      <PromotionProductQueryControls className={styles.queryControls} value={queryValue} onChange={setQueryValue} />
       <main className={styles.productList}>
-        {state.status === "skeleton" ? <SellerProductSkeleton /> : null}
-        {state.status !== "skeleton" && state.products.length === 0 ? <EmptyState className={styles.emptyState} text="暂无可选商品" /> : null}
-        {state.status !== "skeleton" ? state.products.map((product) => <AvailableProductCard activityId={activityId} key={product.prodId} product={product} />) : null}
-        {state.status === "error" ? <EmptyState text="可选商品加载失败" /> : null}
-        {state.page.hasMore && state.status !== "skeleton" ? (
+        {isSkeleton ? <SellerProductSkeleton /> : null}
+        {isEmpty ? <EmptyState className={styles.emptyState} text="暂无可选商品" /> : null}
+        {isInitialError ? (
+          <div className={styles.stateBlock}>
+            <EmptyState className={styles.emptyState} text="可选商品加载失败" />
+            <button className={styles.loadMore} type="button" onClick={() => loadProducts()}>
+              重新加载
+            </button>
+          </div>
+        ) : null}
+        {!isSkeleton ? state.products.map((product) => <AvailableProductCard activityId={activityId} key={product.prodId} product={product} />) : null}
+        {showLoadMore ? (
           <button className={styles.loadMore} disabled={state.status === "loadingMore"} type="button" onClick={() => loadProducts({ append: true })}>
-            {state.status === "loadingMore" ? "加载中..." : "加载更多"}
+            {loadMoreText}
           </button>
         ) : null}
+        {showNoMore ? <p className={styles.loadMoreDone}>没有更多了</p> : null}
       </main>
     </StandardNavPage>
   );
@@ -415,7 +432,7 @@ function AvailableProductCard({ activityId, product }: { activityId: string; pro
     query.set("image", product.imageUrl);
   }
   return (
-    <article className={styles.productCard}>
+    <article className={cn(styles.productCard, styles.availableProductCard)}>
       {product.imageUrl ? <img alt="" className={styles.productImageReal} src={product.imageUrl} /> : <ProductImagePlaceholder className={styles.productImage} />}
       <div className={styles.cardInfo}>
         <h2 className={styles.cardTitle}>{product.title}</h2>
@@ -424,7 +441,10 @@ function AvailableProductCard({ activityId, product }: { activityId: string; pro
           <strong className={styles.price}>¥{formatAmount(product.price)}</strong>
           {product.originalPrice > 0 ? <span className={styles.originalPrice}>¥{formatAmount(product.originalPrice)}</span> : null}
         </div>
-        <p className={styles.commission}>佣金: ¥{formatAmount(product.commissionAmount)}</p>
+        <p className={styles.commission}>
+          <span>佣金:</span>
+          <strong>¥{formatAmount(product.commissionAmount)}</strong>
+        </p>
         <a className={styles.selectButton} href={buildClientHref(`/seller/activities/${activityId}/products/${product.prodId}?${query.toString()}`)}>选择商品</a>
       </div>
     </article>
@@ -499,27 +519,35 @@ export function SellerActivityProductFormScreen({
     <StandardNavPage title="商品设置" backHref={`/seller/activities/${activityId}`} className={styles.screen} contentClassName={styles.content}>
       {toast ? <div className={styles.toast}>{toast}</div> : null}
       <main className={styles.formContent}>
-        <section className={styles.formCard}>
-          <div className={styles.formProduct}>
-            {product.imageUrl ? <img alt="" className={styles.formImageReal} src={product.imageUrl} /> : <ProductImagePlaceholder className={styles.formImage} />}
-            <div>
-              <h2>{product.title}</h2>
-              <p className={styles.metaText}>销量 {product.soldNum}+</p>
-              <p className={styles.commission}>{product.commissionText ?? ""}</p>
+        <section className={styles.formProductCard}>
+          {product.imageUrl ? <img alt="" className={styles.formImageReal} src={product.imageUrl} /> : <ProductImagePlaceholder className={styles.formImage} />}
+          <div className={styles.formProductInfo}>
+            <h2>{product.title}</h2>
+            <p className={styles.commission}>{product.commissionText ?? ""}</p>
+            <div className={styles.formPriceRow}>
+              <p>
+                <span>用户价</span>
+                <strong>¥{formatAmount(product.price)}</strong>
+                {product.originalPrice > 0 ? <span className={styles.originalPrice}>¥{formatAmount(product.originalPrice)}</span> : null}
+              </p>
+              <span>销量: {product.soldNum}+</span>
             </div>
           </div>
         </section>
-        <div className={styles.hintPanel}>活动价格和限购数量保存后将同步到当前卖手活动商品。</div>
-        <section className={styles.fieldList}>
-          <div className={styles.fieldRow}>
-            <label htmlFor="activity-start">开始时间</label>
-            <input id="activity-start" type="datetime-local" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+        <p className={styles.formTip}>
+          <span aria-hidden="true" className={styles.formTipIcon}>!</span>
+          <span>根据您设置的折扣价格，商品佣金会相应降低</span>
+        </p>
+        <section className={styles.settingGroup}>
+          <div className={styles.settingRow}>
+            <label>活动时间</label>
+            <div className={styles.dateRangeControls}>
+              <input aria-label="开始时间" type="datetime-local" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
+              <span aria-hidden="true">-</span>
+              <input aria-label="结束时间" type="datetime-local" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
+            </div>
           </div>
-          <div className={styles.fieldRow}>
-            <label htmlFor="activity-end">结束时间</label>
-            <input id="activity-end" type="datetime-local" value={endTime} onChange={(event) => setEndTime(event.target.value)} />
-          </div>
-          <div className={styles.fieldRow}>
+          <div className={styles.settingRow}>
             <label>每人限购</label>
             <div className={styles.stepper}>
               <button type="button" onClick={() => setLimitNum((value) => Math.max(1, value - 1))}>-</button>
@@ -530,26 +558,34 @@ export function SellerActivityProductFormScreen({
         </section>
         <section className={styles.skuSection}>
           {skus.map((sku, index) => (
-            <div className={styles.skuCard} key={sku.skuId}>
-              <h3>规格{index + 1}：{sku.skuName}</h3>
-              <div className={styles.skuInputRow}>
-                <label htmlFor={`sku-${sku.skuId}`}>活动价</label>
-                <input
-                  id={`sku-${sku.skuId}`}
-                  inputMode="decimal"
-                  placeholder="请输入活动价"
-                  value={skuPrices[sku.skuId] ?? ""}
-                  onChange={(event) => setSkuPrices((current) => ({ ...current, [sku.skuId]: event.target.value }))}
-                />
+            <div className={styles.skuSettingBlock} key={sku.skuId}>
+              <p className={styles.skuTitle}>规格{index + 1}：{sku.skuName}</p>
+              <div className={styles.settingGroup}>
+                <div className={styles.settingRow}>
+                  <label htmlFor={`sku-${sku.skuId}`}>秒杀价格</label>
+                  <div className={styles.amountInput}>
+                    <input
+                      id={`sku-${sku.skuId}`}
+                      inputMode="decimal"
+                      placeholder="请输入金额"
+                      value={skuPrices[sku.skuId] ?? ""}
+                      onChange={(event) => setSkuPrices((current) => ({ ...current, [sku.skuId]: event.target.value }))}
+                    />
+                    <span>元</span>
+                  </div>
+                </div>
+                <div className={styles.settingRow}>
+                  <label>商品佣金</label>
+                  <span className={styles.settingValue}>{sku.commission === undefined ? "--" : `${formatAmount(sku.commission)}元/件`}</span>
+                </div>
               </div>
-              <p className={styles.fieldHelp}>商品佣金 {sku.commission === undefined ? "--" : `${formatAmount(sku.commission)}元/件`}</p>
             </div>
           ))}
         </section>
       </main>
       <div className={styles.formBottomBar}>
         <a className={styles.secondaryButton} href={buildClientHref(`/seller/activities/${activityId}`)}>取消</a>
-        <button className={styles.primaryButton} disabled={saving} type="button" onClick={submit}>{saving ? "保存中..." : "确认"}</button>
+        <button className={styles.primaryButton} disabled={saving} type="button" onClick={submit}>{saving ? "保存中..." : "确认修改"}</button>
       </div>
     </StandardNavPage>
   );

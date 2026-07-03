@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { EmptyState, StandardNavPage } from "@/design-system";
 import { SellerActivityProductsScreen } from "@/features/seller-activity/components/SellerActivityScreens";
-import { fetchSellerActivityProductsData } from "@/features/seller-activity/server/seller-activity-service";
+import { fetchSellerActivitiesData, fetchSellerActivityProductsData } from "@/features/seller-activity/server/seller-activity-service";
 import { createBffRequestContext } from "@/server/http/bff-context";
 
 export const dynamic = "force-dynamic";
@@ -26,23 +26,44 @@ export default async function SellerActivityConfigPage({ params }: SellerActivit
     headers: new Headers(requestHeaders)
   });
   const context = createBffRequestContext(request);
-  const result = await fetchSellerActivityProductsData({
-    activityId: Number(activityId),
-    authToken: context.getAuthToken("java"),
-    backendClient: context.backendClient,
-    clientContext: context.clientContext,
-    javaOssAssetBaseUrl: process.env.JAVA_OSS_ASSET_BASE_URL,
-    size: 10,
-    status: 1
-  });
+  const authToken = context.getAuthToken("java");
+  const javaOssAssetBaseUrl = process.env.JAVA_OSS_ASSET_BASE_URL;
+  const [activitiesResult, result] = await Promise.all([
+    fetchSellerActivitiesData({
+      authToken,
+      backendClient: context.backendClient,
+      clientContext: context.clientContext,
+      javaOssAssetBaseUrl,
+      route: "/api/bff/seller-activities"
+    }),
+    fetchSellerActivityProductsData({
+      activityId: Number(activityId),
+      authToken,
+      backendClient: context.backendClient,
+      clientContext: context.clientContext,
+      javaOssAssetBaseUrl,
+      size: 10,
+      status: 1
+    })
+  ]);
+  const activityTitle = activitiesResult.ok
+    ? activitiesResult.data.view.activities.find((activity) => activity.id === activityId)?.title
+    : undefined;
 
   if (!result.ok) {
     return (
-      <StandardNavPage title="活动配置" backHref="/seller/activities">
+      <StandardNavPage title={activityTitle || "活动配置"} backHref="/seller/activities">
         <EmptyState text={result.error.message || "活动商品加载失败"} />
       </StandardNavPage>
     );
   }
 
-  return <SellerActivityProductsScreen activityId={activityId} initialPage={result.data.page} initialProducts={result.data.view.products} />;
+  return (
+    <SellerActivityProductsScreen
+      activityId={activityId}
+      activityTitle={activityTitle}
+      initialPage={result.data.page}
+      initialProducts={result.data.view.products}
+    />
+  );
 }

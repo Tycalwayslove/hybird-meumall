@@ -3,8 +3,9 @@ import { describe, expect, test, vi } from "vitest";
 import type { BackendApiResult, BackendRequestOptions } from "@/server/http/backend-client";
 
 import { PromotionProductsScreen } from "./components/PromotionProductsScreen";
-import { buildPromotionSharePayload, mapPromotionProductsSort, sharePromotionProduct } from "./components/PromotionProductsScreen";
+import { buildPromotionSharePayload, sharePromotionProduct } from "./components/PromotionProductsScreen";
 import { promotionProducts } from "./mock/products";
+import { buildPromotionProductOrderBy, getNextPromotionProductOrderBy, parsePromotionProductOrderBy } from "./promotion-product-query";
 import { fetchPromotionProductsData } from "./server/promotion-products-real-service";
 
 describe("PromotionProductsScreen", () => {
@@ -18,10 +19,15 @@ describe("PromotionProductsScreen", () => {
     expect(html).not.toContain("filter=price");
   });
 
-  test("renders the search icon through local asset registry", () => {
+  test("renders unified search and sort controls", () => {
     const html = renderToStaticMarkup(<PromotionProductsScreen />);
 
     expect(html).toContain("/assets/common/icons/search.png");
+    expect(html).toContain("商品分类");
+    expect(html).toContain("销量");
+    expect(html).toContain("价格");
+    expect(html).toContain("佣金");
+    expect(html).toContain("佣金比率");
   });
 
   test("renders an empty state instead of mock product cards before Java data is loaded", () => {
@@ -32,12 +38,6 @@ describe("PromotionProductsScreen", () => {
     expect(html).toContain("/assets/placeholders/empty-state-mascot.png");
     expect(html).toContain("暂无推广商品");
     expect(html).not.toContain("没有更多了");
-  });
-
-  test("shows the selected dropdown option as the active filter label", () => {
-    const html = renderToStaticMarkup(<PromotionProductsScreen filter="category" />);
-
-    expect(html).toMatch(/aria-current="true"[^>]*><span>生鲜熟食<\/span>/);
   });
 
   test("builds a bridge share payload from the promotion product card", () => {
@@ -97,21 +97,19 @@ describe("PromotionProductsScreen", () => {
     expect(html).toContain("真实推广商品");
   });
 
-  test("maps active filters to Java promotion product sort values", () => {
-    expect(mapPromotionProductsSort("sales", {})).toBe(1);
-    expect(mapPromotionProductsSort("price", { price: "price_desc" })).toBe(2);
-    expect(mapPromotionProductsSort("price", { price: "price_asc" })).toBe(3);
-    expect(mapPromotionProductsSort("commission", { commission: "commission_amount_desc" })).toBe(4);
-    expect(mapPromotionProductsSort("commission", { commission: "commission_amount_asc" })).toBe(5);
-    expect(mapPromotionProductsSort("commission", { commission: "commission_rate_desc" })).toBe(6);
-    expect(mapPromotionProductsSort("commission", { commission: "commission_rate_asc" })).toBe(7);
+  test("maps promotion product sorting to signed camelCase orderBy", () => {
+    expect(buildPromotionProductOrderBy("soldNum", "desc")).toBe("-soldNum");
+    expect(buildPromotionProductOrderBy("price", "asc")).toBe("+price");
+    expect(parsePromotionProductOrderBy("+commissionRatio")).toEqual({ direction: "asc", field: "commissionRatio" });
+    expect(getNextPromotionProductOrderBy("-soldNum", "soldNum")).toBe("+soldNum");
+    expect(getNextPromotionProductOrderBy("-soldNum", "commission")).toBe("-commission");
   });
 });
 
 describe("promotion products real api service", () => {
   test("requests Java promotion product page and maps records to the H5 view model", async () => {
     const request = vi.fn(async ({ path }: BackendRequestOptions) => {
-      if (path === "/p/distribution/prod/productPage?current=1&size=5&prodName=%E7%9F%AD%E8%A2%96&sort=4") {
+      if (path === "/p/distribution/prod/productPage?current=1&size=5&keyword=%E7%9F%AD%E8%A2%96&categoryId=10&orderBy=-commission&incentiveId=102") {
         return makeBackendSuccess({
           data: {
             current: 1,
@@ -137,11 +135,13 @@ describe("promotion products real api service", () => {
 
     const result = await fetchPromotionProductsData({
       backendClient: { request },
+      categoryId: 10,
       current: 1,
+      incentiveId: 102,
       javaOssAssetBaseUrl: "https://oss.example.com/",
-      prodName: "短袖",
-      size: 5,
-      sort: 4
+      keyword: "短袖",
+      orderBy: "-commission",
+      size: 5
     });
 
     expect(result.ok).toBe(true);
@@ -168,7 +168,7 @@ describe("promotion products real api service", () => {
       expect.objectContaining({
         backend: "java",
         method: "GET",
-        path: "/p/distribution/prod/productPage?current=1&size=5&prodName=%E7%9F%AD%E8%A2%96&sort=4",
+        path: "/p/distribution/prod/productPage?current=1&size=5&keyword=%E7%9F%AD%E8%A2%96&categoryId=10&orderBy=-commission&incentiveId=102",
         route: "/promotion/products"
       })
     );

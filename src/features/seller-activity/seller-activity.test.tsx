@@ -5,7 +5,7 @@ import type { H5BffResult } from "@/lib/http";
 import type { BackendApiResult, BackendRequestOptions } from "@/server/http/backend-client";
 
 import { createSellerActivityApi } from "./api";
-import { SellerActivitiesScreen, SellerActivityProductsScreen } from "./components/SellerActivityScreens";
+import { SellerActivitiesScreen, SellerActivityProductFormScreen, SellerActivityProductsScreen, SellerActivityProductSelectScreen } from "./components/SellerActivityScreens";
 import {
   batchUpdateSellerActivityStatus,
   fetchSellerActivitiesData,
@@ -30,13 +30,13 @@ describe("seller activity api adapter", () => {
 
     await api.getActivities();
     await api.getActivityProducts(88, { current: 2, size: 5, status: 0 });
-    await api.getAvailableProducts(88, { current: 3, keyword: "猫粮", orderBy: "price_asc" });
+    await api.getAvailableProducts(88, { categoryId: 10, current: 3, keyword: "猫粮", orderBy: "+price" });
     await api.getProductDetail(88, 5001);
     await api.batchStatus({ ids: [10, 11], status: 0 });
 
     expect(request).toHaveBeenNthCalledWith(1, "/api/bff/seller-activities");
     expect(request).toHaveBeenNthCalledWith(2, "/api/bff/seller-activities/88/products?current=2&size=5&status=0");
-    expect(request).toHaveBeenNthCalledWith(3, "/api/bff/seller-activities/88/available-products?current=3&keyword=%E7%8C%AB%E7%B2%AE&orderBy=price_asc&size=10");
+    expect(request).toHaveBeenNthCalledWith(3, "/api/bff/seller-activities/88/available-products?categoryId=10&current=3&keyword=%E7%8C%AB%E7%B2%AE&orderBy=%2Bprice&size=10");
     expect(request).toHaveBeenNthCalledWith(4, "/api/bff/seller-activities/88/products/5001");
     expect(request).toHaveBeenNthCalledWith(5, "/api/bff/seller-activities/batch-status", {
       body: { ids: [10, 11], status: 0 },
@@ -144,7 +144,7 @@ describe("seller activity service", () => {
 
   test("uses promotion product page as the source for adding activity products", async () => {
     const request = vi.fn(async ({ path }: BackendRequestOptions) => {
-      expect(path).toBe("/p/distribution/prod/productPage?current=2&incentiveId=88&size=10&keyword=%E7%8C%AB%E7%B2%AE&orderBy=sold_num_desc");
+      expect(path).toBe("/p/distribution/prod/productPage?current=2&size=10&keyword=%E7%8C%AB%E7%B2%AE&orderBy=-soldNum");
       return makeBackendSuccess({
         data: {
           current: 2,
@@ -174,7 +174,7 @@ describe("seller activity service", () => {
       current: 2,
       javaOssAssetBaseUrl: "https://oss.example.com",
       keyword: "猫粮",
-      orderBy: "sold_num_desc"
+      orderBy: "-soldNum"
     });
 
     expect(result.ok).toBe(true);
@@ -238,6 +238,7 @@ describe("seller activity screens", () => {
     const html = renderToStaticMarkup(
       <SellerActivityProductsScreen
         activityId="88"
+        activityTitle="限时秒杀"
         initialPage={{ current: 1, hasMore: false, size: 10, total: 1 }}
         initialProducts={[
           {
@@ -255,9 +256,106 @@ describe("seller activity screens", () => {
       />
     );
 
+    expect(html).toContain("限时秒杀");
+    expect(html).toContain("批量编辑");
     expect(html).toContain("真实活动商品");
     expect(html).toContain("/seller/activities/88/products");
+    expect(html).not.toContain("<h1>活动商品</h1>");
     expect(html).not.toContain("暂无商品，快去新增活动商品吧~");
+  });
+
+  test("hides batch edit action when the current activity tab has no products", () => {
+    const html = renderToStaticMarkup(
+      <SellerActivityProductsScreen
+        activityId="88"
+        activityTitle="限时秒杀"
+        initialPage={{ current: 1, hasMore: false, size: 10, total: 0 }}
+        initialProducts={[]}
+      />
+    );
+
+    expect(html).toContain("限时秒杀");
+    expect(html).toContain("暂无商品，快去新增活动商品吧~");
+    expect(html).toContain("/seller/activities/88/products");
+    expect(html).not.toContain("批量编辑");
+  });
+
+  test("renders available product cards with load more entry", () => {
+    const html = renderToStaticMarkup(
+      <SellerActivityProductSelectScreen
+        activityId="88"
+        initialPage={{ current: 1, hasMore: true, size: 10, total: 12 }}
+        initialProducts={[
+          {
+            commissionAmount: 12,
+            href: "/seller/activities/88/products/6001",
+            imageUrl: "https://oss.example.com/product/b.png",
+            originalPrice: 89,
+            price: 59,
+            prodId: "6001",
+            soldNum: 18,
+            title: "可选商品"
+          }
+        ]}
+      />
+    );
+
+    expect(html).toContain("选择商品");
+    expect(html).toContain("商品分类");
+    expect(html).toContain("佣金比率");
+    expect(html).toContain("可选商品");
+    expect(html).toContain("佣金:");
+    expect(html).toContain("¥12");
+    expect(html).toContain("加载更多");
+    expect(html).not.toContain("暂无可选商品");
+  });
+
+  test("renders empty available product state without load more", () => {
+    const html = renderToStaticMarkup(
+      <SellerActivityProductSelectScreen
+        activityId="88"
+        initialPage={{ current: 1, hasMore: true, size: 10, total: 0 }}
+        initialProducts={[]}
+      />
+    );
+
+    expect(html).toContain("暂无可选商品");
+    expect(html).toContain('data-empty-state="true"');
+    expect(html).not.toContain("加载更多");
+  });
+
+  test("renders product setting rows with seckill price and commission", () => {
+    const html = renderToStaticMarkup(
+      <SellerActivityProductFormScreen
+        activityId="88"
+        prodId="6001"
+        initialProduct={{
+          activityId: "88",
+          commissionText: "佣金: ¥12",
+          id: "901",
+          imageUrl: "https://oss.example.com/product/b.png",
+          limitNum: 1,
+          originalPrice: 89,
+          price: 59,
+          prodId: "6001",
+          skuList: [{ commission: 6, skuId: "7001", skuName: "默认规格" }],
+          soldNum: 18,
+          title: "可选商品"
+        }}
+      />
+    );
+
+    expect(html).toContain("商品设置");
+    expect(html).toContain("用户价");
+    expect(html).toContain("¥59");
+    expect(html).toContain("¥89");
+    expect(html).toContain("根据您设置的折扣价格，商品佣金会相应降低");
+    expect(html).toContain("活动时间");
+    expect(html).toContain("秒杀价格");
+    expect(html).toContain("商品佣金");
+    expect(html).toContain("6元/件");
+    expect(html).toContain("确认修改");
+    expect(html).not.toContain("活动价");
   });
 });
 

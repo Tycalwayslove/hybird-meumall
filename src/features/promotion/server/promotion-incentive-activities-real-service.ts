@@ -569,7 +569,9 @@ function mapRewardDetailItem(detail: DistributionIncentiveAppRewardRecordDetailV
     actionText: statusKind === "ready" ? "领取" : "查看",
     canReceive: statusKind === "ready",
     description: rewardDetailDescription(detail),
+    ...(detail.deliverType === undefined ? {} : { deliverType: detail.deliverType }),
     id: String(detail.id ?? detail.prizeName ?? ""),
+    ...(detail.prizeType === undefined ? {} : { prizeType: detail.prizeType }),
     statusKind,
     ...(statusKind === "ready" ? {} : { statusText: deliverStateText(detail.deliverState) }),
     title: rewardDetailTitle(detail)
@@ -618,7 +620,7 @@ function rewardDetailDescription(detail: DistributionIncentiveAppRewardRecordDet
     return "优惠券奖励将发放到您的账户";
   }
   if (detail.prizeType === 3) {
-    return detail.deliverType === 2 ? "实物奖励将按照填写地址发放" : "实物奖励请按平台通知领取";
+    return detail.deliverType === 2 ? "实物奖励将按照填写地址发放" : "将在公司现场发放";
   }
   return undefined;
 }
@@ -877,7 +879,7 @@ function buildDetailAction(displayState: number | undefined): {
   switch (displayState) {
     case 2:
       return {
-        href: "/promotion/products",
+        href: "/promotion/products?incentiveId=:activityId",
         kind: "primary",
         text: "去带货",
         visible: true

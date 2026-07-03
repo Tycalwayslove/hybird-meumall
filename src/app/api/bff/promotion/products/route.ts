@@ -11,14 +11,14 @@ export async function GET(request: Request) {
       authRequired: true,
       authToken: context.getAuthToken("java"),
       backendClient: context.backendClient,
-      categoryId2: optionalNumber(url.searchParams.get("categoryId2")),
-      categoryId3: optionalNumber(url.searchParams.get("categoryId3")),
+      categoryId: optionalNumber(url.searchParams.get("categoryId")),
       clientContext: context.clientContext,
       current: Number(url.searchParams.get("current") ?? 1),
       includeDebugRaw: shouldIncludeDebugRaw(request),
-      prodName: url.searchParams.get("prodName") ?? undefined,
-      size: Number(url.searchParams.get("size") ?? 10),
-      sort: optionalNumber(url.searchParams.get("sort"))
+      incentiveId: optionalNumber(url.searchParams.get("incentiveId")),
+      keyword: url.searchParams.get("keyword") ?? undefined,
+      orderBy: url.searchParams.get("orderBy") ?? undefined,
+      size: Number(url.searchParams.get("size") ?? 10)
     });
 
     return toBffResponse(result);

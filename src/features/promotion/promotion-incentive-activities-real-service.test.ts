@@ -293,7 +293,7 @@ describe("promotion incentive activities real service", () => {
     }))).toEqual([
       { actionHref: undefined, actionVisible: false, statusText: "" },
       { actionHref: undefined, actionVisible: false, statusText: "" },
-      { actionHref: "/promotion/products", actionVisible: true, statusText: "去带货" },
+      { actionHref: "/promotion/products?incentiveId=6002", actionVisible: true, statusText: "去带货" },
       { actionHref: undefined, actionVisible: false, statusText: "" },
       { actionHref: "/promotion/activities/6004/reward?mode=receive", actionVisible: true, statusText: "去领奖" },
       { actionHref: "/promotion/activities/6005/reward?mode=view", actionVisible: true, statusText: "查看奖励" }
@@ -303,7 +303,7 @@ describe("promotion incentive activities real service", () => {
     const carryingActionHtml = renderToStaticMarkup(createElement(PromotionActivityDetailScreen, { data: states[2]! }));
 
     expect(hiddenActionHtml).not.toContain("去带货");
-    expect(carryingActionHtml).toContain('href="/promotion/products"');
+    expect(carryingActionHtml).toContain('href="/promotion/products?incentiveId=6002"');
     expect(carryingActionHtml).toContain("去带货");
   });
 
@@ -331,6 +331,7 @@ describe("promotion incentive activities real service", () => {
             area: "龙岗区",
             city: "深圳市",
             deliverState: 0,
+            deliverType: 2,
             id: 9002,
             mobile: "13568976288",
             prizeCount: 10,
@@ -373,7 +374,9 @@ describe("promotion incentive activities real service", () => {
         addressId: 3001,
         addressText: "广东省深圳市龙岗区中兴路怡康花园2栋一单元903；周雅雯 13568976288",
         canReceive: true,
+        deliverType: 2,
         id: "9002",
+        prizeType: 3,
         statusKind: "ready",
         title: "喵呜定制T恤10件"
       }),

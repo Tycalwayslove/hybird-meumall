@@ -11,7 +11,7 @@ type BaseNavPageProps = {
 };
 
 export type StandardNavPageProps = BaseNavPageProps &
-  Pick<TopNavigationProps, "title" | "backHref">;
+  Pick<TopNavigationProps, "title" | "backHref" | "rightText" | "rightHref" | "rightNode">;
 
 export type TransparentNavPageProps = BaseNavPageProps &
   Pick<TopNavigationProps, "title" | "backHref" | "foreground">;
@@ -26,12 +26,20 @@ function StatusBarSpacer() {
   return <div aria-hidden="true" className="h-[var(--meu-status-bar-height)] shrink-0" />;
 }
 
-export function StandardNavPage({ title, backHref, children, className, contentClassName }: StandardNavPageProps) {
+export function StandardNavPage({ title, backHref, rightText, rightHref, rightNode, children, className, contentClassName }: StandardNavPageProps) {
   return (
     <AppScreen className={className} contentClassName="flex h-screen min-h-screen flex-col">
       <header className="shrink-0 bg-fill-white">
         <StatusBarSpacer />
-        <TopNavigation title={title} backHref={backHref} background="solid" foreground="dark" />
+        <TopNavigation
+          title={title}
+          backHref={backHref}
+          background="solid"
+          foreground="dark"
+          rightHref={rightHref}
+          rightNode={rightNode}
+          rightText={rightText}
+        />
       </header>
       <div className={cn("min-h-0 flex-1 overflow-y-auto", contentClassName)}>{children}</div>
     </AppScreen>

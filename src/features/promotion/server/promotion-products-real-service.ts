@@ -62,40 +62,40 @@ export type FetchPromotionProductsOptions = {
   authRequired?: boolean;
   authToken?: string | null;
   backendClient: PromotionProductsBackendClient;
-  categoryId2?: number;
-  categoryId3?: number;
+  categoryId?: number;
   clientContext?: ClientRequestContext;
   current?: number;
   includeDebugRaw?: boolean;
+  incentiveId?: number;
   javaOssAssetBaseUrl?: string;
-  prodName?: string;
+  keyword?: string;
+  orderBy?: string;
   size?: number;
-  sort?: number;
 };
 
 export async function fetchPromotionProductsData({
   authRequired = false,
   authToken,
   backendClient,
-  categoryId2,
-  categoryId3,
+  categoryId,
   clientContext,
   current = 1,
   includeDebugRaw = false,
+  incentiveId,
   javaOssAssetBaseUrl,
-  prodName,
-  size = 10,
-  sort
+  keyword,
+  orderBy,
+  size = 10
 }: FetchPromotionProductsOptions): Promise<BackendApiResult<PromotionProductsBffData>> {
   const page = normalizePageParams({ current, size });
   const query = new URLSearchParams({
     current: String(page.current),
     size: String(page.size)
   });
-  appendOptionalParam(query, "prodName", prodName);
-  appendOptionalParam(query, "sort", sort);
-  appendOptionalParam(query, "categoryId2", categoryId2);
-  appendOptionalParam(query, "categoryId3", categoryId3);
+  appendOptionalParam(query, "keyword", keyword);
+  appendOptionalParam(query, "categoryId", categoryId);
+  appendOptionalParam(query, "orderBy", orderBy);
+  appendOptionalParam(query, "incentiveId", incentiveId);
 
   const result = await backendClient.request<PromotionProductsServerResponse<DistributionProdProductPageDto>>({
     authRequired,
