@@ -125,11 +125,16 @@
 - 新增推广激励活动真实 BFF：`/api/bff/promotion/activities`、`/api/bff/promotion/activities/[id]`、`/api/bff/promotion/activities/[id]/reward` 和 `PATCH /api/bff/promotion/activities/rewards/[recordId]/receive`。
 - `/promotion/activities` 和 `/promotion/activities/[id]` 改为消费 Java APP 侧达人激励活动接口，失败或空数据不回退本地 mock。
 - 活动详情新增奖励状态展示，后续实物奖励地址选择交互可复用领取奖励 BFF。
-- 新增收银台真实支付发起链路：`/api/bff/order-pay` 调 Java `/p/order/pay`，`paymentStartCashier.sdkPayload` 透传 `/p/order/pay` 完整 `data`，通联支付宝返回支付 URL。
+- 新增收银台真实支付发起链路：`/api/bff/order-pay` 调 Java `/p/order/pay`，`sdkPayload` 透传 `/p/order/pay` 完整 `data`；支付宝走 `paymentStartAlipay`，微信走 `paymentStartWechat`，旧 `paymentStartCashier` 仅作 fallback。
 - `/api/bff/order-pay` 增加专属调试日志，BFF 服务端单独打印 H5 入参、Java `/p/order/pay` 实际请求体和 Java 原始返回；H5 收银台 console 同步打印提交参数、BFF 返回、本地/测试 `debugRaw` 中的 Java 入参和返回。
-- `/api/bff/order-pay` 在 `paySettlementType=1 + payType=8` 时新增通联微信小程序支付桥执行参数，返回 `provider=allinpay`、`paymentMode=allinpay-mini-program-bridge`、`miniProgram.appId/path/extraData`，由 App 打开喵呜小程序支付桥页。
-- 新增 `/api/bff/allinpay-order-status` 和 `/pay-result`，支付结果页支持按 `bizOrderNo` 回查通联支付状态，并支持重试付款或查看订单。
-- 新增 Native Bridge 支付 RPC：`rpc/paymentStartCashier` 用于 App 内支付宝/微信 SDK 支付和通联微信小程序支付桥，`rpc/payment.openUrl` 用于通联支付 URL 打开。
+- `/api/bff/order-pay` 在 `paySettlementType=1 + payType=8` 时新增通联微信执行参数，返回 `provider=allinpay`、`paymentMode=allinpay-mini-program-bridge`、完整 `sdkPayload`、解析后的 `chnlFrontParamInfo`，并保留 `miniProgram` 历史兼容字段。
+- 新增历史兼容 `/api/bff/allinpay-order-status` 和 `/pay-result`；后续支付结果主链路已改为按订单号回查。
+- 新增 Native Bridge 支付 RPC：`rpc/paymentStartAlipay` 和 `rpc/paymentStartWechat` 分别用于支付宝/微信专属支付入口，`rpc/paymentStartCashier` 保留为旧 App fallback，`rpc/payment.openUrl` 保留为历史 URL 打开能力。
+- 收银台 `execution` 新增 `bridgeAction`；普通支付宝/微信分别输出 `paymentStartAlipay/paymentStartWechat`，通联支付宝输出 `paymentMode=allinpay-url + paymentUrl + 完整 sdkPayload`，通联微信输出 `paymentStartWechat + chnlFrontParamInfo + 完整 sdkPayload`。
+- 新增 `/api/bff/order-is-paid` 对接 Java `/p/order/isPay/{payEntry}/{orderNumbers}`；支付结果页改为按订单号查询最终支付状态，`payEntry` 固定传 `0`。
+- 订单确认提交成功进入 `/pay-way`、收银台发起支付进入 `/pay-result` 均改为 `window.location.replace()`，App 返回/手势返回可跳过收银台和结果中间页回到商品详情链路。
+- 通联微信支付发起后 H5 不再等待 App 返回最终支付状态；`paymentStartWechat` 发出后立即进入支付结果页，结果页自动查询并提供“查看支付状态”和“查看订单”两个操作。
+- `/pay-result` 视觉升级为 App 内支付状态页，展示订单号、状态来源、更新时间，移除“重新支付”入口，避免在通联回跳未同步时误导用户。
 - `/api/bff/order-pay-info` 新增 `/sys/config/paySettlementType` 读取，收银台展示当前普通支付或通联支付通道。
 - 新增地址选择流统一 helper `src/features/mine-secondary/address-flow.ts`，用 `select/from/flowId/productId/skuId/quantity/addressId` 描述从商品详情或订单确认进入地址列表的上下文。
 - 地址列表选择态支持一次性 `sessionStorage` 结果 + `history.back()` 返回来源页，来源页消费后通过 `history.replaceState` 修正 URL 并重新请求商品详情或订单确认接口，兼容 App 导航栏返回和系统手势返回。
@@ -750,3 +755,19 @@
 - `pnpm typecheck` 通过。
 - HTTP 冒烟：`/hybird/wallet` 200，`/hybird/wallet/bank-cards` 200。
 - Playwright + 本机 Chrome 成功态截图验证：钱包、银行卡列表、解绑弹窗均可渲染，375 宽度无横向溢出。
+
+## 2026-07-03 - 注册后达人实名认证流程
+
+### 变更
+
+- 新增注册后认证入口 `/register/certification`、姓名输入页 `/register/certification/name` 和认证结果页 `/register/certification/result`。
+- 新增认证 BFF：`/api/bff/certification/apply-url` 对接 Java `/p/allinpay/member/getCreateMemberApplyUrl`；`/api/bff/certification/member-info` 对接 Java `/p/allinpay/member/getMemberBasicInfoV2`。
+- 认证结果成功条件为 `phone` 存在、`isRealNameAuth=1`、`isWithdraw=1`；成功页跳首页 Tab，失败页回姓名输入页重新认证。
+- 独立 H5 URL `token` 通过 `x-meumall-auth-token` 传给 BFF 作为 Java token 兜底；App 内仍优先使用 Cookie `mallToken`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/certification/server/certification-service.test.ts src/features/register/server/register-service.test.ts` 通过。
+- `pnpm typecheck` 通过。
+- `pnpm exec eslint src/features/certification src/app/register/certification src/app/api/bff/certification src/features/register/components/RegisterScreen.tsx src/lib/assets/local-assets.ts` 通过。
+- `pnpm build` 通过。

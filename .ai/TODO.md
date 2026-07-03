@@ -17,8 +17,8 @@ s
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
 - [ ] 用 App 注入的有效 `mallToken` 验证订单列表、退货退款列表、普通快递订单详情、退款详情和订单操作接口：`/p/myOrder/myOrder`、`/p/orderRefund/list`、`/p/myOrder/orderDetail`、`/p/myDelivery/orderInfo/{orderNumber}`、`/p/myOrder/cancel/{orderNumber}`、`/p/myOrder/receipt/{orderNumber}`、`/p/myOrder/{orderNumber}`、`/p/myOrder/submitMessage`。
 - [ ] 用 App 注入的有效 `mallToken` 验证我的收藏和我的足迹接口：`/p/user/collection/prods`、`/p/user/collection/addOrCancel`、`/p/prodBrowseLog/page`、`/p/prodBrowseLog`。
-- [ ] 用 App 注入的有效 `mallToken` 和真实待支付订单验证收银台 `/api/bff/order-pay-info`、`/api/bff/order-pay`、通联支付宝 `/p/allinpay/order/getAliAppPayUrl`、通联微信小程序支付桥 `paymentMode=allinpay-mini-program-bridge`、`/api/bff/allinpay-order-status` 与 `/pay-result` 全链路。
-- [ ] 与 iOS / Android 完成正式支付 Bridge 联调：`rpc/paymentStartCashier` 拉起普通支付宝/微信 SDK；`provider=allinpay + paymentMode=allinpay-mini-program-bridge` 时打开喵呜小程序支付桥页；`rpc/payment.openUrl` 打开通联支付宝支付 URL；并统一返回 `success/paid/cancelled/failed/unknown` 状态。
+- [ ] 用 App 注入的有效 `mallToken` 和真实待支付订单验证收银台 `/api/bff/order-pay-info`、`/api/bff/order-pay`、通联支付宝 `paymentStartAlipay + paymentUrl`、通联微信 `paymentStartWechat + chnlFrontParamInfo` 直开通联小程序收银台、`/api/bff/order-is-paid?payEntry=0&orderNumbers=<orderNumbers>` 与 `/pay-result` 全链路。
+- [ ] 与 iOS / Android 完成正式支付 Bridge 联调：`rpc/paymentStartAlipay` 拉起支付宝 SDK 或通联支付宝 URL，`rpc/paymentStartWechat` 拉起微信 SDK 或在 `provider=allinpay + paymentMode=allinpay-mini-program-bridge` 时按 `sdkPayload/chnlFrontParamInfo` 直开通联小程序收银台；旧 `rpc/paymentStartCashier` 仅作为 fallback；并统一返回 `success/paid/cancelled/failed/unknown` 状态。
 - [ ] 确认商品详情后续秒杀、拼团、自提、同城、收藏、优惠券领取和通联微信支付真机回调口径。
 - [ ] 为 App 正式地址数据源接入 `rpc/address.*`，并补齐 `address.chooseLocation` 真实定位/地图选点和真实 App WebView token 联调验证。
 - [ ] 用 App 注入的有效 `mallToken` 验证真实商品 `content` 富文本中的详情图、表格和链接展示效果。
@@ -45,6 +45,7 @@ s
 
 ## Done
 
+- [x] 接入注册成功后的达人实名认证流程：认证入口、真实姓名输入、通联开户 H5 链接、认证结果查询、成功跳首页 Tab 和失败重新认证。
 - [x] 接入 iconfont Font class 单色图标基础体系，提供 `IconFont` 组件、英文语义别名、生成类型清单和 `icons:sync` 更新脚本。
 - [x] 优化 `/pay-way` 收银台视觉层级，补齐金额面板、支付方式选中态、底部提交栏和加载/错误状态样式。
 - [x] 按 `docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md` 完成订单列表、退货退款列表、普通快递订单详情和退款详情真实接口迁移，新增相关 BFF、页面、mapper 和操作按钮。

@@ -1,5 +1,43 @@
 # 变更摘要
 
+## 2026-07-03 - 支付 Bridge 按支付宝/微信拆分
+
+### 变更
+
+- 收银台支付执行结果新增 `bridgeAction`，支付宝统一调用 `rpc/paymentStartAlipay`，微信统一调用 `rpc/paymentStartWechat`。
+- 旧 App 若返回 `unsupported`，H5 会用原 payload 自动 fallback 到旧 `rpc/paymentStartCashier`，保留一个版本周期兼容。
+- `/p/order/pay` 返回的完整 `data` 仍固定放入 `sdkPayload` 透传给原生，不在 H5 侧裁剪字段。
+- 测试环境 `paySettlementType=1` 时，通联支付宝改为 `paymentStartAlipay + paymentMode=allinpay-url + paymentUrl + sdkPayload`，由 App 按支付宝分支打开通联支付 URL。
+- 通联微信改为 `paymentStartWechat + paymentMode=allinpay-mini-program-bridge + sdkPayload/chnlFrontParamInfo`，由 App 按微信分支直开通联小程序收银台。
+- 更新 H5 API/Bridge 文档、根级 API/Native Bridge 契约、页面清单、支付任务和通联微信对接说明，并已同步飞书知识库。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 23 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/payment src/lib/bridge/protocol-bridge.ts src/lib/bridge/protocol-bridge.test.ts src/app/api/bff/order-pay/route.ts src/app/api/bff/order-is-paid/route.ts src/app/pay-way/page.tsx src/app/pay-result/page.tsx`：通过。
+- 飞书同步：原生对接说明 revision 132；H5 BFF/API 对接说明 revision 28；页面清单 revision 68。
+
+## 2026-07-02 - 支付结果页路由与订单号状态回查
+
+### 变更
+
+- 订单确认提交成功进入 `/pay-way`、收银台发起支付进入 `/pay-result` 均改为 `window.location.replace()`，避免返回栈停留在订单确认或收银台。
+- 新增 BFF `/api/bff/order-is-paid`，对接 Java `GET /p/order/isPay/{payEntry}/{orderNumbers}`；支付结果页固定 `payEntry=0` 按订单号查询是否已支付。
+- 通联微信分支发出支付 Bridge 后，H5 立即进入支付结果页，不等待 App 返回最终支付状态。
+- `/pay-result` 视觉升级为 App 内状态页，展示订单号、状态来源、更新时间，并固定提供“查看支付状态”和“查看订单”两个操作。
+- 更新 H5 API/Bridge 文档、根级 API/Native Bridge 契约、页面清单、支付任务和通联微信对接说明，口径调整为 App 按 `sdkPayload/chnlFrontParamInfo` 直开通联小程序收银台。
+
+### 验证
+
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx`：通过，1 file / 15 tests。
+- `pnpm exec eslint src/features/payment src/features/product/components/OrderConfirmScreen.tsx src/app/api/bff/order-is-paid/route.ts src/app/api/bff/allinpay-order-status/route.ts src/app/api/bff/order-pay-info/route.ts src/app/pay-result/page.tsx src/app/pay-way/page.tsx`：通过。
+- `pnpm exec vitest run src/features/payment/cashier-real-flow.test.tsx src/lib/bridge/protocol-bridge.test.ts`：通过，2 files / 23 tests。
+- `pnpm typecheck`：通过。
+- `pnpm run ai:check-docs-sync --strict`：通过，15 个文件。
+- `git diff --check`：通过。
+- 飞书同步：原生对接说明 revision 123；H5 BFF/API 对接说明 revision 27；页面清单 revision 67。
+
 ## 2026-07-02 - 推广激励奖励领取/查看页
 
 ### 变更
@@ -2708,3 +2746,100 @@
 - `pnpm exec vitest run src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/api.test.ts src/features/promotion/promotion-service.test.ts` 通过，3 files / 34 tests。
 - `pnpm typecheck` 通过。
 - `pnpm exec eslint 'src/app/promotion/activities/[slug]/rules/page.tsx' src/features/promotion/components/PromotionActivityDetailScreen.tsx src/features/promotion/components/PromotionActivityRulesScreen.tsx src/features/promotion/server/promotion-incentive-activities-real-service.ts src/features/promotion/rule-content.ts src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/promotion-service.test.ts` 通过，0 errors，1 warning；warning 为详情页既有 `<img>` 规则提示。
+
+## 2026-07-02 - 卖手活动配置页导航调整
+
+### 变更
+
+- `/seller/activities/[activityId]` 配置页导航标题改为对应活动名称，服务端并行读取卖手活动入口列表用于解析活动标题。
+- 标准导航 `StandardNavPage` 补充右侧操作位支持，配置页将“批量编辑 / 完成”移动到导航栏右侧。
+- 移除配置页内容区的 `SellerActivityScreens_configHeader` 结构和样式，页面正文直接从进行中/已暂停 tab 开始。
+
+### 验证
+
+- `pnpm exec vitest run src/features/seller-activity/seller-activity.test.tsx src/design-system/components/navigation.test.tsx` 通过，2 files / 20 tests。
+- `pnpm typecheck` 通过。
+- `pnpm exec eslint 'src/app/seller/activities/[activityId]/page.tsx' src/design-system/components/NavPageShell.tsx src/design-system/components/navigation.test.tsx src/features/seller-activity/components/SellerActivityScreens.tsx src/features/seller-activity/seller-activity.test.tsx` 通过。
+- `git diff --check` 通过。
+
+## 2026-07-03 - 激励活动奖励领取页视觉和地址领取
+
+### 变更
+
+- `/promotion/activities/[id]/reward?mode=receive` 顶部改用设计图提供的奖励背景、信息框和角色图资源，资源已注册到 `localAssetUrl()`。
+- 激励奖励详情 mapper 透传 `prizeType` 和 `deliverType`；实物奖励 `deliverType=1` 展示“将在公司现场发放”，`deliverType=2` 领取时弹出地址确认弹窗。
+- 快递配送实物奖励弹窗使用设计背景图，默认读取地址列表中的默认地址；无地址时展示无地址提示，按钮文案为“新增地址”。
+- 地址选择流新增 `promotion-reward` 来源，跳转地址列表时携带 `activityId/flowId`，选择地址后返回奖励页并恢复待领取弹窗。
+- 领取接口继续使用 Apifox main 分支“领取激励活动奖励”：`PATCH /p/app/distribution/incentive/reward/receive/{recordId}`，快递配送时传 `addressId`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/promotion-service.test.ts src/features/promotion/api.test.ts src/features/mine-secondary/address-flow.test.ts src/lib/assets/asset-url.test.ts` 通过，5 files / 49 tests。
+- `pnpm typecheck` 通过。
+- `pnpm exec eslint src/features/promotion/components/PromotionActivityRewardScreen.tsx src/features/promotion/types.ts src/features/promotion/server/promotion-incentive-activities-real-service.ts src/features/promotion/promotion-incentive-activities-real-service.test.ts src/features/promotion/promotion-service.test.ts src/features/mine-secondary/address-flow.ts src/features/mine-secondary/address-flow.test.ts src/lib/assets/local-assets.ts src/lib/assets/asset-url.test.ts` 通过。
+- `git diff --check` 通过。
+
+## 2026-07-03 - 卖手活动选择商品页状态梳理
+
+### 变更
+
+- `/seller/activities/[activityId]/products` 选择商品页按 Figma 节点 `472:20183` 调整搜索区、筛选区和可选商品卡片视觉。
+- 可选商品卡片单独使用选择页样式：88px 商品图、两行标题、销量、价格/划线价、佣金和“选择商品”按钮按设计稿布局。
+- 梳理首屏空态、首屏失败、已有商品追加加载失败、加载更多和无更多状态，避免空态、错误态和列表同时展示。
+
+### 验证
+
+- `pnpm exec vitest run src/features/seller-activity/seller-activity.test.tsx` 通过，1 file / 10 tests。
+- `pnpm exec eslint src/features/seller-activity/components/SellerActivityScreens.tsx src/features/seller-activity/seller-activity.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- `git diff --check` 通过。
+
+## 2026-07-03 - 推广商品搜索筛选排序统一
+
+### 变更
+
+- 新增统一的推广商品查询控件，供 `/promotion/products` 和 `/seller/activities/[activityId]/products` 复用同一套搜索、分类级联和排序交互。
+- 排序字段统一为 Apifox “推广商品页分页列表”契约的 `orderBy`，传参格式为 `+/-` 加驼峰字段：`soldNum`、`price`、`commission`、`commissionRatio`。
+- `/promotion/products` BFF 和 API 参数从旧的 `prodName/sort/categoryId2/categoryId3` 改为 `keyword/orderBy/categoryId/incentiveId`。
+- 卖手活动选择商品页继续复用同一个商品分页接口，但不再传 `incentiveId=activityId`；活动详情“去带货”跳转 `/promotion/products?incentiveId={activityId}`。
+
+### 验证
+
+- `pnpm exec vitest run src/features/promotion/promotion-products.test.tsx src/features/promotion/api.test.ts src/features/seller-activity/seller-activity.test.tsx src/features/promotion/promotion-incentive-activities-real-service.test.ts` 通过，4 files / 36 tests。
+- `pnpm exec eslint src/features/promotion/components/PromotionProductsScreen.tsx src/features/promotion/components/PromotionProductQueryControls.tsx src/features/promotion/promotion-product-query.ts src/features/promotion/api.ts src/app/api/bff/promotion/products/route.ts src/features/promotion/server/promotion-products-real-service.ts src/features/seller-activity/components/SellerActivityScreens.tsx src/features/seller-activity/api.ts src/features/seller-activity/server/seller-activity-service.ts src/app/promotion/products/page.tsx 'src/app/seller/activities/[activityId]/products/page.tsx'` 通过。
+- `pnpm typecheck` 通过。
+- `git diff --check` 通过。
+
+## 2026-07-03 - 卖手活动商品设置页样式调整
+
+### 变更
+
+- `/seller/activities/[activityId]/products/[prodId]` 商品设置页按 Figma 节点 `458:15862` 调整为全宽商品卡、提示文案、白色行组和底部双按钮布局。
+- 商品横卡补充用户价、划线价和销量信息，避免商品设置页缺少商品价格展示。
+- 活动时间与每人限购合并为同一设置组；每个 SKU 独立展示规格标题、秒杀价格输入和商品佣金。
+- 底部确认按钮文案改为“确认修改”，并按设计稿 44px 双按钮样式展示。
+
+### 验证
+
+- `pnpm exec vitest run src/features/seller-activity/seller-activity.test.tsx` 通过，1 file / 11 tests。
+- `pnpm exec eslint src/features/seller-activity/components/SellerActivityScreens.tsx src/features/seller-activity/seller-activity.test.tsx` 通过。
+- `pnpm typecheck` 通过。
+- `git diff --check` 通过。
+
+## 2026-07-03 - 注册后实名认证流程
+
+### 变更
+
+- 注册成功后跳转 `/register/certification`，进入喵呜达人认证入口页。
+- 新增 `/register/certification/name` 真实姓名输入页，校验中文姓名后调用 Java `GET /p/allinpay/member/getCreateMemberApplyUrl` 获取通联认证 H5 链接。
+- 新增 `/register/certification/result` 认证结果页，调用 Java `GET /p/allinpay/member/getMemberBasicInfoV2`，按 `phone` 存在、`isRealNameAuth=1`、`isWithdraw=1` 判断成功。
+- 新增 `/api/bff/certification/apply-url` 和 `/api/bff/certification/member-info`，支持 Cookie `mallToken`，也支持 URL `token` 由前端通过 `x-meumall-auth-token` 传给 BFF 作为兜底鉴权。
+- App 内打开认证 H5 链接时通过 `router/navigate route=webview` 新开 WebView，当前页面立即切到结果页；成功页按钮通过 `route=tab tab=home` 跳首页 Tab，失败页按钮回到姓名输入页。
+- 注册成功/失败结果图标已复制到 `public/assets/certification/` 并注册为 `localAssetUrl()` 资源。
+
+### 验证
+
+- `pnpm exec vitest run src/features/certification/server/certification-service.test.ts src/features/register/server/register-service.test.ts` 通过，2 files / 4 tests。
+- `pnpm typecheck` 通过。
+- `pnpm exec eslint src/features/certification src/app/register/certification src/app/api/bff/certification src/features/register/components/RegisterScreen.tsx src/lib/assets/local-assets.ts` 通过。
+- `pnpm build` 通过，路由表包含 `/register/certification`、`/register/certification/name`、`/register/certification/result` 和两个 certification BFF。
