@@ -874,3 +874,32 @@ MeuMall 的首页、推广首页和我的页是原生 Tab 下的 H5 根页面，
 - 所有 H5 页面都用 Next Router push：拒绝，因为 Tab 根 WebView 无法常驻缓存。
 - 所有跳转都新开 WebView：拒绝，因为二级页内部下钻会产生过多容器，返回链路变差。
 - 各业务页面自行判断 App/Web 环境：拒绝，因为会把容器策略散落到页面代码中，后续难维护。
+
+## ADR-0022 - 注册后认证 URL Token 只透传到 H5 BFF
+
+日期：2026-07-03
+
+状态：Accepted
+
+### 背景
+
+注册后达人实名认证页面既可能从 App Cookie 登录态进入，也可能作为独立 H5 链接进入。独立 H5 链接会在 URL query 中携带 `token`，该 token 即 Java/mall 鉴权 token。页面后续需要调用通联个人会员开户链接和会员信息查询两个 Java 接口。
+
+### 决策
+
+- 页面从 URL query 读取 `token` 后，只通过 `x-meumall-auth-token` 请求头传给自身 BFF。
+- BFF 优先使用 `x-meumall-auth-token`，没有时使用 Cookie `mallToken`。
+- BFF 到 Java 后端仍统一使用已有 `Authorization: <token>` 规则，不把 URL token 拼进 Java query。
+- 后端调用日志继续只记录掩码后的 `Authorization`，避免 token 进入 request query 日志。
+
+### 影响
+
+- 独立 H5 认证入口无需额外 token 换鉴权接口。
+- App 内认证入口继续沿用 Cookie 登录态，不要求前端读取 HttpOnly Cookie。
+- URL token 在浏览器地址栏仍然可见；后续若安全要求提高，应由入口页服务端消耗 token 并写入 HttpOnly Cookie，再清理 URL。
+
+### 备选方案
+
+- 直接把 `token` 拼到 BFF query：拒绝，因为 BFF 和代理日志更容易记录完整 query。
+- 前端写入 `document.cookie`：拒绝，因为正式鉴权 Cookie 应由 App 或服务端写入 HttpOnly Cookie。
+- 新增 token 换鉴权接口：当前 Apifox 未提供明确接口，且用户确认 URL token 本身就是鉴权参数，因此暂不采用。

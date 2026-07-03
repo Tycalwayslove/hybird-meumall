@@ -1,0 +1,455 @@
+.page {
+  min-height: 100vh;
+  background: rgb(var(--mm-color-fill-white));
+  color: rgb(var(--mm-color-text-primary));
+}
+
+.screen {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  min-height: 812px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: rgb(var(--mm-color-fill-white));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: max(68px, calc(var(--meu-status-bar-height) + 24px)) 16px 0;
+}
+
+.header h1 {
+  margin: 0;
+  color: #0f0f0f;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 39px;
+}
+
+.logoMark {
+  position: relative;
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #9bff2b;
+  transform: skewY(-1deg);
+}
+
+.logoMark::before,
+.logoMark::after {
+  position: absolute;
+  top: 5px;
+  width: 5px;
+  height: 20px;
+  content: "";
+  background: rgb(var(--mm-color-fill-white));
+  transform: skewX(-28deg);
+}
+
+.logoMark::before {
+  left: 8px;
+  box-shadow: 7px 0 0 rgb(var(--mm-color-fill-white));
+}
+
+.logoMark::after {
+  left: 18px;
+}
+
+.form {
+  margin: 39px 16px 0;
+}
+
+.compactFields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.fieldBlock {
+  width: 100%;
+}
+
+.fieldCard,
+.passwordCard {
+  width: 100%;
+  min-height: 52px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f6f7f9;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.fieldCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.fieldCard:focus-within,
+.passwordCard:focus-within {
+  border-color: #9bff2b;
+  box-shadow: 0 0 0 2px rgb(155 255 43 / 20%);
+}
+
+.isError {
+  border-color: rgb(var(--mm-color-danger-default));
+  background: #fff7f7;
+}
+
+.fieldLabel {
+  flex: 0 0 auto;
+  color: #121212;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 21px;
+}
+
+.fieldInput,
+.passwordInput {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #121212;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 21px;
+}
+
+.fieldInput::placeholder,
+.passwordInput::placeholder {
+  color: #c4c8cf;
+  font-weight: 400;
+}
+
+.alignRight {
+  flex: 1;
+  text-align: right;
+}
+
+.codeControl {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.codeInput {
+  width: 120px;
+  flex: 0 1 130px;
+  text-align: right;
+}
+
+.codeButton {
+  width: 82px;
+  height: 27px;
+  flex: 0 0 82px;
+  border: 0;
+  border-radius: 14px;
+  background: #9bff2b;
+  color: #0f0f0f;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 17px;
+}
+
+.codeButton:disabled {
+  opacity: 0.6;
+}
+
+.passwordFields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 32px;
+}
+
+.passwordLabel {
+  display: block;
+  margin-bottom: 12px;
+  color: #121212;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 21px;
+}
+
+.passwordCard {
+  display: flex;
+  align-items: center;
+  padding: 0 14px 0 16px;
+}
+
+.lockIcon {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+}
+
+.lockIcon::before {
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  width: 12px;
+  height: 10px;
+  border: 2px solid #111;
+  border-radius: 2px;
+  content: "";
+}
+
+.lockIcon::after {
+  position: absolute;
+  left: 6px;
+  top: 1px;
+  width: 8px;
+  height: 10px;
+  border: 2px solid #111;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  content: "";
+}
+
+.passwordDivider {
+  width: 1px;
+  height: 24px;
+  margin: 0 14px;
+  background: rgb(0 0 0 / 8%);
+}
+
+.passwordInput {
+  flex: 1;
+}
+
+.eyeButton {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+  border: 0;
+  background: transparent;
+}
+
+.eyeOpen,
+.eyeClosed {
+  position: relative;
+  display: inline-block;
+  width: 20px;
+  height: 14px;
+}
+
+.eyeOpen::before,
+.eyeClosed::before {
+  position: absolute;
+  inset: 2px 1px;
+  border: 2px solid #111;
+  border-radius: 50% / 65%;
+  content: "";
+}
+
+.eyeOpen::after {
+  position: absolute;
+  left: 7px;
+  top: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #111;
+  content: "";
+}
+
+.eyeClosed::after {
+  position: absolute;
+  left: 1px;
+  top: 6px;
+  width: 20px;
+  height: 2px;
+  border-radius: 999px;
+  background: #111;
+  content: "";
+  transform: rotate(-45deg);
+}
+
+.fieldError {
+  margin: 6px 0 0;
+  padding-left: 2px;
+  color: rgb(var(--mm-color-danger-default));
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.agreementBlock {
+  display: flex;
+  min-height: 17px;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 17px;
+}
+
+.agreementRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #111;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.agreementInput {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+}
+
+.agreementDot {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  border: 1px solid #c8ced8;
+  border-radius: 50%;
+  background: rgb(var(--mm-color-fill-white));
+}
+
+.agreementInput:checked + .agreementDot {
+  border-color: #9bff2b;
+  background:
+    radial-gradient(circle at center, #111 0 3px, transparent 3.5px),
+    #9bff2b;
+}
+
+.submitButton {
+  display: flex;
+  width: 311px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin: 74px auto 0;
+  border: 0;
+  border-radius: 24px;
+  background: #d8dde7;
+  color: rgb(var(--mm-color-text-inverse));
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 22px;
+}
+
+.submitReady {
+  background: #9bff2b;
+  color: #111;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 72px;
+  z-index: 20;
+  max-width: 311px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgb(15 15 15 / 88%);
+  color: rgb(var(--mm-color-text-inverse));
+  font-size: 13px;
+  line-height: 18px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 36%);
+}
+
+.dialogPanel {
+  width: min(311px, 100%);
+  border-radius: 16px;
+  background: rgb(var(--mm-color-fill-white));
+  box-shadow: 0 18px 46px rgb(15 15 15 / 18%);
+  padding: 24px 20px 18px;
+  text-align: center;
+}
+
+.dialogPanel h2 {
+  margin: 0;
+  color: #111;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 24px;
+}
+
+.dialogPanel p {
+  margin: 10px 0 0;
+  color: #6f7784;
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.dialogActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.dialogCancelButton,
+.dialogConfirmButton {
+  height: 42px;
+  border: 0;
+  border-radius: 21px;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 21px;
+}
+
+.dialogCancelButton {
+  background: #f0f2f6;
+  color: #111;
+}
+
+.dialogConfirmButton {
+  background: #9bff2b;
+  color: #111;
+}
+
+.dialogConfirmButton:disabled {
+  opacity: 0.65;
+}
+
+@media (min-width: 768px) {
+  .page {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 374px) {
+  .screen {
+    width: 100vw;
+    min-height: 100vh;
+  }
+
+  .submitButton {
+    width: calc(100vw - 64px);
+  }
+}
