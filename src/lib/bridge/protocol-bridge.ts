@@ -76,7 +76,8 @@ export type BridgePaymentStartCashierRequest = {
   miniProgram?: BridgePaymentMiniProgramPayload;
   orderNumbers: string;
   payType: 7 | 8;
-  paymentMode?: "app-sdk" | "allinpay-mini-program-bridge";
+  paymentMode?: "app-sdk" | "allinpay-mini-program-bridge" | "allinpay-url";
+  paymentUrl?: string;
   provider: "alipay" | "wechat" | "allinpay";
   sdkPayload: unknown;
   settlementProvider?: "allinpay";
@@ -137,7 +138,9 @@ export type RpcResponseMap = {
   "address.chooseLocation": {
     location?: BridgeAddressLocation | null;
   };
+  paymentStartAlipay: BridgePaymentStartCashierResponse;
   paymentStartCashier: BridgePaymentStartCashierResponse;
+  paymentStartWechat: BridgePaymentStartCashierResponse;
   "payment.openUrl": BridgePaymentOpenUrlResponse;
 };
 
@@ -157,7 +160,9 @@ export type RpcRequestMap = {
     addrId: string;
   };
   "address.chooseLocation": undefined;
+  paymentStartAlipay: BridgePaymentStartCashierRequest;
   paymentStartCashier: BridgePaymentStartCashierRequest;
+  paymentStartWechat: BridgePaymentStartCashierRequest;
   "payment.openUrl": BridgePaymentOpenUrlRequest;
 };
 

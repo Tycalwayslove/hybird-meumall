@@ -216,6 +216,23 @@ const result = await runtimeApi.getNativeRuntimeContext(window.location.search);
 | 首页业务 | `src/features/home/home-api.ts` | `getHome()`、`getRecommendProducts()`、`getForYouProducts()` |
 | 推广模块 | `src/features/promotion/api.ts` | `getHome()`、`getActivities()`、`getRanking()`、`getBenefits()` |
 
+### 注册后实名认证 BFF
+
+注册后认证流程新增认证业务 adapter `src/features/certification/api.ts`，页面仍只请求自身 BFF：
+
+| BFF | 后端 | 鉴权 | 说明 |
+| --- | --- | --- | --- |
+| `GET /api/bff/certification/apply-url?name=<真实姓名>` | Java `GET /p/allinpay/member/getCreateMemberApplyUrl?name=<真实姓名>` | Java token | 获取通联个人会员开户 H5 链接，前端使用 `data.view.applyUrl` 打开外部认证页面。 |
+| `GET /api/bff/certification/member-info` | Java `GET /p/allinpay/member/getMemberBasicInfoV2` | Java token | 查询会员信息，H5 按 `phone` 存在、`isRealNameAuth=1`、`isWithdraw=1` 判定认证成功。 |
+
+认证页面可能由 App 内 Cookie 入口进入，也可能由独立 H5 URL 携带 `token` 进入。认证 BFF 的 Java token 优先级：
+
+1. 前端从 URL query 读取 `token` 后，通过请求头 `x-meumall-auth-token` 传给自身 BFF。
+2. 如果请求头没有 token，BFF 使用 Cookie 中的 `mallToken`。
+3. 两者都缺失时，BFF 返回 token 缺失错误，由页面展示认证失败或重新进入提示。
+
+`x-meumall-auth-token` 只用于 H5 到自身 BFF 的临时鉴权传递，不作为后端接口契约；BFF 到 Java 后端仍统一使用 `Authorization: <mallToken>`。
+
 ### 请求诊断
 
 `createH5Client()` 在浏览器环境下会合并默认客户端上下文，并在请求成功、业务失败或网络异常时记录最近请求。诊断记录只保留内存中的最近 10 条，不持久化 token、Cookie 或个人敏感信息。
@@ -780,6 +797,7 @@ GET /api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<ad
 POST /api/bff/order-submit
 GET /api/bff/order-pay-info?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0
 POST /api/bff/order-pay
+GET /api/bff/order-is-paid?payEntry=0&orderNumbers=<orderNumbers>
 GET /api/bff/allinpay-order-status?bizOrderNo=<bizOrderNo>&orderNumbers=<orderNumbers>
 ```
 
@@ -796,6 +814,7 @@ BFF 后端调用：
 | Java | GET | `/sys/config/paySettlementType` | 收银台读取当前支付结算类型；`1` 表示通联支付。 |
 | Java | POST | `/p/order/pay` | 确认付款时创建后端支付参数；H5 BFF 传 `payType/orderNumbers/returnUrl/systemType`，通联时补 `allinPaySystemType=1`。 |
 | Java | GET | `/p/allinpay/order/getAliAppPayUrl` | 通联支付宝支付 URL 获取；参数来自 `/p/order/pay` 返回的 `miniprogramPayInfo_VSP`。 |
+| Java | GET | `/p/order/isPay/{payEntry}/{orderNumbers}?orderNumbers=<orderNumbers>` | `/pay-result` 按订单号查询最终是否已支付；当前 H5 固定 `payEntry=0`。 |
 | Java | GET | `/p/allinpay/order/getOrderStatus` | `/pay-result` 按 `bizOrderNo` 回查通联支付状态。 |
 | Java | GET | `/shop/headInfo?shopId=<shopId>` | 店铺头部信息；主商品接口成功且存在 `shopId` 后尽量请求。 |
 | Java | GET | `/prod/prodCommData?prodId=<prodId>&stationId=` | 评论统计；用于评价数量、好评率和评价标签。 |
@@ -972,9 +991,11 @@ type OrderPaymentData = {
     execution:
       | {
           type: "native-sdk";
+          bridgeAction: "paymentStartAlipay" | "paymentStartWechat";
           provider: "alipay" | "wechat" | "allinpay";
-          paymentMode?: "app-sdk" | "allinpay-mini-program-bridge";
+          paymentMode?: "app-sdk" | "allinpay-mini-program-bridge" | "allinpay-url";
           paymentPayload: unknown;
+          paymentUrl?: string;
           chnlFrontParamInfo?: Record<string, string>;
           miniProgram?: {
             appId: string;
@@ -1042,12 +1063,13 @@ type AllinpayOrderStatusData = {
 - 购买弹窗确认时携带 `productId`、`skuId`、`quantity`，不携带价格快照。
 - `/order-confirm` 会先通过 Bridge `address.getDefault` 获取默认地址；再通过 `getOrderConfirm()` 请求 Java `/p/address/addrInfo/{addrId|0}` 解析默认/选中收货地址，重新请求商品详情校验 SKU、库存和价格，并调用 Java `/p/order/confirm` 生成后端确认上下文；如果 URL 中包含 `addressId`，会优先作为 `addrId` 传给 BFF；校验失败或无收货地址时禁止继续交易。普通快递链路对齐旧 uni-app，不因确认响应 `submitOrder=0` 在 H5 层置灰或阻断。
 - `/order-confirm` 地址卡会跳转 `/address?select=1&from=order-confirm&flowId=<flowId>&productId=<productId>&skuId=<skuId>&quantity=<quantity>&addressId=<addrId>`；地址列表“使用”会写入一次性地址选择结果并 `history.back()` 回订单确认页，订单确认页消费结果后用 `history.replaceState` 更新为 `/order-confirm?...&addressId=<addrId>` 并重新请求确认接口。无 JS 或无法回退 history 时，地址卡 href 兜底到同等参数的 `/order-confirm`。
-- `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
+- `/order-confirm` 提交订单时调用 `/api/bff/order-submit`，BFF 会再次解析收货地址并拉取 `/prod/prodInfo` 校验商品和 SKU，然后依次调用 Java `/p/order/confirm` 与 `/p/order/submit` 创建待支付订单；无法解析收货地址时返回 409，不创建订单；成功后使用 `window.location.replace()` 跳转 `/pay-way?orderNumbers=<orderNumbers>&dvyType=1&isPurePoints=0&orderType=0&ordermold=0`。
 - `/pay-way` 加载阶段调用 `/api/bff/order-pay-info`，BFF 读取 Java `/p/order/getOrderPayInfoByOrderNumber`、`/sys/config/info/getSysPaySwitch` 和 `/sys/config/paySettlementType` 后展示金额、倒计时、支付状态、支付方式和结算通道。
 - `/pay-way` 点击“确定支付”调用 `/api/bff/order-pay`。BFF 传 Java `/p/order/pay` 的基础参数为 `payType/orderNumbers/returnUrl/systemType`；`systemType` 按客户端平台映射，Android 为 `4`，iOS/默认 App 为 `5`；当 `paySettlementType=1` 时补 `allinPaySystemType=1`。
-- 普通支付宝/微信支付返回 `execution.type="native-sdk"` 和 `paymentMode="app-sdk"`，H5 通过 `rpc/paymentStartCashier` 把 `provider/payType/orderNumbers/sdkPayload` 交给 App 拉起 SDK；其中 `sdkPayload` 固定等于 Java `/p/order/pay` 返回的完整 `data`，Bridge 返回后进入 `/pay-result` 展示结果。
-- 测试环境当前 `paySettlementType=1`，通联支付宝返回 `execution.type="open-url"` 时，H5 通过 `rpc/payment.openUrl` 请求 App 打开支付 URL，随后进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>` 并调用 `/api/bff/allinpay-order-status` 回查结果。
-- 测试环境当前 `paySettlementType=1` 且选择微信 `payType=8` 时，H5 会把 `/p/order/pay` 返回的完整 `data` 放入 `sdkPayload`；当 `data.result == 0` 且 `data.chnlFrontParamInfo` 可解析时，H5 会把该 JSON 字符串解析成 `chnlFrontParamInfo` 对象并把对象所有顶层参数传给 App，同时派生 `miniProgram.extraData.allinpayParams`，并设置 `execution.type="native-sdk"`、`provider="allinpay"`、`settlementProvider="allinpay"`、`paymentMode="allinpay-mini-program-bridge"`。H5 通过 `rpc/paymentStartCashier` 交给 App 打开喵呜小程序支付桥页；桥页再原样透传 `allinpayParams` 打开通联收银台。App 若只能确认已打开，返回 `status=unknown` 即可，H5 进入 `/pay-result` 回查。
+- 普通支付宝/微信支付返回 `execution.type="native-sdk"` 和 `paymentMode="app-sdk"`，H5 按 `payType=7/8` 分别调用 `rpc/paymentStartAlipay` 或 `rpc/paymentStartWechat`，把 `provider/payType/orderNumbers/sdkPayload` 交给 App 拉起 SDK；其中 `sdkPayload` 固定等于 Java `/p/order/pay` 返回的完整 `data`。若原生返回 `unsupported`，H5 自动 fallback 到旧 action `rpc/paymentStartCashier`。
+- 测试环境当前 `paySettlementType=1`，通联支付宝会先从 `/p/order/pay` 读取完整 `data`，再用 `/p/allinpay/order/getAliAppPayUrl` 换取 `paymentUrl`；H5 通过 `rpc/paymentStartAlipay` 把完整 `sdkPayload`、`paymentMode="allinpay-url"`、`paymentUrl` 和 `bizOrderNo` 交给 App，随后使用 `window.location.replace()` 进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>&orderNumbers=<orderNumbers>`。
+- 测试环境当前 `paySettlementType=1` 且选择微信 `payType=8` 时，H5 会把 `/p/order/pay` 返回的完整 `data` 放入 `sdkPayload`；当 `data.result == 0` 且 `data.chnlFrontParamInfo` 可解析时，H5 会把该 JSON 字符串解析成 `chnlFrontParamInfo` 对象并把对象所有顶层参数传给 App，同时保留兼容字段 `miniProgram.extraData.allinpayParams`。App 当前实现以 `sdkPayload/chnlFrontParamInfo` 为准直接打开通联微信小程序收银台；H5 在发出 `rpc/paymentStartWechat` 后立即使用 `window.location.replace()` 进入 `/pay-result?sts=pending&orderNumbers=<orderNumbers>`，不等待 App 回传最终支付结果。
+- `/pay-result` 首屏会自动调用 `/api/bff/order-is-paid?payEntry=0&orderNumbers=<orderNumbers>`；用户点击“查看支付状态”也调用同一接口。接口返回 `data=true` 展示支付成功，`data=false` 展示暂未支付成功；最终展示以订单号支付状态为准，不再依赖 `bizOrderNo` 作为主判断。
 
 ### 订单列表、退货退款和订单详情
 

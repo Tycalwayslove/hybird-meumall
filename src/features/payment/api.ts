@@ -1,5 +1,5 @@
 import type { H5BffResult, H5RequestOptions } from "@/lib/http";
-import type { AllinpayOrderStatusData, OrderPaymentData, OrderPayInfoData } from "./server/cashier-service";
+import type { AllinpayOrderStatusData, OrderPaidStatusData, OrderPaymentData, OrderPayInfoData } from "./server/cashier-service";
 
 export type PaymentHttpClient = {
   request<T>(path: string, options?: H5RequestOptions): Promise<H5BffResult<T>>;
@@ -25,6 +25,11 @@ export type SubmitOrderPaymentParams = {
 export type AllinpayOrderStatusParams = {
   bizOrderNo: string;
   orderNumbers?: string;
+};
+
+export type OrderPaidStatusParams = {
+  orderNumbers: string;
+  payEntry?: number | string;
 };
 
 export function createPaymentApi(client: PaymentHttpClient) {
@@ -73,6 +78,14 @@ export function createPaymentApi(client: PaymentHttpClient) {
       }
 
       return client.request<AllinpayOrderStatusData>(`/api/bff/allinpay-order-status?${query.toString()}`);
+    },
+    getOrderPaidStatus({ orderNumbers, payEntry = 0 }: OrderPaidStatusParams) {
+      const query = new URLSearchParams({
+        orderNumbers,
+        payEntry: String(payEntry)
+      });
+
+      return client.request<OrderPaidStatusData>(`/api/bff/order-is-paid?${query.toString()}`);
     }
   };
 }

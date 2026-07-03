@@ -5,10 +5,12 @@ import PayWayPage from "@/app/pay-way/page";
 import type { H5RequestOptions } from "@/lib/http";
 import type { BackendRequestOptions } from "@/server/http/backend-client";
 import { createPaymentApi } from "./api";
+import { PayResultScreen } from "./components/PayResultScreen";
 import { PayWayScreen, paymentStartedMessage } from "./components/PayWayScreen";
 import {
   createCashierHrefFromSubmitResult,
   createOrderPaymentData,
+  fetchOrderPaidStatusData,
   fetchOrderPayInfoData,
   type PaymentServerResponse
 } from "./server/cashier-service";
@@ -111,7 +113,7 @@ describe("cashier real flow service", () => {
     expect(paymentStartedMessage).toBe("正在发起支付");
   });
 
-  it("creates an allinpay alipay open-url execution from legacy Java payment endpoints", async () => {
+  it("creates an allinpay alipay execution for the dedicated alipay bridge", async () => {
     const backendClient = createFakeBackendClient({
       "/sys/config/paySettlementType": {
         code: "00000",
@@ -152,9 +154,16 @@ describe("cashier real flow service", () => {
         payType: 7,
         execution: {
           bizOrderNo: "TL202606290001",
+          bridgeAction: "paymentStartAlipay",
+          paymentMode: "allinpay-url",
+          paymentPayload: {
+            bizOrderNo: "TL202606290001",
+            miniprogramPayInfo_VSP: "{\"token\":\"pay-token\"}"
+          },
+          paymentUrl: "alipays://platformapi/startapp?appId=20000067",
           provider: "allinpay",
-          type: "open-url",
-          url: "alipays://platformapi/startapp?appId=20000067"
+          settlementProvider: "allinpay",
+          type: "native-sdk"
         }
       });
       expect(result.data.debugRaw?.orderPayRequest).toEqual({
@@ -227,6 +236,7 @@ describe("cashier real flow service", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.view.execution).toMatchObject({
+        bridgeAction: "paymentStartWechat",
         orderNumbers: "O202606300002",
         paymentMode: "app-sdk",
         paymentPayload: javaPaymentData,
@@ -270,6 +280,7 @@ describe("cashier real flow service", () => {
         payType: 8,
         execution: {
           bizOrderNo: "TL202606300001",
+          bridgeAction: "paymentStartWechat",
           miniProgram: {
             appId: "wx264f4850dc92b03d",
             cashierAppId: "wxef277996acc166c3",
@@ -366,6 +377,7 @@ describe("cashier real flow service", () => {
     if (result.ok) {
       expect(result.data.view.execution).toMatchObject({
         bizOrderNo: "2606300000012651",
+        bridgeAction: "paymentStartWechat",
         chnlFrontParamInfo,
         miniProgram: {
           appId: "wx264f4850dc92b03d",
@@ -389,6 +401,38 @@ describe("cashier real flow service", () => {
         type: "native-sdk"
       });
     }
+  });
+
+  it("checks paid status by order number and keeps false as a valid unpaid result", async () => {
+    const backendClient = createFakeBackendClient({
+      "/p/order/isPay/0/O202607020001?orderNumbers=O202607020001": {
+        code: "00000",
+        data: false,
+        success: true
+      }
+    });
+
+    const result = await fetchOrderPaidStatusData({
+      authRequired: true,
+      authToken: "mall-token",
+      backendClient,
+      orderNumbers: "O202607020001",
+      payEntry: 0
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.view).toEqual({
+        isPaid: false,
+        normalizedStatus: "unpaid",
+        orderNumbers: "O202607020001",
+        payEntry: 0,
+        statusText: "暂未支付成功"
+      });
+    }
+    expect(backendClient.requests.map((request) => ({ method: request.method, path: request.path }))).toEqual([
+      { method: "GET", path: "/p/order/isPay/0/O202607020001?orderNumbers=O202607020001" }
+    ]);
   });
 });
 
@@ -415,6 +459,7 @@ describe("cashier browser api adapter", () => {
       ordermold: "0",
       payType: 8
     });
+    await api.getOrderPaidStatus({ orderNumbers: "O202606260001", payEntry: 0 });
 
     expect(calls).toEqual([
       { method: undefined, path: "/api/bff/order-pay-info?orderNumbers=O202606260001" },
@@ -429,7 +474,8 @@ describe("cashier browser api adapter", () => {
         },
         method: "POST",
         path: "/api/bff/order-pay?debugRaw=1"
-      }
+      },
+      { method: undefined, path: "/api/bff/order-is-paid?orderNumbers=O202606260001&payEntry=0" }
     ]);
   });
 });
@@ -512,12 +558,23 @@ describe("cashier rendering", () => {
   it("uses a started-payment prompt while calling payment APIs", () => {
     expect(paymentStartedMessage).toBe("正在发起支付");
   });
+
+  it("renders the payment result page with status check and order actions", () => {
+    const html = renderToStaticMarkup(<PayResultScreen orderNumbers="O202607020001" status="pending" />);
+
+    expect(html).toContain("等待支付结果");
+    expect(html).toContain("O202607020001");
+    expect(html).toContain("查看支付状态");
+    expect(html).toContain("查看订单");
+    expect(html).not.toContain("重新支付");
+  });
 });
 
 type FakeBackendResponse =
   | { ok: false }
   | PaymentServerResponse<typeof samplePayInfo>
   | PaymentServerResponse<typeof samplePaySwitch>
+  | PaymentServerResponse<boolean>
   | PaymentServerResponse<number>
   | PaymentServerResponse<string>
   | PaymentServerResponse<Record<string, unknown>>;

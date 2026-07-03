@@ -230,17 +230,17 @@ describe("protocol bridge", () => {
     });
   });
 
-  it("posts payment rpc messages through the shared envelope", async () => {
+  it("posts dedicated alipay payment rpc messages through the shared envelope", async () => {
     const messages: unknown[] = [];
     const bridge = createProtocolBridge({
       postMessage: (message) => {
         messages.push(message);
       },
-      createCallbackId: () => "cb_payment",
+      createCallbackId: () => "cb_alipay",
       timeoutMs: 100
     });
 
-    const promise = bridge.rpc("paymentStartCashier", {
+    const promise = bridge.rpc("paymentStartAlipay", {
       orderNumbers: "O202606290001",
       payType: 7,
       provider: "alipay",
@@ -250,8 +250,8 @@ describe("protocol bridge", () => {
     expect(messages).toEqual([
       {
         module: "rpc",
-        action: "paymentStartCashier",
-        callbackId: "cb_payment",
+        action: "paymentStartAlipay",
+        callbackId: "cb_alipay",
         payload: {
           orderNumbers: "O202606290001",
           payType: 7,
@@ -261,7 +261,7 @@ describe("protocol bridge", () => {
       }
     ]);
 
-    bridge.reply.resolve("cb_payment", {
+    bridge.reply.resolve("cb_alipay", {
       status: "unknown",
       message: "debug receiver"
     });
@@ -272,7 +272,7 @@ describe("protocol bridge", () => {
     });
   });
 
-  it("posts allinpay WeChat mini program cashier payloads through payment rpc", async () => {
+  it("posts dedicated wechat allinpay cashier payloads through payment rpc", async () => {
     const messages: unknown[] = [];
     const bridge = createProtocolBridge({
       postMessage: (message) => {
@@ -282,7 +282,7 @@ describe("protocol bridge", () => {
       timeoutMs: 100
     });
 
-    const promise = bridge.rpc("paymentStartCashier", {
+    const promise = bridge.rpc("paymentStartWechat", {
       bizOrderNo: "TL202606300001",
       chnlFrontParamInfo: {
         appletPayParams: "{\"reqsn\":\"O202606300001\"}"
@@ -318,7 +318,7 @@ describe("protocol bridge", () => {
     expect(messages).toEqual([
       {
         module: "rpc",
-        action: "paymentStartCashier",
+        action: "paymentStartWechat",
         callbackId: "cb_allinpay_wechat",
         payload: {
           bizOrderNo: "TL202606300001",

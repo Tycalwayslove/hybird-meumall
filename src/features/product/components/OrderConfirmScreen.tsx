@@ -246,7 +246,7 @@ function SubmitBar({ data }: { data: OrderConfirmData }) {
       .catch(() => undefined);
 
     if (result?.success) {
-      window.location.assign(
+      window.location.replace(
         createCashierHrefFromSubmitResult({
           dvyType: "1",
           orderNumbers: result.data.view.orderNumbers,

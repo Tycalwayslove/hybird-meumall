@@ -121,8 +121,10 @@ type BridgeResult<T> =
 | rpc/getTokens | 调试中 | 统一信封 RPC，原生当前只返回 debug token。 |
 | rpc/getDeviceInfo | 调试中 | 统一信封 RPC，原生当前只返回 debug 设备信息。 |
 | rpc/address.* | 调试中 | 地址能力 RPC，H5 商品详情、订单确认和地址管理页优先使用；原生 debug receiver 当前返回调试地址。 |
-| rpc/paymentStartCashier | 对接中 | H5 收银台请求原生拉起 App 内支付宝/微信 SDK；测试环境通联微信支付会通过该 RPC 请求原生打开喵呜小程序支付桥页。 |
-| rpc/payment.openUrl | 对接中 | H5 收银台请求原生打开通联支付宝支付 URL；原生 debug receiver 当前会尝试打开外部 URL。 |
+| rpc/paymentStartAlipay | 待 App 接入 | H5 收银台请求原生发起支付宝支付；普通支付宝和通联支付宝 URL 都走该 action，`sdkPayload` 透传 `/p/order/pay` 完整 `data`。 |
+| rpc/paymentStartWechat | 待 App 接入 | H5 收银台请求原生发起微信支付；普通微信和通联微信小程序收银台都走该 action，`sdkPayload` 透传 `/p/order/pay` 完整 `data`。 |
+| rpc/paymentStartCashier | 兼容中 | 旧 App fallback action；新 App 应优先实现 `paymentStartAlipay/paymentStartWechat`。 |
+| rpc/payment.openUrl | 历史兼容 | H5 收银台请求原生打开外部支付 URL；通联支付宝主链路已迁到 `paymentStartAlipay`。 |
 | router/navigate | 调试中 | H5 发出导航信封，原生当前只接收记录。 |
 | event/token_expired | 调试中 | H5 发出 token 失效事件，原生当前只接收记录。 |
 | event/share | 调试中 | H5 发出分享事件，原生当前只接收记录。 |
@@ -170,6 +172,17 @@ type BridgeRoute =
 | `history-wallet` | 钱包页右上角历史钱包入口。 | 打开原生历史钱包页。 |
 | `<native-page-route>` | H5 打开其它原生页面。 | route 直接使用原生页面名，如 `address`、`login`；参数放在 `params`。 |
 | `product_detail` | 兼容商品详情语义跳转。 | 根据商品 id 拼接 H5 商品详情 URL 并新开 WebView。 |
+
+### 注册后实名认证流程
+
+注册成功后的 `/register/certification` 流程复用现有 `router/navigate`：
+
+| 场景 | H5 发送 | 原生处理 |
+| --- | --- | --- |
+| 打开通联实名认证 H5 | `route=webview`，`params.url=<regInviteLink>`，`params.title=实名认证`，`params.source=register-certification` | 新开 WebView 打开外部认证链接；用户完成后关闭该 WebView。 |
+| 认证成功后打开喵呜商城 App | `route=tab`，`params.tab=home`，`params.closeCurrentWebView=true` | 切换首页 Tab，并关闭当前认证结果页所在 WebView。 |
+
+H5 在发出外部认证 `webview` 跳转后，会将当前页面 `replace` 到 `/register/certification/result`。因此外部认证 WebView 关闭后，底层页面会查询会员信息并展示成功或失败结果。
 
 原生页不再通过 `route: "native_page"` + `params.name` 包装；H5 `HybridLink strategy="native-page" nativePage="<name>"` 会直接发送 `payload.route="<name>"`。
 
@@ -233,18 +246,21 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 
 | action | payload | resolve data | H5 使用场景 |
 | --- | --- | --- | --- |
-| `paymentStartCashier` | `{ provider, payType, orderNumbers, sdkPayload, paymentMode?, settlementProvider?, chnlFrontParamInfo?, miniProgram?, bizOrderNo? }` | `{ status, message? }` | 普通 App 内支付宝/微信 SDK 支付；或通联微信通过喵呜小程序支付桥页进入通联收银台。 |
-| `payment.openUrl` | `{ provider: "allinpay", url, orderNumbers, bizOrderNo? }` | `{ opened, status, message? }` | 通联支付宝 URL 支付；App 打开外部 URL 后 H5 进入 `/pay-result` 回查。 |
+| `paymentStartAlipay` | `{ provider, payType: 7, orderNumbers, sdkPayload, paymentMode?, settlementProvider?, paymentUrl?, bizOrderNo? }` | `{ status, message? }` | 支付宝专属支付入口；普通支付宝 App SDK 或通联支付宝 URL 均走该 action。 |
+| `paymentStartWechat` | `{ provider, payType: 8, orderNumbers, sdkPayload, paymentMode?, settlementProvider?, chnlFrontParamInfo?, miniProgram?, bizOrderNo? }` | `{ status, message? }` | 微信专属支付入口；普通微信 App SDK 或通联微信小程序收银台均走该 action。 |
+| `paymentStartCashier` | 同上 | `{ status, message? }` | 旧 App 兼容 fallback；新 App 应优先实现 `paymentStartAlipay/paymentStartWechat`。 |
+| `payment.openUrl` | `{ provider: "allinpay", url, orderNumbers, bizOrderNo? }` | `{ opened, status, message? }` | 历史支付 URL 打开能力；通联支付宝主链路已改为 `paymentStartAlipay` 携带 `paymentUrl`。 |
 
-`paymentStartCashier` 请求示例：
+`paymentStartAlipay` 请求示例：
 
 ```json
 {
   "module": "rpc",
-  "action": "paymentStartCashier",
+  "action": "paymentStartAlipay",
   "callbackId": "cb_xxx",
   "payload": {
     "provider": "alipay",
+    "paymentMode": "app-sdk",
     "payType": 7,
     "orderNumbers": "NO202606290001",
     "sdkPayload": {
@@ -255,12 +271,35 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 }
 ```
 
-通联微信小程序支付桥请求示例：
+通联支付宝 URL 请求示例：
 
 ```json
 {
   "module": "rpc",
-  "action": "paymentStartCashier",
+  "action": "paymentStartAlipay",
+  "callbackId": "cb_xxx",
+  "payload": {
+    "provider": "allinpay",
+    "settlementProvider": "allinpay",
+    "paymentMode": "allinpay-url",
+    "payType": 7,
+    "orderNumbers": "NO202606290001",
+    "bizOrderNo": "TL202606290001",
+    "paymentUrl": "alipays://platformapi/startapp?appId=20000067",
+    "sdkPayload": {
+      "bizOrderNo": "TL202606290001",
+      "miniprogramPayInfo_VSP": "{\"token\":\"pay-token\"}"
+    }
+  }
+}
+```
+
+通联微信小程序收银台请求示例：
+
+```json
+{
+  "module": "rpc",
+  "action": "paymentStartWechat",
   "callbackId": "cb_xxx",
   "payload": {
     "provider": "allinpay",
@@ -303,9 +342,9 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 通联微信处理规则：
 
 - H5 优先在 Java `/p/order/pay` 返回 `result=0` 且 `chnlFrontParamInfo` 可解析时生成 `paymentMode="allinpay-mini-program-bridge"`。
-- App 收到该模式时，不走普通微信 App 支付参数解析，也不要直接打开通联小程序收银台；应使用 `miniProgram.appId=wx264f4850dc92b03d` 和 `miniProgram.path=package-pay/pages/allinpay-bridge/allinpay-bridge` 打开喵呜小程序支付桥页。
-- `sdkPayload` 固定透传 Java `/p/order/pay` 返回的完整 `data`，不是 H5 提取后的子集；`chnlFrontParamInfo` 是 H5 对 `sdkPayload.chnlFrontParamInfo` 执行 JSON.parse 后得到的对象，会把该对象内所有顶层参数都传给原生；`miniProgram.extraData.allinpayParams` 与 `chnlFrontParamInfo` 保持一致，并由小程序桥页原样传给通联收银台。需要日志排查时可和 H5 console 中 `[MeuMall][order-pay][h5-response]` 对照。
-- 喵呜小程序支付桥页打开成功不等同于支付成功。App 若只能确认“已打开”，建议 resolve `{ "status": "unknown", "message": "已打开喵呜支付桥" }`，H5 会进入结果页并回查订单状态。
+- App 收到该模式时，不走普通微信 App 支付参数解析；当前联调方案以 `sdkPayload` 与 `chnlFrontParamInfo` 为准，直接打开通联微信小程序收银台。
+- `sdkPayload` 固定透传 Java `/p/order/pay` 返回的完整 `data`，不是 H5 提取后的子集；`chnlFrontParamInfo` 是 H5 对 `sdkPayload.chnlFrontParamInfo` 执行 JSON.parse 后得到的对象，会把该对象内所有顶层参数都传给原生。`miniProgram` 仍作为历史兼容辅助字段保留，原生新实现不应依赖喵呜小程序支付桥页。需要日志排查时可和 H5 console 中 `[MeuMall][order-pay][h5-response]` 对照。
+- 通联微信小程序收银台打开成功不等同于支付成功。App 若只能确认“已打开”，建议 resolve `{ "status": "unknown", "message": "已打开通联收银台" }`；H5 已在发起 Bridge 后立即进入结果页并回查订单状态，因此该 resolve 只作为日志和兼容用途。
 - 通联微信小程序收银台参考通联文档：<https://prodoc.allinpay.com/doc/732/>。
 
 `payment.openUrl` 请求示例：
@@ -326,9 +365,11 @@ Bridge 和 BFF 都没有返回地址时，H5 展示空态或错误提示；不�
 
 H5 处理规则：
 
-- `paymentStartCashier` 普通 SDK resolve `status=success/paid` 后进入 `/pay-result?sts=1`；`status=cancelled/failed/unknown` 进入结果页并展示可重试状态。
-- `paymentStartCashier` 通联微信小程序支付桥 resolve 后优先进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>`；如果没有 `bizOrderNo`，则回读 `/api/bff/order-pay-info`。
-- `payment.openUrl` resolve `opened=true` 后进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>`，结果页调用 `/api/bff/allinpay-order-status` 回查。
+- H5 会按 `payType` 优先调用 `paymentStartAlipay` 或 `paymentStartWechat`；如果原生返回 `unsupported`，H5 自动 fallback 到旧 action `paymentStartCashier`。
+- `paymentStartAlipay/paymentStartWechat` 普通 SDK resolve `status=success/paid` 后使用 `window.location.replace()` 进入 `/pay-result?sts=1`；`status=cancelled/failed/unknown` 进入结果页并展示待确认或未支付状态。
+- `paymentStartAlipay` 通联支付宝分支发起 Bridge 后，H5 立即使用 `window.location.replace()` 进入 `/pay-result?sts=pending&bizOrderNo=<bizOrderNo>&orderNumbers=<orderNumbers>`，最终由订单号状态接口确认。
+- `paymentStartWechat` 通联微信分支发起 Bridge 后，H5 立即使用 `window.location.replace()` 进入 `/pay-result?sts=pending&orderNumbers=<orderNumbers>`，不等待 App 返回最终支付结果。
+- `/pay-result` 统一调用 H5 BFF `/api/bff/order-is-paid?payEntry=0&orderNumbers=<orderNumbers>`，BFF 对应 Java `/p/order/isPay/{payEntry}/{orderNumbers}`；返回 `data=true` 展示支付成功，`data=false` 展示暂未支付成功。页面按钮固定为“查看支付状态”和“查看订单”。
 - Bridge 不可用时，普通 App 内 SDK 支付无法降级，H5 展示“请在 App 内完成支付”；通联 URL 支付可临时使用 `window.location.assign(url)` 作为浏览器调试兜底。
 - App 生产实现必须校验支付 URL scheme / host 白名单，不应打开任意 URL。
 

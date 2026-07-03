@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { StandardNavPage } from "@/design-system";
-import { createWindowProtocolBridge, type ProtocolBridge } from "@/lib/bridge/protocol-bridge";
+import { BridgeRPCError, createWindowProtocolBridge, type BridgePaymentStartCashierRequest, type ProtocolBridge } from "@/lib/bridge/protocol-bridge";
 import { createH5Client } from "@/lib/http";
 import { buildClientHref } from "@/lib/navigation";
 import { createPaymentApi } from "../api";
@@ -187,17 +187,17 @@ async function executePayment({
     if (!bridge.isAvailable()) {
       throw new Error("当前 App 版本暂不支持支付，请升级后重试。");
     }
-    const nativeResult = await bridge.rpc("paymentStartCashier", {
-      ...(execution.bizOrderNo ? { bizOrderNo: execution.bizOrderNo } : {}),
-      ...(execution.chnlFrontParamInfo ? { chnlFrontParamInfo: execution.chnlFrontParamInfo } : {}),
-      ...(execution.miniProgram ? { miniProgram: execution.miniProgram } : {}),
-      orderNumbers: execution.orderNumbers,
-      ...(execution.paymentMode ? { paymentMode: execution.paymentMode } : {}),
-      payType: execution.payType,
-      provider: execution.provider,
-      ...(execution.settlementProvider ? { settlementProvider: execution.settlementProvider } : {}),
-      sdkPayload: execution.paymentPayload
-    });
+    const nativePayment = startNativePayment(bridge, execution.bridgeAction, createNativePaymentPayload(execution));
+
+    if (execution.provider === "allinpay") {
+      void nativePayment.catch((error) => {
+        console.warn("[MeuMall][paymentStart][native-error]", error);
+      });
+      navigateToPayResult({ bizOrderNo: execution.bizOrderNo, orderNumbers: execution.orderNumbers, status: "pending", view: fallback });
+      return;
+    }
+
+    const nativeResult = await nativePayment;
     const status = await resolveOrderPaymentStatus(api, execution.orderNumbers, fallback, nativeResult.status);
     navigateToPayResult({ bizOrderNo: execution.bizOrderNo, orderNumbers: execution.orderNumbers, status, view: fallback });
     return;
@@ -275,7 +275,37 @@ function navigateToPayResult({
   if (bizOrderNo) {
     query.set("bizOrderNo", bizOrderNo);
   }
-  window.location.href = buildClientHref(`/pay-result?${query.toString()}`);
+  window.location.replace(buildClientHref(`/pay-result?${query.toString()}`));
+}
+
+function createNativePaymentPayload(execution: Extract<PaymentExecution, { type: "native-sdk" }>): BridgePaymentStartCashierRequest {
+  return {
+    ...(execution.bizOrderNo ? { bizOrderNo: execution.bizOrderNo } : {}),
+    ...(execution.chnlFrontParamInfo ? { chnlFrontParamInfo: execution.chnlFrontParamInfo } : {}),
+    ...(execution.miniProgram ? { miniProgram: execution.miniProgram } : {}),
+    orderNumbers: execution.orderNumbers,
+    ...(execution.paymentMode ? { paymentMode: execution.paymentMode } : {}),
+    ...(execution.paymentUrl ? { paymentUrl: execution.paymentUrl } : {}),
+    payType: execution.payType,
+    provider: execution.provider,
+    ...(execution.settlementProvider ? { settlementProvider: execution.settlementProvider } : {}),
+    sdkPayload: execution.paymentPayload
+  };
+}
+
+async function startNativePayment(
+  bridge: ProtocolBridge,
+  action: Extract<PaymentExecution, { type: "native-sdk" }>["bridgeAction"],
+  payload: BridgePaymentStartCashierRequest
+) {
+  try {
+    return await bridge.rpc(action, payload);
+  } catch (error) {
+    if (error instanceof BridgeRPCError && error.code === "unsupported") {
+      return bridge.rpc("paymentStartCashier", payload);
+    }
+    throw error;
+  }
 }
 
 function PaymentMethodRow({ checked, method, onSelect }: { checked: boolean; method: CashierPaymentMethod; onSelect: () => void }) {

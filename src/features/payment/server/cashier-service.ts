@@ -44,6 +44,8 @@ export type CashierPaymentMethod = {
   payType: 7 | 8;
 };
 
+export type PaymentBridgeAction = "paymentStartAlipay" | "paymentStartWechat";
+
 export type OrderPayInfoData = {
   debugRaw?: {
     orderPayInfo: PaymentServerResponse<JavaOrderPayInfo>;
@@ -79,12 +81,14 @@ export type PaymentExecution =
   | {
       type: "native-sdk";
       bizOrderNo?: string;
+      bridgeAction: PaymentBridgeAction;
       chnlFrontParamInfo?: Record<string, string>;
       miniProgram?: PaymentMiniProgramPayload;
       orderNumbers: string;
-      paymentMode?: "app-sdk" | "allinpay-mini-program-bridge";
+      paymentMode?: "app-sdk" | "allinpay-mini-program-bridge" | "allinpay-url";
       payType: 7 | 8;
       paymentPayload: unknown;
+      paymentUrl?: string;
       provider: "alipay" | "wechat" | "allinpay";
       settlementProvider?: "allinpay";
     }
@@ -152,6 +156,22 @@ export type AllinpayOrderStatusData = {
     bizOrderNo: string;
     normalizedStatus: "failed" | "paid" | "pending" | "unknown";
     orderNumbers?: string;
+    statusText: string;
+  };
+};
+
+export type OrderPaidStatusData = {
+  debugRaw?: {
+    orderIsPaid: PaymentServerResponse<boolean>;
+  };
+  modules: {
+    orderIsPaid: boolean;
+  };
+  view: {
+    isPaid: boolean;
+    normalizedStatus: "paid" | "unpaid";
+    orderNumbers: string;
+    payEntry: number;
     statusText: string;
   };
 };
@@ -469,10 +489,15 @@ export async function createOrderPaymentData({
         view: {
           execution: {
             bizOrderNo: normalizeOptionalText(orderPay.data.bizOrderNo),
+            bridgeAction: "paymentStartAlipay",
             orderNumbers,
+            paymentMode: "allinpay-url",
+            paymentPayload: orderPay.data,
+            paymentUrl: allinpayUrl.data,
+            payType,
             provider: "allinpay",
-            type: "open-url",
-            url: allinpayUrl.data
+            settlementProvider: "allinpay",
+            type: "native-sdk"
           },
           orderNumbers,
           paySettlementType,
@@ -570,6 +595,68 @@ export async function fetchAllinpayOrderStatusData({
         normalizedStatus,
         ...(orderNumbers ? { orderNumbers } : {}),
         statusText: normalizePaymentResultStatusText(normalizedStatus)
+      }
+    },
+    meta: result.meta
+  };
+}
+
+export async function fetchOrderPaidStatusData({
+  authRequired = false,
+  authToken,
+  backendClient,
+  clientContext,
+  includeDebugRaw = false,
+  orderNumbers,
+  payEntry = 0
+}: {
+  authRequired?: boolean;
+  authToken?: string | null;
+  backendClient: CashierBackendClient;
+  clientContext?: ClientRequestContext;
+  includeDebugRaw?: boolean;
+  orderNumbers: string;
+  payEntry?: number | string;
+}): Promise<BackendApiResult<OrderPaidStatusData>> {
+  const normalizedPayEntry = normalizePayEntry(payEntry);
+  const query = new URLSearchParams({ orderNumbers });
+  const result = await backendClient.request<PaymentServerResponse<boolean>>({
+    authRequired,
+    authToken,
+    backend: "java",
+    clientContext,
+    method: "GET",
+    path: `/p/order/isPay/${normalizedPayEntry}/${encodeURIComponent(orderNumbers)}?${query.toString()}`,
+    route: "/api/bff/order-is-paid"
+  });
+  if (!result.ok) {
+    return result;
+  }
+
+  const orderIsPaid = unwrapJavaBooleanData(result.data, result.meta.requestId, "订单支付状态获取失败。");
+  if (!orderIsPaid.ok) {
+    return orderIsPaid;
+  }
+
+  return {
+    ok: true,
+    data: {
+      ...(includeDebugRaw
+        ? {
+            debugRaw: {
+              orderIsPaid: result.data
+            }
+          }
+        : {}),
+      modules: {
+        orderIsPaid: orderIsPaid.data
+      },
+      view: {
+        isPaid: orderIsPaid.data,
+        normalizedStatus: orderIsPaid.data ? "paid" : "unpaid",
+        orderNumbers,
+        payEntry: normalizedPayEntry,
+        statusText: orderIsPaid.data ? "支付成功" : "暂未支付成功"
       }
     },
     meta: result.meta
@@ -686,6 +773,7 @@ function normalizePaymentExecution({
   if (allinpayWechatMiniProgram) {
     return {
       bizOrderNo: extractBizOrderNo(payResult),
+      bridgeAction: resolvePaymentBridgeAction(payType),
       ...(allinpayWechatMiniProgram.chnlFrontParamInfo ? { chnlFrontParamInfo: allinpayWechatMiniProgram.chnlFrontParamInfo } : {}),
       miniProgram: allinpayWechatMiniProgram.miniProgram,
       orderNumbers,
@@ -722,12 +810,17 @@ function normalizePaymentExecution({
 
   return {
     orderNumbers,
+    bridgeAction: resolvePaymentBridgeAction(payType),
     paymentPayload: payResult,
     paymentMode: "app-sdk",
     payType,
     provider,
     type: "native-sdk"
   };
+}
+
+function resolvePaymentBridgeAction(payType: 7 | 8): PaymentBridgeAction {
+  return payType === 7 ? "paymentStartAlipay" : "paymentStartWechat";
 }
 
 function createAllinpayWechatMiniProgramPayload({ orderNumbers, payResult }: { orderNumbers: string; payResult: JavaOrderPayResult }) {
@@ -908,6 +1001,47 @@ function unwrapJavaData<T>(response: PaymentServerResponse<T>, requestId: string
       route: "/pay-way"
     }
   };
+}
+
+function unwrapJavaBooleanData(response: PaymentServerResponse<boolean>, requestId: string, fallbackMessage: string): BackendApiResult<boolean> {
+  if (response.success === false) {
+    return {
+      ok: false,
+      error: createApiError("HTTP_ERROR", {
+        details: { code: response.code },
+        message: response.msg ?? fallbackMessage,
+        requestId
+      })
+    };
+  }
+
+  if (typeof response.data !== "boolean") {
+    return {
+      ok: false,
+      error: createApiError("PARSE_ERROR", {
+        details: { code: response.code },
+        message: response.msg ?? fallbackMessage,
+        requestId
+      })
+    };
+  }
+
+  return {
+    ok: true,
+    data: response.data,
+    meta: {
+      appEnv: "unknown",
+      backend: "java",
+      h5Version: "unknown",
+      requestId,
+      route: "/api/bff/order-is-paid"
+    }
+  };
+}
+
+function normalizePayEntry(value: number | string) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
 }
 
 function normalizeMoney(value: unknown, fallback: number) {
