@@ -142,13 +142,15 @@ export function createBackendClient(config: BackendClientConfig) {
         });
 
         if (!response.ok) {
+          const backendBusinessStatus = readBackendBusinessStatus(responseBody);
           const error = createApiError(response.status === 401 || response.status === 403 ? "AUTH_FAILED" : "HTTP_ERROR", {
             httpStatus: response.status,
+            message: backendBusinessStatus?.message,
             requestId,
             details: responseBody === undefined ? undefined : { response: responseBody }
           });
           logBackendCall(config.logger, {
-            backendBusinessStatus: readBackendBusinessStatus(responseBody),
+            backendBusinessStatus,
             backendStatus: response.status,
             errorCode: error.code,
             options,

@@ -248,7 +248,7 @@ describe("backend client", () => {
           }
         },
         httpStatus: 502,
-        message: "API request failed.",
+        message: "bad gateway",
         recoverable: true,
         requestId: "req-failed"
       }
