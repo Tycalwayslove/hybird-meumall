@@ -64,6 +64,20 @@ describe("address flow helpers", () => {
     expect(createAddressReturnHref(productContext, "3001")).toBe("/product/1000054?addressId=3001");
   });
 
+  it("keeps promotion reward address selection isolated from other address entries", () => {
+    const context = parseAddressFlowContext({
+      activityId: "103",
+      flowId: "promotion-reward-103",
+      from: "promotion-reward",
+      select: "1"
+    });
+
+    expect(createAddressListHref(context)).toBe(
+      "/address?select=1&from=promotion-reward&flowId=promotion-reward-103&activityId=103"
+    );
+    expect(createAddressReturnHref(context, "3001")).toBe("/promotion/activities/103/reward?mode=receive");
+  });
+
   it("stores address flow results as one-shot session values", () => {
     const storage = createMemoryStorage();
 

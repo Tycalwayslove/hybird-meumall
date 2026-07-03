@@ -167,6 +167,8 @@ export type PromotionActivityRewardItem = {
   canReceive: boolean;
   addressText?: string;
   addressId?: number;
+  deliverType?: number;
+  prizeType?: number;
 };
 
 export type PromotionActivityRewardData = {

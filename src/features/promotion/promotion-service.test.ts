@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { PromotionActivitiesScreen } from "./components/PromotionActivitiesScreen";
 import { PromotionActivityDetailScreen } from "./components/PromotionActivityDetailScreen";
+import { PromotionActivityRewardScreen } from "./components/PromotionActivityRewardScreen";
 import { PromotionRankCenterScreen } from "./components/PromotionRankCenterScreen";
 import { PromotionRankingScreen } from "./components/PromotionRankingScreen";
 import { PromotionRewardRecordsScreen } from "./components/PromotionRewardRecordsScreen";
@@ -102,6 +103,41 @@ describe("promotion service", () => {
     expect(amountHtml).toContain("¥9621374");
     expect(amountHtml).toContain("您未上榜");
     expectNoBareLocalAssetUrls(amountHtml);
+  });
+
+  it("renders activity reward page with registered visual assets and onsite reward text", () => {
+    const html = withVersionBasePath(() =>
+      renderToStaticMarkup(createElement(PromotionActivityRewardScreen, {
+        data: {
+          activityId: "103",
+          activityTitle: "7月开单有礼",
+          completion: {
+            activityLine: '您在"7月开单有礼"活动中',
+            actionText: "成功完成销量",
+            valueText: "10单"
+          },
+          rewards: [
+            {
+              actionText: "领取",
+              canReceive: true,
+              deliverType: 1,
+              description: "将在公司现场发放",
+              id: "9002",
+              prizeType: 3,
+              statusKind: "ready",
+              title: "喵呜定制T恤"
+            }
+          ]
+        },
+        mode: "receive"
+      }))
+    );
+
+    expect(html).toContain(`${versionBasePath}/assets/promotion/rewards/reward-hero-bg.png`);
+    expect(html).toContain(`${versionBasePath}/assets/promotion/rewards/reward-info-card.png`);
+    expect(html).toContain(`${versionBasePath}/assets/promotion/rewards/reward-role.png`);
+    expect(html).toContain("将在公司现场发放");
+    expectNoBareLocalAssetUrls(html);
   });
 
   it("renders incentive ranking as an empty state without current user bar", () => {

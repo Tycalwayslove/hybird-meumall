@@ -58,6 +58,18 @@ describe("assetUrl", () => {
     expect(localAssetPaths["promotion.rewardRecordsBg"]).toBe(
       "/assets/shared/green-hero-bg.png"
     );
+    expect(localAssetPaths["promotion.rewardHeroBg"]).toBe(
+      "/assets/promotion/rewards/reward-hero-bg.png"
+    );
+    expect(localAssetPaths["promotion.rewardInfoCard"]).toBe(
+      "/assets/promotion/rewards/reward-info-card.png"
+    );
+    expect(localAssetPaths["promotion.rewardRole"]).toBe(
+      "/assets/promotion/rewards/reward-role.png"
+    );
+    expect(localAssetPaths["promotion.rewardAddressModalBg"]).toBe(
+      "/assets/promotion/rewards/reward-address-modal-bg.png"
+    );
     expect(localAssetPaths["promotion.rankingHeroBg"]).toBe(
       "/assets/shared/green-hero-bg.png"
     );
