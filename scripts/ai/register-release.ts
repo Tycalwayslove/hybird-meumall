@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const childProcess = require("child_process");
+const fs = require("fs");
 const path = require("path");
 const {
   getGitCommit,
@@ -20,7 +21,7 @@ const help = usage("ai:register-release", [
   "[--base-path /hybird]",
   "[--public-asset-base-url https://cdn.example.com/meumall/h5/<version>]",
   "[--health-check-path /api/health]",
-  "[--routes /,/promotion,/mine,/category]",
+  "[--routes /,/promotion,/mine,/category]（不传时自动扫描 src/app 页面路由）",
   "[--rollout-percentage <0-100>]",
   "[--git-commit <sha>]",
   "[--git-ref <ref>]",
@@ -80,11 +81,54 @@ function parsePercentage(value) {
   return percentage;
 }
 
+function discoverAppRoutes(appDir = rootPath("src/app")) {
+  if (!fs.existsSync(appDir) || !fs.statSync(appDir).isDirectory()) {
+    return [];
+  }
+
+  const routes = new Set();
+  const pageFilePattern = /^page\.(js|jsx|ts|tsx|mdx)$/;
+
+  function walk(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+        continue;
+      }
+      if (!entry.isFile() || !pageFilePattern.test(entry.name)) {
+        continue;
+      }
+
+      const routeDir = path.dirname(path.relative(appDir, fullPath));
+      const segments = routeDir === "." ? [] : routeDir.split(path.sep).filter((segment) => {
+        return segment && segment !== "api" && !segment.startsWith("(") && !segment.startsWith("_");
+      });
+      if (segments.includes("api")) {
+        continue;
+      }
+
+      routes.add(segments.length === 0 ? "/" : `/${segments.join("/")}`);
+    }
+  }
+
+  walk(appDir);
+  return Array.from(routes).sort((left, right) => {
+    if (left === "/") return -1;
+    if (right === "/") return 1;
+    return left.localeCompare(right);
+  });
+}
+
 function createReleaseRegistrationPayload(args) {
   const routes = listFromCsv(args.routes);
+  const releaseRoutes = routes.length > 0 ? routes : discoverAppRoutes();
   const serviceBaseUrl = trimTrailingSlash(args["service-base-url"]);
   if (!serviceBaseUrl) {
     throw new Error("--service-base-url 不能为空。");
+  }
+  if (releaseRoutes.length === 0) {
+    throw new Error("--routes 为空，且未能从 src/app 自动发现页面路由。");
   }
 
   const publicAssetBaseUrl = trimTrailingSlash(args["public-asset-base-url"]);
@@ -118,7 +162,7 @@ function createReleaseRegistrationPayload(args) {
     healthCheckPath: normalizePath(args["health-check-path"], "/api/health"),
     rollbackVersion: args["rollback-version"],
     rolloutPercentage: parsePercentage(args["rollout-percentage"]),
-    routes: routes.length > 0 ? routes : ["/", "/promotion", "/mine", "/category"],
+    routes: releaseRoutes,
     buildMeta
   };
 
@@ -218,5 +262,6 @@ if (require.main === module) {
 
 module.exports = {
   createReleaseRegistrationPayload,
+  discoverAppRoutes,
   postRelease
 };

@@ -289,6 +289,37 @@ describe("release manifest scripts", () => {
     });
   });
 
+  it("register-release discovers app page routes when routes are omitted", () => {
+    const outDir = tmpDir();
+    const output = path.join(outDir, "release-registration.json");
+
+    runScript("scripts/ai/register-release.ts", [
+      "--version",
+      "v1.0.2",
+      "--environment",
+      "test",
+      "--service-base-url",
+      "https://h5.example.com",
+      "--base-path",
+      "/h5-v/v1.0.2",
+      "--rollback-version",
+      "v1.0.1",
+      "--output",
+      output
+    ]);
+
+    const payload = JSON.parse(fs.readFileSync(output, "utf8"));
+
+    expect(payload.routes.length).toBeGreaterThan(40);
+    expect(payload.routes).toContain("/");
+    expect(payload.routes).toContain("/wallet");
+    expect(payload.routes).toContain("/pay-way");
+    expect(payload.routes).toContain("/promotion/ranking/incentive");
+    expect(payload.routes).toContain("/promotion/activities/[slug]/reward");
+    expect(payload.routes).toContain("/product/[id]");
+    expect(payload.routes).not.toContain("/product/p-1001");
+  });
+
   it("register-release posts the payload when execute is enabled", async () => {
     const requests: Array<{ url?: string; method?: string; body: unknown }> = [];
     const server = http.createServer((request, response) => {
