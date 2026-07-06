@@ -40,12 +40,14 @@ s
 - [ ] 接入真实商品、订单和用户接口；分类列表已接 `/category/list`，喵呜无购物车概念。
 - [ ] 配置 GitHub Actions 所需 SSR secrets 和受保护发布环境。
 - [ ] 在真实 CI 环境配置 `H5_RELEASE_SERVER_URL`，验证 `register_release=true` 的 candidate release 注册链路。
+- [ ] 在 H5 发版 smoke 中增加 `https://hybird.aigcpop.com/register` 固定入口验证。
 - [ ] 确认 manifest active 发布审批人和执行窗口。
 - [ ] 将 server-meumall 部署到生产/测试环境后，补充权限控制、审批流、审计日志、发布人记录和 WebView 访问策略验证。
 
 ## Done
 
 - [x] 接入注册成功后的达人实名认证流程：认证入口、真实姓名输入、通联开户 H5 链接、认证结果查询、成功跳首页 Tab 和失败重新认证。
+- [x] 明确运营注册二维码固定入口 `/register`，并由 server-meumall active manifest resolver 指向当前 H5 版本。
 - [x] 接入 iconfont Font class 单色图标基础体系，提供 `IconFont` 组件、英文语义别名、生成类型清单和 `icons:sync` 更新脚本。
 - [x] 优化 `/pay-way` 收银台视觉层级，补齐金额面板、支付方式选中态、底部提交栏和加载/错误状态样式。
 - [x] 按 `docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md` 完成订单列表、退货退款列表、普通快递订单详情和退款详情真实接口迁移，新增相关 BFF、页面、mapper 和操作按钮。

@@ -2,6 +2,34 @@
 
 本文件记录架构和流程决策，采用轻量 ADR 形式。
 
+## ADR-0026 - 注册二维码使用固定公开入口
+
+日期：2026-07-06
+
+状态：Accepted
+
+### 背景
+
+注册页实际运行在 H5 多版本容器中，例如 `/h5-v/v1.0.28/register`。运营二维码需要长期投放，不能随 H5 版本变化而更换，也不能依赖旧版本容器长期常驻。
+
+### 决策
+
+- 运营二维码固定使用 `https://hybird.aigcpop.com/register`。
+- `server-meumall` 提供 `GET /register`，读取 active manifest 后 302 到当前 active H5 版本的 `/register`。
+- H5 发版 manifest 必须声明 `/register` route。
+- App 内仍不提供注册入口；该入口只用于运营外部注册 H5。
+
+### 影响
+
+- H5 版本升级、回滚后，二维码 URL 不变。
+- 若 active 版本未包含 `/register`，固定入口返回 404，需要先发布并激活包含注册页的版本。
+- 后续如果拆出独立 `register-h5` 容器，可以只调整 resolver 目标，不改变二维码。
+
+### 备选方案
+
+- 二维码直接投放 `/h5-v/<version>/register`：拒绝，因为版本容器变化会导致二维码失效。
+- 立即拆出独立注册 H5 容器：暂不采用，当前注册页已在现有 H5 工程内完成，先用 resolver 稳定公开入口。
+
 ## ADR-0022 - H5 单色图标使用 iconfont Font class 本地同步
 
 日期：2026-07-01

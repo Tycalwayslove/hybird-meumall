@@ -48,6 +48,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - 已跑通 Mac Studio 本地 Jenkins H5 参数化构建链路：Jenkins Controller 运行在 Docker Desktop，`mac-studio` agent 由 launchd 守护，构建产物通过 SSH/rsync 上传到云服务器 release 目录。
 - 本地 Jenkins H5 构建脚本已接入 Git mirror 缓存，GitHub 网络不可用时可使用本机缓存继续构建指定分支。
 - 本地 Jenkins H5 构建已支持通过 SSH tunnel 注册 candidate release，并可在注册成功后激活远端 H5 SSR 服务。
+- 运营注册二维码固定入口已确定为 `https://hybird.aigcpop.com/register`；实际页面仍在 active H5 版本 `/h5-v/<version>/register`，由 server-meumall public entry 302。
 - Light/Dark 主题 token、主题 allowlist 和运行时应用 API。
 - API Client 基础：`ApiResult<T>`、`ApiError`、`RequestMeta`、base URL、requestId、Bridge token 来源、超时和错误归一化。
 - H5 BFF HTTP 鉴权基础：原生 Cookie 登录态、Next 服务端读取 `pythonToken` / `mallToken`、服务端按 Python / Java 后端选择 token 并转 Authorization、浏览器端 H5 client 请求 BFF；钱包推广订单额外读取原生 Cookie `userInfo.phone` 作为 Java `queryPromotionOrder.userId`。
@@ -188,6 +189,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 ## 2026-07-03 注册后实名认证流程
 
 - H5 注册成功后进入 `/register/certification` 达人认证入口页。
+- 运营二维码固定入口为 `https://hybird.aigcpop.com/register`，不是 `/h5-v/<version>/register`。
 - 认证姓名页 `/register/certification/name` 调用 BFF `/api/bff/certification/apply-url`，由 BFF 调 Java `/p/allinpay/member/getCreateMemberApplyUrl?name=<真实姓名>` 获取 `regInviteLink`。
 - 认证结果页 `/register/certification/result` 调用 BFF `/api/bff/certification/member-info`，由 BFF 调 Java `/p/allinpay/member/getMemberBasicInfoV2`，按 `phone` 存在、`isRealNameAuth=1`、`isWithdraw=1` 判定认证成功。
 - 独立 H5 入口 URL 上的 `token` 作为 Java 鉴权 token 使用：浏览器端只传给自身 BFF 的 `x-meumall-auth-token` header；App Cookie `mallToken` 仍为优先的正式鉴权来源。

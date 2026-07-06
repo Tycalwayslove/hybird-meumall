@@ -2,6 +2,20 @@
 
 所有重要的项目、工作流、架构、发布、Bridge、主题和 API 变更都记录在这里。
 
+## 2026-07-06 - 注册二维码固定公开入口
+
+### 变更
+
+- 注册页对外二维码入口固定为 `https://hybird.aigcpop.com/register`。
+- 实际 H5 页面仍随版本发布在 `/h5-v/<version>/register`。
+- `server-meumall` 新增 `GET /register`，读取 active manifest 后 302 到当前 active H5 版本注册页。
+- H5 发版 manifest 必须包含 `/register` route；active manifest 缺失该 route 时固定入口返回 404。
+- 产品事实源补充：App 内仍只有登录，没有注册；运营外部注册 H5 是例外入口。
+
+### 验证
+
+- `server-meumall`: `. .venv/bin/activate && pytest tests/test_api.py`，16 个测试通过。
+
 ## 2026-07-02 - 活动中心历史活动与分页状态联调
 
 ### 变更

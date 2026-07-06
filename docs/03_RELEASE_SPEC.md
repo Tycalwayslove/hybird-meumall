@@ -140,6 +140,35 @@ App 拼接首页时得到：
 https://hybird.aigcpop.com/h5-v/v1.0.1/
 ```
 
+## 固定公开注册入口
+
+运营二维码不要直接使用版本化注册页：
+
+```text
+https://hybird.aigcpop.com/h5-v/v1.0.1/register
+```
+
+对外固定入口为：
+
+```text
+https://hybird.aigcpop.com/register
+```
+
+该入口由 `server-meumall` 的 `GET /register` 承载。服务读取当前 active manifest，并按以下规则 302 到实际 H5 注册页：
+
+```text
+assets.serviceBaseUrl + assets.basePath + routes["/register"].path
+```
+
+因此 H5 发版时必须保证：
+
+1. 版本容器内 `/register` 页面可访问。
+2. release manifest 的 routes 包含 `/register`。
+3. public smoke 同时验证固定入口和版本化页面。
+4. 运营二维码始终使用 `/register`，不使用 `/h5-v/<version>/register`。
+
+如果 active manifest 未声明 `/register`，`server-meumall` 会返回 404，避免跳转到不存在的注册页。
+
 运行保留策略：
 
 | 类型 | 是否运行 | 说明 |
@@ -518,10 +547,11 @@ pnpm run ai:register-release \
   --public-asset-base-url "https://cdn.example.com/meumall/h5/v1.0.1" \
   --rollback-version v1.0.0 \
   --rollout-percentage 0 \
-  --routes "/,/promotion,/mine,/category" \
   --server-url "https://release.example.com" \
   --execute
 ```
+
+注册 release 时默认从 `src/app/**/page.*` 自动发现页面路由并写入 payload。只有临时兼容或灰度验证时才显式传 `--routes` 覆盖，覆盖原因需要写进发版审核。
 
 未追加 `--execute` 时，脚本只生成 `archives/releases/<version>/release-registration.json` 草案，不提交服务端。
 

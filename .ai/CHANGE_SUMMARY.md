@@ -1,5 +1,20 @@
 # 变更摘要
 
+## 2026-07-06 - 注册二维码固定公开入口
+
+### 变更
+
+- 运营二维码固定入口确定为 `https://hybird.aigcpop.com/register`。
+- 实际 H5 注册页仍在版本容器 `/h5-v/<version>/register` 中运行。
+- `server-meumall` 新增 `GET /register` public entry，基于 active manifest 返回 302。
+- H5 发布规范补充：release manifest 必须包含 `/register` route，固定入口 smoke 应纳入上线检查。
+- 产品事实源补充：App 内不提供注册入口，运营外部注册 H5 是例外。
+- 飞书同步：新增规则页 https://v05ctaei9gn.feishu.cn/wiki/P8bGwOGHuiW2elkUWBUcfiFpnQh；页面盘点更新至 revision 70；H5 发版流程更新至 revision 6。
+
+### 验证
+
+- `server-meumall`: `. .venv/bin/activate && pytest tests/test_api.py`：通过，16 tests。
+
 ## 2026-07-03 - 支付 Bridge 按支付宝/微信拆分
 
 ### 变更
