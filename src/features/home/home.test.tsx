@@ -101,10 +101,10 @@ describe("home module rendering", () => {
     expect(html).toContain("更多");
   });
 
-  test("renders banner and category skeletons when home business data is empty", () => {
+  test("hides banner and renders category skeletons when home business data is empty", () => {
     const html = renderToStaticMarkup(<HomeExperience data={createEmptyHomeExperienceData(homeExperienceData)} />);
 
-    expect(html).toContain('data-home-banner-skeleton="true"');
+    expect(html).not.toContain('data-home-banner-skeleton="true"');
     expect(html).toContain('data-home-category-skeleton="true"');
     expect(html).not.toContain("美妆个护");
     expect(html).not.toContain("食品生鲜");

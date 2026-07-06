@@ -1,12 +1,49 @@
 # 变更摘要
 
+## 2026-07-06 - H5-only 工作区边界收敛
+
+### 变更
+
+- 当前仓库边界明确为只维护 `hybird-meumall` H5 C 端。
+- 旧 `server-meumall`、`admin-meumall`、`app-meumall` 标记为退役/外部化，不再作为后续 H5 需求实现范围。
+- H5 active manifest、release 注册、版本 promote/gray/rollback 和后台配置能力统一以外部 Java 体系为准。
+- H5 侧只保留外部运行环境 Cookie、URL 参数和 Bridge 消费逻辑，不实现 iOS/App 代码。
+
+### 验证
+
+- `bash -n scripts/root/dev-all.sh scripts/root/check-all.sh scripts/deploy/h5-version-deploy.sh scripts/deploy/h5-jenkins-release.sh`：通过。
+- `node --check scripts/register-resolver/server.js`：通过。
+- `node scripts/register-resolver/test.js`：通过。
+- `bash scripts/root/dev-lib.test.sh`：通过。
+- `DRY_RUN=true GIT_REF=HEAD ALLOW_INITIAL_H5_RELEASE=true H5_RELEASE_ENV=test bash scripts/deploy/h5-version-deploy.sh`：通过。
+- `pnpm run check`：通过。
+- `git diff --check`：通过。
+- 飞书同步：项目总览 revision 5；页面盘点 revision 75；H5 发版流程 revision 9；H5 需求协作流程 revision 5。
+
+## 2026-07-06 - 首页 banner 空态与分类骨架细调
+
+### 变更
+
+- 首页接口无 banner 数据时不再渲染 banner 骨架或轮播区域。
+- 分类骨架屏和无 icon 兜底统一为灰色圆角块，不再使用多色堆叠占位。
+- 分类 icon 容器按 Figma 首页节点 `2:651` 调整为 52px，两行五列布局左右 16px。
+- 同步首页工作项、项目状态、变更记录和页面清单事实源。
+
+### 验证
+
+- `pnpm exec vitest run src/features/home/home.test.tsx src/features/home/home-real-api.test.ts`：通过，2 files / 28 tests。
+- `pnpm typecheck`：通过。
+- `git diff --check`：通过。
+- 飞书同步：页面清单 revision 71。
+
 ## 2026-07-06 - 注册二维码固定公开入口
 
 ### 变更
 
 - 运营二维码固定入口确定为 `https://hybird.aigcpop.com/register`。
 - 实际 H5 注册页仍在版本容器 `/h5-v/<version>/register` 中运行。
-- `server-meumall` 新增 `GET /register` public entry，基于 active manifest 返回 302。
+- H5 Jenkins 部署独立 Node register resolver，基于 Java active manifest 返回 302。
+- Nginx 模板新增 `/register` 精确代理到 resolver 容器。
 - H5 发布规范补充：release manifest 必须包含 `/register` route，固定入口 smoke 应纳入上线检查。
 - 产品事实源补充：App 内不提供注册入口，运营外部注册 H5 是例外。
 - 飞书同步：新增规则页 https://v05ctaei9gn.feishu.cn/wiki/P8bGwOGHuiW2elkUWBUcfiFpnQh；页面盘点更新至 revision 70；H5 发版流程更新至 revision 6。

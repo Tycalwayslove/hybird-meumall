@@ -10,15 +10,15 @@
 
 ## 项目背景
 
-- 运行环境：H5 页面运行在原生 App WebView 中。
+- 运行环境：H5 页面运行在浏览器或外部 App WebView 中；本仓库只维护 H5 侧行为。
 - 技术栈：Next.js、React、TypeScript、Tailwind CSS。
 - 交付模式：
   - 远程 WebView 加载。
-  - 部分静态页面随原生 App 打包。
+  - 固定入口、版本路由和页面资源由 H5 发版链路管理。
 - 核心能力：
   - 通过 manifest 控制版本、灰度、回滚和页面资源路由。
   - 通过 Tailwind CSS + CSS Variables 支持动态换肤。
-  - 支持 Native Bridge。
+  - 支持消费外部运行环境注入的 Cookie、URL 参数和 Bridge 能力；不实现外部 App 或 iOS 代码。
   - 支持 Codex 通过任务流持续开发。
 
 ## 不可违反的规则
@@ -43,7 +43,7 @@
 
 如果任务涉及以下领域，还必须读取：
 
-- Native Bridge：`docs/02_NATIVE_BRIDGE_SPEC.md`
+- 外部运行环境/Bridge：`docs/02_NATIVE_BRIDGE_SPEC.md`
 - manifest、灰度、回滚、打包：`docs/03_RELEASE_SPEC.md`
 - 主题、Tailwind、CSS Variables：`docs/04_THEME_SPEC.md`
 - API 契约或请求行为：`docs/05_API_SPEC.md`
@@ -127,8 +127,8 @@
 ## 发布约束
 
 - manifest 变更必须说明版本、渠道、灰度、回滚和资源兼容性。
-- 静态打包页面必须声明所需原生 App 版本或能力。
-- 依赖 Bridge 的能力必须说明原生方法不可用时的 fallback 行为。
+- 固定入口和版本页面必须说明所需外部运行环境、鉴权参数或 Java active manifest 能力。
+- 依赖 Bridge 的能力必须说明外部方法不可用时的 fallback 行为；不要把 iOS/App 实现写成本仓库任务。
 
 ## 静态资源约束
 
@@ -145,11 +145,11 @@
 - 不硬编码应由主题 token 控制的颜色。
 - 涉及主题时验证 light、dark 和品牌主题。
 
-## Native Bridge 约束
+## 外部运行环境和 Bridge 约束
 
 - 每个 Bridge API 必须定义方法名、参数、响应、错误、超时、平台支持和 fallback。
 - H5 调用 Bridge 前必须做能力检测。
-- Native Bridge 变更必须向后兼容，或提供迁移方案。
+- Bridge 变更必须向后兼容，或提供 H5 侧迁移方案；外部 App/iOS 实现只记录为依赖，不纳入本仓库实现范围。
 
 ## 文档归属
 

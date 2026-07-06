@@ -2,7 +2,7 @@
 
 ## 当前阶段
 
-H5 基础工程架构初始化完成，进入运行时基础能力建设阶段。
+H5 C 端持续迭代阶段。当前仓库只维护 `hybird-meumall`；旧 `server-meumall`、`admin-meumall`、`app-meumall` 和 `meumall-ci` 已从当前工作区移除，H5 版本管理、active manifest、业务 API 和后台配置由外部 Java 体系承接，App/WebView 容器能力作为外部运行环境依赖记录。
 
 ## 已实现
 
@@ -28,8 +28,8 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - 类型化 Native Bridge adapter、Web mock、首批方法和统一错误结构。
 - Manifest、app-config、theme-config 类型和本地 schema 校验函数。
 - 客户端 Manifest Runtime：远程拉取、schema 校验、last-known-good 缓存、版本解析和路由加载结果构造。
-- server-meumall active manifest HTTP fetcher：支持通过 `NEXT_PUBLIC_H5_MANIFEST_URL` / `H5_MANIFEST_URL` 拉取 JSON，并可注入 `fetchImpl` 测试。
-- 本地配置中心闭环：`server-meumall` 已提供 FastAPI + SQLite 的 manifest 配置 CRUD、发布 active 和 H5 只读接口；`admin-meumall` 已提供简单配置发布后台；hybird 可通过 active manifest URL 拉取配置。
+- Java active manifest HTTP fetcher：支持通过 `NEXT_PUBLIC_H5_MANIFEST_URL` / `H5_MANIFEST_URL` 拉取 JSON，并可注入 `fetchImpl` 测试。
+- 旧本地配置中心闭环已退役：`server-meumall` / `admin-meumall` 不再作为当前 H5 版本管理或配置来源；hybird 通过 Java active manifest URL 拉取配置。
 - 发布脚本已统一生成和更新 `ManifestFile` schema 草案。
 - 回滚脚本已支持只修改 manifest 草案完成版本回退并记录黑名单。
 - Next.js 已切回 SSR/standalone 构建，默认生成可部署到 Node.js 或 Serverless 运行时的 `.next/standalone` 产物，并通过根 layout 显式强制当前路由动态渲染。
@@ -39,16 +39,13 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - standalone 静态资源准备脚本已落地：`ai:prepare-standalone-assets`，用于将 `.next/static` 和 `public` 复制到 `.next/standalone` 运行目录。
 - H5 本地多版本演练能力：通过 `H5_RELEASE_VARIANT` 和 `H5_RELEASE_LABEL` 在页面右上角展示版本标识，并支持蓝/绿/粉三份 SSR 服务供 admin active manifest 切换。
 - SSR manifest 切流观察脚本已落地：`ai:resolve-manifest`。
-- 正式发版入口已落地：`ai:register-release` 支持生成 release 注册草案，并可通过 `--execute` 将 candidate release 注册到 server-meumall；GitHub Actions 已增加可选 `register_release` 输入。
-- server-meumall 已支持 release 注册、列表、发布 active、设置灰度和回滚 API，并兼容 CI 参数式 payload 与完整 manifest payload。
-- admin-meumall 已增加“正式发版”操作区，可查看 release、发布 active、设置灰度和发起回滚。
+- 正式发版入口已落地：`ai:register-release` 支持生成 release 注册草案，并可通过 `--execute` 将 candidate release 注册到 Java H5 版本管理；GitHub Actions 已增加可选 `register_release` 输入。
+- H5 发布脚本已迁移到 Java H5 版本管理：注册、列表、active、灰度和回滚均不再依赖旧 Python 服务或旧本地后台。
 - 已生成本地切流/回滚演练档案 `archives/releases/2026.05.15-switch-drill/`。
 - 已新增 SSR 健康检查路由 `/api/health`。
 - 已添加手动 GitHub Actions 发布流水线 `.github/workflows/h5-release.yml`，当前按 SSR/standalone 产物归档。
-- 已跑通 Mac Studio 本地 Jenkins H5 参数化构建链路：Jenkins Controller 运行在 Docker Desktop，`mac-studio` agent 由 launchd 守护，构建产物通过 SSH/rsync 上传到云服务器 release 目录。
-- 本地 Jenkins H5 构建脚本已接入 Git mirror 缓存，GitHub 网络不可用时可使用本机缓存继续构建指定分支。
-- 本地 Jenkins H5 构建已支持通过 SSH tunnel 注册 candidate release，并可在注册成功后激活远端 H5 SSR 服务。
-- 运营注册二维码固定入口已确定为 `https://hybird.aigcpop.com/register`；实际页面仍在 active H5 版本 `/h5-v/<version>/register`，由 server-meumall public entry 302。
+- 旧 Mac Studio 本地 Jenkins / `meumall-ci` 构建链路已退役并从当前工作区移除；当前仅保留根级 H5 发布脚本，外部 Jenkins 如需调用必须显式传入环境变量或配置文件。
+- 运营注册二维码固定入口已确定为 `https://hybird.aigcpop.com/register`；实际页面仍在 active H5 版本 `/h5-v/<version>/register`，由 H5 Jenkins 部署的独立 Node resolver 读取 Java active manifest 后 302。
 - Light/Dark 主题 token、主题 allowlist 和运行时应用 API。
 - API Client 基础：`ApiResult<T>`、`ApiError`、`RequestMeta`、base URL、requestId、Bridge token 来源、超时和错误归一化。
 - H5 BFF HTTP 鉴权基础：原生 Cookie 登录态、Next 服务端读取 `pythonToken` / `mallToken`、服务端按 Python / Java 后端选择 token 并转 Authorization、浏览器端 H5 client 请求 BFF；钱包推广订单额外读取原生 Cookie `userInfo.phone` 作为 Java `queryPromotionOrder.userId`。
@@ -57,7 +54,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - 支付结果主链路已调整为按订单号回查：新增 `/api/bff/order-is-paid` 对接 Java `/p/order/isPay/{payEntry}/{orderNumbers}`，支付结果页固定 `payEntry=0`；订单确认进入收银台、收银台进入支付结果页均使用 `replace`，支付宝支付优先发起 `paymentStartAlipay`，微信支付优先发起 `paymentStartWechat`，旧 `paymentStartCashier` 仅作为 `unsupported` fallback，通联支付发起后 H5 立即进入 `/pay-result`，由结果页展示“查看支付状态 / 查看订单”。
 - H5 首页真实接口首批接入：新增 `/api/bff/home`、`/api/bff/home/recommend-products` 和 `/api/bff/home/for-you-products`。首页核心 BFF 只调 Java `/p/app/home/index`；首页“为您推荐”商品区按 `current/size` 调 `/p/app/home/recommendProds`，并已支持底部进入视口后按 `current + 1` 下滑加载更多，加载到第 2 页后显示回到顶部按钮；首页“更多”进入的新页面 `/home/recommend-products` 标题为“相似推荐商品”，其列表按 `current/size` 调 `/p/app/home/forYouProds`，并已支持底部进入视口后按 `current + 1` 下拉加载更多，首屏默认展示骨架屏；首页正式联调阶段不再使用 `homeExperienceData` 补齐 banner、分类或推荐商品，接口失败展示错误/空业务态；首页“限时秒杀”和“推广带货”入口卡是 H5 固定 UI，分别固定跳转 `/seckill` 和 `/promotion/products`，不再由首页聚合接口或配置模块控制；相似推荐商品卡进入详情时已复用 `HybridLink strategy="new-webview"`，与首页商品详情入口保持同一 WebView 容器策略。首页分页 BFF 响应采用 `view/modules/debugRaw` 结构：`view` 给当前页面渲染，`modules` 保留业务模块字段供后续扩展，`debugRaw` 仅 local/test 按需返回 Java 原始 envelope。
 - H5 真实接口联调渲染规则已固化：进入联调阶段的页面首屏先展示骨架屏或 loading，接口成功后只渲染真实数据，列表空数据展示 `EmptyState` 或业务空态，失败展示错误、重试、登录态或兼容提示，不再使用本地 mock 数据作为页面兜底。
-- 首页分类映射已按 2026-06-25 Apifox 最新口径修正：`/p/app/home/index` 中的 `navList` 直接作为首页分类区来源；`navType=1` 进入 `/search/ranking`，若后端返回 `rankType/categoryId` 则携带到完整热榜页用于默认选中对应标签；`navType=2` 进入 `/search?categoryId=<categoryId>`；`navType=3` 进入 `/category`；不再拼接 `hotCategory + categoryTop8`。banner 或分类为空时展示骨架屏，不使用本地 mock 业务数据。
+- 首页分类映射已按 2026-06-25 Apifox 最新口径修正：`/p/app/home/index` 中的 `navList` 直接作为首页分类区来源；`navType=1` 进入 `/search/ranking`，若后端返回 `rankType/categoryId` 则携带到完整热榜页用于默认选中对应标签；`navType=2` 进入 `/search?categoryId=<categoryId>`；`navType=3` 进入 `/category`；不再拼接 `hotCategory + categoryTop8`。banner 为空时不展示轮播图；分类为空时展示灰色圆角块骨架屏，不使用本地 mock 业务数据。
 - 搜索首页热门词已接入真实 BFF：新增 `/api/bff/search/hot-keywords?type=1` -> Java `/search/hotSearch?type=1`；`/search` 热门搜索区域首屏展示骨架屏，成功后只渲染真实热词，空数组展示“暂无热门搜索”，失败展示“热门搜索加载失败”，不拼接本地 mock 热词。搜索历史改为前端 localStorage `meumall.search.history`，提交搜索或点击热词写入本地，支持清空全部历史和单条删除指定关键词。
 - 搜索热榜已接入真实 BFF：新增 `/api/bff/search/ranking` -> Java `/search/rankTabs` 和 `/search/rank/{rankType}`；`/search` 下方热榜模块传 `categoryBoardCount=4`，商品只展示前三条，`/search/ranking` 完整榜单不传 `categoryBoardCount` 并完整展示商品；首屏展示骨架，成功后只渲染真实标签和商品，切换标签会按 `rankType/categoryId` 重新请求商品列表，空数组展示通用空态且外层不使用白底卡片，失败展示“热榜加载失败”，不拼接本地 mock 热榜商品。搜索页进入完整榜单、热榜商品详情或搜索结果商品详情时使用 `window.location.replace(buildClientHref(...))` 替换当前搜索 history，避免 App 返回按钮或滑动返回停回搜索页；进入完整榜单会携带当前标签 `rankType/categoryId`，完整榜单页内切换标签只更新 state 和 BFF 请求，不操作 URL。
 - 搜索结果商品已接入真实 BFF：新增 `/api/bff/search/products` -> Java `/p/app/prod/page`，支持 `keyword/orderBy/categoryId/categoryOptionsParentId`；首页分类或分类 leaf 进入 `/search?categoryId=<id>` 时无关键词也展示结果页，并通过 `/category/list?parentId=<id>&shopId=0` 获取当前类目的所有子孙类目；搜索框、热门搜索、搜索历史进入 `/search?q=<keyword>` 时不带 `categoryId`，通过 `/category/list?parentId=0&shopId=0` 获取全局分类树；搜索结果页分类筛选接口默认不传 `depth`；BFF 递归保留 Java 返回项的 `children/categories` 子孙树，H5 点击类目后优先直接展示已返回的所有子孙类目；排序 UI 只保留销量/价格两个互斥条件，点击同一条件切换升降序；筛选区已优化为“综合筛选”摘要、分段排序按钮和分级类目标题；分类面板展开时有蒙层并锁定页面滚动，点击类目只更新待确认选中态，点击“确认”才应用分类请求，点击“重置”清空分类并重新请求；搜索结果页内再次搜索或清空关键词只更新本页关键词 state 并用 `history.replaceState` 同步 URL，不重置排序/分类筛选；输入框使用 `type=text`，只保留 H5 自定义清空按钮；搜索结果页首屏只展示骨架屏，商品空数组展示通用空态，接口失败展示错误态，不拼接本地 mock 商品或分类；商品有下一页时底部进入视口自动加载下一页，不再展示手动“加载更多”按钮。
@@ -121,7 +118,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - 原生 App 内置兜底页流水线。
 - 业务测试覆盖。
 - manifest 正式 active 发布审批和 SSR 运行平台接入。
-- server-meumall active manifest 的生产环境部署、权限控制和发布审批配置。
+- Java H5 版本管理的生产环境权限控制、审批流、审计日志、发布人记录和 WebView 访问策略验证。
 - 真实 Sentry、原生埋点或内部监控平台接入。
 
 ## 当前约束
@@ -130,19 +127,19 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - 修改 release、bridge、theme、api 时必须同步更新对应文档。
 - 回滚流程只能修改 manifest 草案，不重新构建资源。
 - 发布准备流程必须生成 `build.json`、`release-note.md`、`manifest.draft.json`、`ssr-release-plan.json` 和 SSR 运行时归档。
-- AI 辅助脚本默认只做本地草案、SSR 发布计划和 smoke；`ai:register-release` 只有显式追加 `--execute` 时才连接 server-meumall 注册 candidate release。
+- AI 辅助脚本默认只做本地草案、SSR 发布计划和 smoke；`ai:register-release` 只有显式追加 `--execute` 时才连接 Java H5 版本管理注册 candidate release。
 - 应用工程使用 `pnpm`；AI 辅助脚本可继续通过 `npm run` 或 `pnpm run` 执行。
 - 协作文档使用中文；代码标识符、文件名、命令名保留英文。
 - 使用 `task-create` 时，用户可先用自然语言描述需求；AI 必须先澄清并输出草案，用户确认后才创建任务文件。
-- 发布准备和回滚脚本仅生成或修改本地草案；candidate release 可由 CI 注册到 server-meumall，active、灰度和回滚必须通过 admin-meumall 或受控发布平台审批执行。
+- 发布准备和回滚脚本仅生成或修改本地草案；candidate release 可由 CI 注册到 Java H5 版本管理，active、灰度和回滚必须通过外部 Java 版本管理或受控发布平台审批执行。
 - Git 提交信息必须使用 Conventional Commits 结构，描述可以使用中文。
 
 ## 已知风险
 
 - Native Bridge 总协议草案已建立，但尚未与 iOS 和 Android 团队确认。
 - H5 首页 Bridge 调试面板已能发出统一信封；原生 App 当前已能消费 H5 路由跳转信封并维护调试 WebView 栈；H5 原生页跳转当前直接发送 `router/navigate route=<native-page>`，例如我的页设置入口发送 `route=settings`；分享、登录重认证等仍是占位或待原生正式实现。
-- active manifest 已约定由 server-meumall 提供，灰度规则和审批归属仍需与发布平台确认。
-- H5 runtime 已可通过 server-meumall 拉取并缓存 manifest；原生 App 是否也需要拉取仍待确认。
+- active manifest 已约定由 Java H5 版本管理提供，灰度规则和审批归属仍需与发布平台确认。
+- H5 runtime 已可通过 Java active manifest URL 拉取并缓存 manifest；外部入口是否也需要拉取由外部运行环境确认。
 - SSR 已覆盖当前模拟路由；最终随 App 内置的兜底页列表尚未确定。
 - Figma 全局色彩 token 已完成首版 H5 落地；后续仍需确认设计、H5、原生是否共享同一套 token 发布和变更流程。
 - 品牌主题、远程主题拉取和用户主题偏好持久化尚未实现。
@@ -152,8 +149,7 @@ H5 基础工程架构初始化完成，进入运行时基础能力建设阶段�
 - Telemetry 真实采样点、采样率、隐私脱敏和平台上报策略尚未确定。
 - 模拟电商页面的正式视觉、真实 icon 和真实 API 尚未实现。
 - GitHub Actions workflow 已切回 SSR/standalone 产物归档，并支持可选注册 candidate release，但尚未在远端仓库环境中验证，仍需配置 `H5_SERVICE_BASE_URL`、`H5_RELEASE_SERVER_URL` 等 GitHub Secrets 和受保护环境。
-- 本地 Jenkins 依赖 Mac Studio 的 Docker Desktop、Java 17、SSH key 和 `/Users/mac/person_code/meu-mall/meumall-ci` 工作目录；迁移到新机器时需要恢复这些本地运行条件。
-- 当前 Jenkins release 注册通过 SSH tunnel 访问服务器内网 FastAPI；后续接入外部 CI 时应补充独立 CI token 鉴权。
+- 外部 Jenkins release 注册应直接使用 Java H5 版本管理接口和专用 CI token；不得恢复旧 `meumall-ci`、SSH tunnel 到旧 Python release API 或本地 Mac agent 链路。
 - 推广首页概览、活动中心、活动详情、权益中心、排行榜销量榜和销售额榜真实接口已接入，联调阶段不回退本地 mock；佣金明细、名片、奖励记录列表等真实后端接口仍待确认，达人月销量、月 GMV、福利细则和榜单刷新规则仍需后续确认。
 - 本地稳定图片资源可以随 H5 发版，但运营可替换图片、商品图、用户头像仍应由后台或 CMS 返回 CDN URL。
 - 新增 H5 页面如果绕过 `localAssetUrl()` 直接写 `/assets/...`，或在资源工具中用动态 `process.env[key]` 读取客户端配置，线上 `/h5-v/<version>` 页面会丢失版本前缀并导致图片 404；新增页面提交前必须通过扫描、渲染测试或构建产物检查确认无裸本地资源路径。

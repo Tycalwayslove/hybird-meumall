@@ -63,3 +63,13 @@ pnpm exec eslint src/features/mine-secondary/address-flow.ts src/features/mine-s
 
 - H5 页面清单与开发进度：<https://v05ctaei9gn.feishu.cn/wiki/WgaqwTRRUitnRNkCtNPcOcDnnre>，revision_id=39。
 - H5 与原生 App 路由跳转对接说明：<https://v05ctaei9gn.feishu.cn/wiki/OJk1wa43PiR9lTkYs2YcW8llnmf>，revision_id=88。
+
+## 标签
+
+- H5
+- 地址
+- 路由
+
+## 风险和假设
+
+- 外部 App/WebView 手势返回行为仍需由外部运行环境保证，H5 只维护 history 和 fallback。

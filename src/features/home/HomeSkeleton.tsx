@@ -9,12 +9,11 @@ export function HomeSkeleton() {
           <div className="h-9 flex-1 rounded-full bg-white" />
           <div className="size-7 rounded-full bg-white" />
         </div>
-        <div className="mt-5 h-24 rounded-[8px] bg-white" />
-        <div className="mt-4 grid grid-cols-5 gap-y-3">
+        <div className="mt-4 grid grid-cols-5 gap-x-[20.75px] gap-y-3.5 px-4">
           {Array.from({ length: 10 }, (_, index) => (
             <div key={index} className="flex flex-col items-center">
-              <div className="size-[46px] rounded-[12px] bg-white" />
-              <div className="mt-2 h-3 w-12 rounded-full bg-white" />
+              <div className="size-[52px] rounded-[12px] bg-line" />
+              <div className="mt-2 h-3 w-12 rounded-full bg-line" />
             </div>
           ))}
         </div>

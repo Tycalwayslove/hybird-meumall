@@ -2,19 +2,52 @@
 
 所有重要的项目、工作流、架构、发布、Bridge、主题和 API 变更都记录在这里。
 
+## 2026-07-06 - 首页 banner 空态与分类骨架细调
+
+### 变更
+
+- 首页接口无 banner 数据时不展示 banner/轮播区域。
+- 首页分类骨架屏和无 icon 兜底统一为灰色圆角块。
+- 首页分类 icon 容器按 Figma 首页节点 `2:651` 调整为 52px，并保持两行五列布局。
+
+### 验证
+
+- `pnpm exec vitest run src/features/home/home.test.tsx src/features/home/home-real-api.test.ts`：通过，2 files / 28 tests。
+- `pnpm typecheck`：通过。
+- `git diff --check`：通过。
+- 飞书同步：页面清单 revision 71。
+
+## 2026-07-06 - H5-only 工作区边界收敛
+
+### 变更
+
+- 明确当前仓库后续只维护 `hybird-meumall` H5 C 端。
+- 旧 `server-meumall`、`admin-meumall`、`app-meumall` 和 `meumall-ci` 已从当前工作区物理移除，不再作为 H5 需求实现范围。
+- H5 active manifest、release 注册、promote、gray、rollback 和后台配置能力统一以外部 Java 体系为准。
+- Bridge/WebView 相关能力只保留 H5 侧调用、能力检测和 fallback；外部 App/iOS 实现不纳入本仓库。
+
+### 验证
+
+- `pnpm run check`：通过。
+- H5 发版 dry-run：通过，只规划 H5 版本容器、Java manifest/register 和 register resolver。
+- 飞书同步：项目总览 revision 5；页面盘点 revision 75；H5 发版流程 revision 9；H5 需求协作流程 revision 5。
+
 ## 2026-07-06 - 注册二维码固定公开入口
 
 ### 变更
 
 - 注册页对外二维码入口固定为 `https://hybird.aigcpop.com/register`。
 - 实际 H5 页面仍随版本发布在 `/h5-v/<version>/register`。
-- `server-meumall` 新增 `GET /register`，读取 active manifest 后 302 到当前 active H5 版本注册页。
+- H5 Jenkins 发版脚本新增独立 Node register resolver，读取 Java `GET /platform/h5Release/active` 后 302 到当前 active H5 版本注册页。
+- Nginx 模板新增 `/register` 精确代理，默认转发到 `127.0.0.1:4110` 的 resolver 容器。
 - H5 发版 manifest 必须包含 `/register` route；active manifest 缺失该 route 时固定入口返回 404。
 - 产品事实源补充：App 内仍只有登录，没有注册；运营外部注册 H5 是例外入口。
 
 ### 验证
 
-- `server-meumall`: `. .venv/bin/activate && pytest tests/test_api.py`，16 个测试通过。
+- `bash -n scripts/deploy/h5-version-deploy.sh`：通过。
+- `bash -n scripts/deploy/h5-jenkins-release.sh`：通过。
+- `node scripts/register-resolver/test.js`：通过。
 
 ## 2026-07-02 - 活动中心历史活动与分页状态联调
 

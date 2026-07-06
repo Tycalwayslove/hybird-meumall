@@ -154,7 +154,7 @@ https://hybird.aigcpop.com/h5-v/v1.0.1/register
 https://hybird.aigcpop.com/register
 ```
 
-该入口由 `server-meumall` 的 `GET /register` 承载。服务读取当前 active manifest，并按以下规则 302 到实际 H5 注册页：
+该入口由 H5 发布脚本部署的独立 Node register resolver 承载。resolver 读取 Java H5 版本管理 active manifest，并按以下规则 302 到实际 H5 注册页：
 
 ```text
 assets.serviceBaseUrl + assets.basePath + routes["/register"].path
@@ -167,7 +167,7 @@ assets.serviceBaseUrl + assets.basePath + routes["/register"].path
 3. public smoke 同时验证固定入口和版本化页面。
 4. 运营二维码始终使用 `/register`，不使用 `/h5-v/<version>/register`。
 
-如果 active manifest 未声明 `/register`，`server-meumall` 会返回 404，避免跳转到不存在的注册页。
+如果 active manifest 未声明 `/register`，Node resolver 会返回 404，避免跳转到不存在的注册页。Java active manifest 请求失败或格式异常时，resolver 返回 502，便于定位版本管理接口或环境配置问题。
 
 运行保留策略：
 
@@ -220,7 +220,7 @@ CDN 阶段上线前必须保证旧版本 CDN 目录不删除，否则 manifest �
 
 ## 本地多版本演练
 
-为了在原生 App WebView 中肉眼确认 active manifest 切换效果，可以将同一份 standalone 产物复制成多份，并用不同运行时变量启动：
+为了在浏览器或外部 WebView 中肉眼确认 active manifest 切换效果，可以将同一份 standalone 产物复制成多份，并用不同运行时变量启动：
 
 ```bash
 H5_BASE_PATH=/hybird pnpm build
@@ -235,7 +235,7 @@ PORT=3110 H5_RELEASE_VARIANT=green H5_RELEASE_LABEL="GREEN v1.0.1" node .next/va
 PORT=3111 H5_RELEASE_VARIANT=rose H5_RELEASE_LABEL="ROSE v1.0.1" node .next/variant-packages/rose/server.js
 ```
 
-然后在 `server-meumall` 中创建三份 manifest 配置：
+然后在 Java H5 版本管理中创建三份 manifest/release 配置：
 
 | 版本 | `assets.serviceBaseUrl` |
 | --- | --- |
@@ -243,7 +243,7 @@ PORT=3111 H5_RELEASE_VARIANT=rose H5_RELEASE_LABEL="ROSE v1.0.1" node .next/vari
 | `v1.0.1-green` | `http://127.0.0.1:3110` |
 | `v1.0.1-rose` | `http://127.0.0.1:3111` |
 
-在 `admin-meumall` 发布不同 active manifest 后，iOS App 点击“刷新配置”即可重新拉取 active manifest 并加载对应 H5 版本。
+在 Java H5 版本管理发布不同 active manifest 后，浏览器或外部入口重新读取 active manifest 即可加载对应 H5 版本。
 
 ## Manifest 模型
 
@@ -345,10 +345,10 @@ NEXT_PUBLIC_H5_ASSET_BASE_URL=https://cdn.example.com/meumall/h5/v1.0.1
 
 ## Active Manifest 来源
 
-active manifest 由 `server-meumall` 提供，不再要求 H5 只能通过本地注入 fetcher 消费 manifest。默认本地联调 endpoint：
+active manifest 已迁移到外部 Java H5 版本管理提供。本仓库不再维护 `server-meumall` / `admin-meumall` 作为发布平台。默认测试联调 endpoint：
 
 ```text
-http://127.0.0.1:4100/api/h5/manifest/active?environment=prod
+https://test.aigcpop.com:18088/apis/platform/h5Release/active
 ```
 
 H5 侧通过环境变量配置 active manifest URL：
@@ -373,27 +373,27 @@ H5 侧通过环境变量配置 active manifest URL：
 1. 配置层：修改 `config/env/h5.prod.env` 中的 H5、manifest、Java、Python 域名。
 2. 发布层：确认 CI / Docker / Jenkins 注入的 `H5_BASE_PATH=/h5-v/<version>`、`H5_SERVICE_BASE_URL`、active manifest URL、Cookie domain、nginx 代理和 smoke URL 都已切到正式环境。
 
-如果正式环境只换域名，且路径结构仍保持一致，代码通常不需要改；如果路径结构或 manifest schema 变化，就必须同步更新发布脚本、server-meumall manifest 记录、原生 App 打开 H5 的 URL 和回滚方案。
+如果正式环境只换域名，且路径结构仍保持一致，代码通常不需要改；如果路径结构或 manifest schema 变化，就必须同步更新发布脚本、Java H5 版本管理契约、外部入口打开 H5 的 URL 和回滚方案。
 
 `src/lib/manifest/server-fetcher.ts` 提供 `createHttpManifestFetcher(options)`：
 
-- `url` 可显式传入 server-meumall active manifest URL。
+- `url` 可显式传入 Java active manifest URL。
 - `fetchImpl` 可注入，便于单元测试或 WebView 容器替换请求实现。
 - 未传 `url` 时会依次读取 `NEXT_PUBLIC_H5_MANIFEST_URL`、`H5_MANIFEST_URL`。
 - HTTP 非 2xx 会抛错，JSON 解析失败会抛错，由既有 manifest runtime 继续执行 last-known-good 缓存 fallback。
 
-后台发布流程：
+发布流程：
 
-1. 后台或发布平台完成 SSR 版本部署和 smoke。
-2. H5 CI 调用 `server-meumall` 的 `POST /api/releases` 注册 candidate release。
-3. admin-meumall 在“正式发版”列表中展示 candidate release。
-4. 发布人员在 admin-meumall 中执行灰度、全量或回滚操作。
-5. server-meumall 更新 active manifest 指针或 active manifest 的灰度字段。
+1. Jenkins 或发布脚本完成 H5 SSR 版本部署和 smoke。
+2. H5 CI 调用 Java H5 版本管理 `POST /platform/h5Release` 注册 candidate release。
+3. Java H5 版本管理列表展示 candidate release。
+4. 发布人员通过 Java 版本管理能力执行灰度、全量或回滚操作。
+5. Java H5 版本管理更新 active manifest 指针或 active manifest 的灰度字段。
 6. hybird App Shell 使用 `createHttpManifestFetcher()` 拉取 active manifest JSON。
 7. 既有 manifest runtime 执行 schema 校验、last-known-good 缓存、版本解析和路由 URL 构造。
-8. 后台执行回滚时只更新 server-meumall active manifest 指针；hybird 下一次拉取后按相同 runtime 逻辑切回目标版本。
+8. 回滚时只更新 Java active manifest 指针；hybird 下一次拉取后按相同 runtime 逻辑切回目标版本。
 
-`POST /api/releases` 推荐由 CI 使用参数式 payload，server-meumall 会生成兼容 `ManifestFile` 的 manifest：
+`POST /platform/h5Release` 推荐由 CI 使用参数式 payload，Java H5 版本管理会生成或保存兼容 `ManifestFile` 的 manifest：
 
 ```json
 {
@@ -427,14 +427,14 @@ H5 侧通过环境变量配置 active manifest URL：
 - `src/app/layout.tsx`：当前路由强制动态渲染，避免 mock 页面被自动静态优化。
 - `src/config/remote-config.ts`：校验 SSR manifest schema。
 - `src/lib/manifest`：拉取 manifest、缓存 last-known-good、解析版本并返回 SSR 路由 URL。
-- `src/lib/manifest/server-fetcher.ts`：通过 server-meumall active manifest URL 拉取 JSON，并保持可注入 `fetchImpl`。
+- `src/lib/manifest/server-fetcher.ts`：通过 Java active manifest URL 拉取 JSON，并保持可注入 `fetchImpl`。
 - `scripts/ai/release-prepare.ts`：生成 SSR manifest draft、build metadata 和 release note。
 - `scripts/ai/prepare-ssr-release.ts`：生成可审查的 SSR 部署计划。
 - `scripts/ai/smoke-ssr-release.ts`：对 SSR 服务做 HTTP smoke。
 - `scripts/ai/update-manifest.ts`：更新 SSR manifest 草案。
 - `scripts/ai/rollback.ts`：只修改 manifest 草案完成回滚。
 - 根目录 `scripts/deploy/h5-version-deploy.sh`：构建并启动独立 H5 版本容器，写入 nginx 版本入口，注册 candidate release。
-- 本地 Jenkins `meu-mall-h5-version-deploy`：通过 `GIT_REF` 触发 H5 多版本容器发布，版本由 `package.json` 和 `h5/vX.Y.Z` tag 确定。
+- 外部 Jenkins 可选调用根目录 `scripts/deploy/h5-jenkins-release.sh`，通过环境变量或 `H5_TEST_RELEASE_CONFIG` 显式传入配置；当前仓库不再维护本地 Jenkins 工作区。
 - `.github/workflows/h5-release.yml`：手动触发 SSR release workflow。
 
 ## 灰度发布
@@ -555,7 +555,7 @@ pnpm run ai:register-release \
 
 未追加 `--execute` 时，脚本只生成 `archives/releases/<version>/release-registration.json` 草案，不提交服务端。
 
-13. admin-meumall 展示 candidate release，审批后执行灰度或发布 active。
+13. Java H5 版本管理展示 candidate release，审批后执行灰度或发布 active。
 14. 监控白屏、JS error、接口错误、首屏性能和核心路径打开率。
 15. 按灰度结果提升比例或回滚。
 
@@ -600,7 +600,7 @@ pnpm run ai:rollback \
 
 真实 App Shell 推荐流程：
 
-1. 从 server-meumall active manifest endpoint 拉取 manifest JSON。
+1. 从 Java active manifest endpoint 拉取 manifest JSON。
 2. 使用 `validateManifestFile(input)` 校验 schema。
 3. 校验通过后写入 last-known-good 缓存。
 4. 网络失败或 manifest 非法时读取缓存。

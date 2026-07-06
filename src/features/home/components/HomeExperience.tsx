@@ -145,11 +145,7 @@ function HomeHeader({ data }: { data: HomeExperienceData }) {
 
 function HomeBanner({ data }: { data: HomeExperienceData }) {
   if (!data.banner.imageUrl && !data.banner.assetKey) {
-    return (
-      <div className={styles.bannerSkeleton} data-home-banner-skeleton="true" aria-label="首页 Banner 加载中">
-        <span className={styles.skeletonShine} aria-hidden="true" />
-      </div>
-    );
+    return null;
   }
 
   return (

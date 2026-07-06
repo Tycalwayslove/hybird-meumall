@@ -27,6 +27,8 @@ s
 
 ## Backlog
 
+- [ ] 后续需求默认只考虑 `hybird-meumall` H5 C 端；涉及 Java/API、配置平台或 App/WebView 时只记录 H5 侧消费方式、契约和联调依赖，不修改旧 `server-meumall`、`admin-meumall`、`app-meumall`。
+
 - [ ] 确认哪些原生兜底页必须随 App 内置。
 - [ ] 确认 SSR 部署平台、`H5_SERVICE_BASE_URL`、扩缩容和日志采集方式。
 - [ ] WebView 离线兜底页与最低 App 版本校验。
@@ -42,12 +44,12 @@ s
 - [ ] 在真实 CI 环境配置 `H5_RELEASE_SERVER_URL`，验证 `register_release=true` 的 candidate release 注册链路。
 - [ ] 在 H5 发版 smoke 中增加 `https://hybird.aigcpop.com/register` 固定入口验证。
 - [ ] 确认 manifest active 发布审批人和执行窗口。
-- [ ] 将 server-meumall 部署到生产/测试环境后，补充权限控制、审批流、审计日志、发布人记录和 WebView 访问策略验证。
+- [ ] 与 Java H5 版本管理确认生产/测试环境权限控制、审批流、审计日志、发布人记录和 WebView 访问策略验证。
 
 ## Done
 
 - [x] 接入注册成功后的达人实名认证流程：认证入口、真实姓名输入、通联开户 H5 链接、认证结果查询、成功跳首页 Tab 和失败重新认证。
-- [x] 明确运营注册二维码固定入口 `/register`，并由 server-meumall active manifest resolver 指向当前 H5 版本。
+- [x] 明确运营注册二维码固定入口 `/register`，并由独立 Node resolver 读取 Java active manifest 后指向当前 H5 版本。
 - [x] 接入 iconfont Font class 单色图标基础体系，提供 `IconFont` 组件、英文语义别名、生成类型清单和 `icons:sync` 更新脚本。
 - [x] 优化 `/pay-way` 收银台视觉层级，补齐金额面板、支付方式选中态、底部提交栏和加载/错误状态样式。
 - [x] 按 `docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md` 完成订单列表、退货退款列表、普通快递订单详情和退款详情真实接口迁移，新增相关 BFF、页面、mapper 和操作按钮。
@@ -79,10 +81,10 @@ s
 - [x] 将默认远程发布切回 Next.js SSR/standalone 构建。
 - [x] 将发布配置、manifest 资源模型和 CI/CD 收敛为 SSR-only。
 - [x] 完成 SSR 切流和回滚本地演练。
-- [x] 接入 server-meumall active manifest HTTP fetcher。
-- [x] 跑通 admin-meumall、server-meumall 和 hybird-meumall 的本地 SQLite 配置发布闭环。
+- [x] 接入 active manifest HTTP fetcher；当前来源已迁移为 Java H5 版本管理。
+- [x] 旧 admin/server/hybird 本地 SQLite 配置发布闭环已完成历史验证，当前已退役并由 Java H5 版本管理替代。
 - [x] 打包并启动蓝/绿/粉三份本地 H5 SSR 版本，用于 admin 切 active 后在 iOS WebView 中验证效果。
-- [x] 落地正式发版入口：H5 CI 注册 candidate release、server-meumall 发布/灰度/回滚 API、admin-meumall 正式发版操作台。
+- [x] 落地正式发版入口：H5 CI 注册 candidate release，当前发布/灰度/回滚由 Java H5 版本管理承接。
 - [x] 跑通 Mac Studio 本地 Jenkins 参数化构建 H5，并上传 standalone SSR 产物到云服务器 release 目录。
 - [x] 将本地多项目工作区和 Jenkins/CI 运行路径统一到 `/Users/mac/person_code/meu-mall`，移除旧路径软链接依赖。
 - [x] 按根级 `TASK-2026-0604-002-promotion-pages-bff-foundation.md` 实现推广模块首批 BFF mock 和高保真页面。

@@ -17,18 +17,7 @@ type HomeModulesProps = {
   now?: Date;
 };
 
-const iconColors = [
-  "bg-[#f6f6f8]",
-  "bg-[#f7f7f9]",
-  "bg-[#f6f6f8]",
-  "bg-[#f7f7f9]",
-  "bg-[#f6f6f8]",
-  "bg-[#f7f7f9]",
-  "bg-[#f6f6f8]",
-  "bg-[#f7f7f9]",
-  "bg-[#f6f6f8]",
-  "bg-[#f7f7f9]"
-];
+const categoryIconSurfaceClassName = "bg-line";
 
 export function HomeModules({ modules, now = new Date() }: HomeModulesProps) {
   return (
@@ -151,7 +140,7 @@ function BannerModule({ module }: { module: BannerCarouselModule }) {
 function CategoryModule({ module }: { module: CategoryGridModule }) {
   return (
     <section className="mt-4 grid gap-x-0 gap-y-3" style={{ gridTemplateColumns: `repeat(${module.columns}, minmax(0, 1fr))` }}>
-      {module.items.map((item, index) => {
+      {module.items.map((item) => {
         const href = getEventHref(item.event) ?? "/category";
         const useIconImage = item.iconUrl && !item.iconUrl.startsWith("fallback://");
 
@@ -159,13 +148,13 @@ function CategoryModule({ module }: { module: CategoryGridModule }) {
           <Link key={item.id} href={href} className="flex min-w-0 flex-col items-center">
             {useIconImage ? (
               <span
-                className={`inline-flex size-[clamp(38px,12vw,50px)] shrink-0 items-center justify-center rounded-[12px] bg-cover bg-center text-[13px] font-black text-[#111] ${iconColors[index % iconColors.length]}`}
+                className={`inline-flex size-[52px] shrink-0 items-center justify-center rounded-[12px] bg-cover bg-center text-[13px] font-black text-[#111] ${categoryIconSurfaceClassName}`}
                 style={{ backgroundImage: `url("${item.iconUrl}")`, backgroundSize: "cover", backgroundPosition: "center" }}
               >
                 {item.name.slice(0, 1)}
               </span>
             ) : (
-              <ReplicaIcon className={`size-[clamp(38px,12vw,50px)] ${iconColors[index % iconColors.length]}`}>
+              <ReplicaIcon className={`size-[52px] rounded-[12px] ${categoryIconSurfaceClassName}`}>
                 <span className="text-[13px] font-black text-[#111]">{item.name.slice(0, 1)}</span>
               </ReplicaIcon>
             )}

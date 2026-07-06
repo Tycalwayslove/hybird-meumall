@@ -2,6 +2,35 @@
 
 本文件记录架构和流程决策，采用轻量 ADR 形式。
 
+## ADR-0027 - 当前仓库只维护 H5 C 端
+
+日期：2026-07-06
+
+状态：Accepted
+
+### 背景
+
+项目早期在同一工作区内包含 H5、Python release/manifest 服务、本地管理后台和 SwiftUI WebView 壳。当前 H5 版本管理、active manifest、后台配置和业务 API 已迁移到外部 Java 体系，App/WebView 容器能力也不再由本仓库维护。
+
+### 决策
+
+- 当前仓库后续只维护 `hybird-meumall` H5 C 端。
+- 旧 `server-meumall`、`admin-meumall`、`app-meumall` 和 `meumall-ci` 已从当前工作区移除，不再作为 H5 需求实现范围。
+- active manifest 使用 Java `GET /platform/h5Release/active`，不拼接 `environment` query。
+- release 注册、promote、gray、rollback 和后台配置能力由外部 Java 体系承接。
+- Bridge/WebView 能力只记录 H5 侧调用、能力检测和 fallback；iOS/App 实现作为外部运行环境依赖。
+
+### 影响
+
+- 后续 H5 需求不得恢复 `server-meumall`、`admin-meumall`、`app-meumall` 或 `meumall-ci`。
+- 根目录仅保留 H5 发布脚本、Nginx 模板和 `/register` resolver；不再提供本地 Jenkins 工作区或旧端项目目录。
+- 旧 `ADR-0015`、`ADR-0016` 等关于 server/admin 本地配置中心的结论被本决策覆盖，仅保留为历史记录。
+
+### 备选方案
+
+- 继续在本仓库维护四端：拒绝，因为实际系统已经迁移到 Java 和外部 App 运行环境，会让 AI 工作流持续误判。
+- 只在文档中标记退役、不删除目录：拒绝，因为旧项目目录会误导后续开发和 AI 工作流。
+
 ## ADR-0026 - 注册二维码使用固定公开入口
 
 日期：2026-07-06
@@ -15,7 +44,8 @@
 ### 决策
 
 - 运营二维码固定使用 `https://hybird.aigcpop.com/register`。
-- `server-meumall` 提供 `GET /register`，读取 active manifest 后 302 到当前 active H5 版本的 `/register`。
+- H5 Jenkins 发版脚本部署独立 Node register resolver，resolver 读取 Java `GET /platform/h5Release/active` 后 302 到当前 active H5 版本的 `/register`。
+- Java active manifest endpoint 不再拼接 `environment` query；测试/正式环境由域名、部署实例和 H5 环境配置区分。
 - H5 发版 manifest 必须声明 `/register` route。
 - App 内仍不提供注册入口；该入口只用于运营外部注册 H5。
 
@@ -318,7 +348,9 @@ H5 线上页面运行在版本化 basePath 下，例如 `/h5-v/v1.0.8`。如果�
 
 日期：2026-05-16
 
-状态：Accepted
+状态：Superseded by ADR-0027
+
+> 2026-07-06 更新：本地 Jenkins / `meumall-ci` 工作区已从当前仓库移除。该 ADR 仅保留为历史记录，不再作为当前发版方案。
 
 ### 背景
 
@@ -344,6 +376,8 @@ H5 线上页面运行在版本化 basePath 下，例如 `/h5-v/v1.0.8`。如果�
 - 迁移到新 Mac 或重装系统时，需要恢复 `/Users/mac/person_code/meu-mall/meumall-ci`、launchd agent、Docker Desktop、Java 17、SSH key 和 Git mirror。
 
 ## 2026-06-01：本地多项目工作区不再依赖旧路径软链接
+
+> 2026-07-06 更新：本地多项目工作区已收敛为 H5-only；`server-meumall`、`admin-meumall`、`app-meumall` 和 `meumall-ci` 已从当前工作区移除。以下内容仅保留为历史记录。
 
 - 决策：`hybird-meumall`、`server-meumall`、`admin-meumall`、`app-meumall` 和 `meumall-ci` 统一放在 `/Users/mac/person_code/meu-mall/` 下；Jenkins、launchd、pipeline 和 H5 构建脚本全部使用新路径。
 - 原因：软链接适合短期搬迁过渡，但会隐藏真实部署依赖；后续迁移到新服务器或新 Mac 时，旧绝对路径会造成不可见的环境耦合。
