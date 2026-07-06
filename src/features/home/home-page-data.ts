@@ -30,6 +30,12 @@ export type HomeProductCard = {
   promoType?: "seckill" | "talent";
 };
 
+export type HomeBannerNavigation = {
+  strategy: "new-webview" | "switch-tab";
+  tab?: "home" | "promotion" | "mine";
+  title?: string;
+};
+
 export type HomeExperienceData = {
   logoAssetKey: LocalAssetKey;
   messageAssetKey: LocalAssetKey;
@@ -38,6 +44,7 @@ export type HomeExperienceData = {
     assetKey?: LocalAssetKey;
     imageUrl?: string;
     alt: string;
+    navigation?: HomeBannerNavigation;
   };
   categories: HomeQuickCategory[];
   activities: HomeActivityCard[];

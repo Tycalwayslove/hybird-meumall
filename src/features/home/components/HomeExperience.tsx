@@ -148,11 +148,42 @@ function HomeBanner({ data }: { data: HomeExperienceData }) {
     return null;
   }
 
+  const bannerImage = <img className={styles.bannerImage} src={data.banner.imageUrl ?? localAssetUrl(data.banner.assetKey!)} alt={data.banner.alt} />;
+  if (!data.banner.href) {
+    return <div className={styles.bannerLink}>{bannerImage}</div>;
+  }
+
+  const navigation = data.banner.navigation ?? getDefaultBannerNavigation(data.banner.href);
+
   return (
-    <HybridLink className={styles.bannerLink} href={data.banner.href} strategy="switch-tab" tab="promotion" aria-label={data.banner.alt}>
-      <img className={styles.bannerImage} src={data.banner.imageUrl ?? localAssetUrl(data.banner.assetKey!)} alt={data.banner.alt} />
+    <HybridLink
+      className={styles.bannerLink}
+      href={data.banner.href}
+      source="home-banner"
+      strategy={navigation.strategy}
+      tab={navigation.tab}
+      title={navigation.title ?? data.banner.alt}
+      aria-label={data.banner.alt}
+    >
+      {bannerImage}
     </HybridLink>
   );
+}
+
+function getDefaultBannerNavigation(href: string): NonNullable<HomeExperienceData["banner"]["navigation"]> {
+  if (href === "/") {
+    return { strategy: "switch-tab", tab: "home", title: "首页" };
+  }
+
+  if (href === "/promotion") {
+    return { strategy: "switch-tab", tab: "promotion", title: "推广" };
+  }
+
+  if (href === "/mine") {
+    return { strategy: "switch-tab", tab: "mine", title: "我的" };
+  }
+
+  return { strategy: "new-webview" };
 }
 
 function CategoryGrid({ data }: { data: HomeExperienceData }) {

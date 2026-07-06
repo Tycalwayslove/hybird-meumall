@@ -2,6 +2,22 @@
 
 所有重要的项目、工作流、架构、发布、Bridge、主题和 API 变更都记录在这里。
 
+## 2026-07-06 - 首页 banner jumpType 跳转细化
+
+### 变更
+
+- 首页 BFF mapper 按 Apifox `PlatformBannerVO.jumpType` 输出 banner 跳转目标和导航策略。
+- 首页 banner 不再统一 `switch-tab promotion`；商品详情、活动、达人激励活动和排行榜会按对应目标新开 H5 WebView，Tab 根路径仍切 Tab。
+- `jumpType=3` 商城活动仅返回业务 ID 时暂进入 `/promotion/activities?activityId=<id>`，待后续确认商城活动详情页路由。
+
+### 验证
+
+- `pnpm exec vitest run src/features/home/home.test.tsx src/features/home/home-real-api.test.ts`：通过，2 files / 30 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/home/home-page-data.ts src/features/home/components/HomeExperience.tsx src/features/home/server/home-real-service.ts src/features/home/home-real-api.test.ts src/features/home/home.test.tsx`：通过。
+- `git diff --check`：通过。
+- 飞书同步：页面清单 revision 76。
+
 ## 2026-07-06 - 首页 banner 空态与分类骨架细调
 
 ### 变更

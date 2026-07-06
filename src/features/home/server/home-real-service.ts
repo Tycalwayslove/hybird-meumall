@@ -3,7 +3,13 @@ import type { ApiError } from "@/lib/api/types";
 import type { ClientRequestContext } from "@/lib/http/client-context";
 import type { BackendApiResult, BackendRequestOptions } from "@/server/http/backend-client";
 import { getJavaResponseCodeMeta, mapJavaBusinessCodeToApiErrorCode } from "@/server/http/java-response-codes";
-import { createEmptyHomeExperienceData, type HomeExperienceData, type HomeProductCard, type HomeQuickCategory } from "../home-page-data";
+import {
+  createEmptyHomeExperienceData,
+  type HomeBannerNavigation,
+  type HomeExperienceData,
+  type HomeProductCard,
+  type HomeQuickCategory
+} from "../home-page-data";
 
 type HomeBackendClient = {
   request<T>(options: BackendRequestOptions): Promise<BackendApiResult<T>>;
@@ -27,6 +33,7 @@ export type AppHomeVO = {
 };
 
 export type AppBannerVO = {
+  clientType?: number;
   imgUrl?: string;
   jumpType?: number;
   jumpValue?: string;
@@ -488,28 +495,131 @@ function mapBanner(banners: AppBannerVO[] | undefined, fallback: HomeExperienceD
   return {
     alt: "首页 Banner",
     assetKey: fallback.banner.assetKey,
-    href: mapBannerHref(banner),
+    ...mapBannerNavigation(banner),
     imageUrl
   };
 }
 
-function mapBannerHref(banner: AppBannerVO) {
-  if (banner.jumpType === 1 && banner.jumpValue) {
-    return banner.jumpValue;
+function mapBannerNavigation(banner: AppBannerVO): { href: string; navigation?: HomeBannerNavigation } {
+  const jumpValue = normalizeText(banner.jumpValue, "");
+  const relationValue = banner.relation === undefined || banner.relation === null ? "" : String(banner.relation);
+  const businessTarget = jumpValue || relationValue;
+
+  if (banner.jumpType === 1 && jumpValue) {
+    const href = normalizeRouteOrUrl(jumpValue);
+    return {
+      href,
+      navigation: createBannerNavigation(href, "首页 Banner")
+    };
   }
 
-  const targetId = banner.jumpValue || (banner.relation === undefined ? "" : String(banner.relation));
-  if (banner.jumpType === 2 && targetId) {
-    return `/product/${targetId}`;
+  if (banner.jumpType === 2 && businessTarget) {
+    const href = `/product/${encodeURIComponent(businessTarget)}`;
+    return {
+      href,
+      navigation: createBannerNavigation(href, "商品详情")
+    };
   }
-  if (banner.jumpType === 3 || banner.jumpType === 4) {
-    return "/promotion/activities";
+
+  if (banner.jumpType === 3) {
+    const href = resolveMallActivityHref(jumpValue, businessTarget);
+    return {
+      href,
+      navigation: createBannerNavigation(href, "活动页")
+    };
   }
+
+  if (banner.jumpType === 4) {
+    const href = resolveIncentiveActivityHref(jumpValue, businessTarget);
+    return {
+      href,
+      navigation: createBannerNavigation(href, "激励活动")
+    };
+  }
+
   if (banner.jumpType === 5) {
-    return "/promotion/rank-center";
+    const href = resolvePromotionRankingHref(jumpValue);
+    return {
+      href,
+      navigation: createBannerNavigation(href, "带货排行榜")
+    };
   }
 
-  return "/promotion";
+  return {
+    href: "",
+    navigation: undefined
+  };
+}
+
+function resolveMallActivityHref(jumpValue: string, businessTarget: string) {
+  if (isRouteOrUrlTarget(jumpValue)) {
+    return normalizeRouteOrUrl(jumpValue);
+  }
+  if (businessTarget) {
+    return `/promotion/activities?activityId=${encodeURIComponent(businessTarget)}`;
+  }
+
+  return "/promotion/activities";
+}
+
+function resolveIncentiveActivityHref(jumpValue: string, businessTarget: string) {
+  if (isRouteOrUrlTarget(jumpValue)) {
+    return normalizeRouteOrUrl(jumpValue);
+  }
+  if (businessTarget) {
+    return `/promotion/activities/${encodeURIComponent(businessTarget)}`;
+  }
+
+  return "/promotion/activities";
+}
+
+function resolvePromotionRankingHref(jumpValue: string) {
+  if (isRouteOrUrlTarget(jumpValue)) {
+    return normalizeRouteOrUrl(jumpValue);
+  }
+
+  if (jumpValue === "1") {
+    return "/promotion/ranking/sales";
+  }
+  if (jumpValue === "2") {
+    return "/promotion/ranking/amount";
+  }
+
+  return "/promotion/rank-center";
+}
+
+function createBannerNavigation(href: string, title: string): HomeBannerNavigation {
+  if (href === "/") {
+    return { strategy: "switch-tab", tab: "home", title };
+  }
+  if (href === "/promotion") {
+    return { strategy: "switch-tab", tab: "promotion", title };
+  }
+  if (href === "/mine") {
+    return { strategy: "switch-tab", tab: "mine", title };
+  }
+
+  return { strategy: "new-webview", title };
+}
+
+function normalizeRouteOrUrl(value: string) {
+  if (isHttpUrl(value) || value.startsWith("#")) {
+    return value;
+  }
+
+  return value.startsWith("/") ? value : `/${value}`;
+}
+
+function isRouteOrUrlTarget(value: string) {
+  if (!value) {
+    return false;
+  }
+
+  return isHttpUrl(value) || value.startsWith("/") || value.startsWith("#") || value.includes("/") || value.includes("?");
+}
+
+function isHttpUrl(value: string) {
+  return /^https?:\/\//i.test(value);
 }
 
 function mapCategories({

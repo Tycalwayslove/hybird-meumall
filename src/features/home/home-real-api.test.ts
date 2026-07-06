@@ -103,6 +103,76 @@ describe("home real api mapper", () => {
     expect(data.categories[1]?.iconUrl).toBe("https://awu-mall-file.oss-cn-guangzhou.aliyuncs.com/category/snack.png");
   });
 
+  test("maps banner jumpType values to Apifox home navigation rules", () => {
+    const cases = [
+      {
+        banner: { imgUrl: "https://cdn.example.com/banner-h5.png", jumpType: 1, jumpValue: "/promotion/products", seq: 1 },
+        expected: {
+          href: "/promotion/products",
+          navigation: { strategy: "new-webview", title: "首页 Banner" }
+        }
+      },
+      {
+        banner: { imgUrl: "https://cdn.example.com/banner-h5-url.png", jumpType: 1, jumpValue: "https://example.com/campaign", seq: 1 },
+        expected: {
+          href: "https://example.com/campaign",
+          navigation: { strategy: "new-webview", title: "首页 Banner" }
+        }
+      },
+      {
+        banner: { imgUrl: "https://cdn.example.com/banner-product.png", jumpType: 2, jumpValue: "1001", seq: 1 },
+        expected: {
+          href: "/product/1001",
+          navigation: { strategy: "new-webview", title: "商品详情" }
+        }
+      },
+      {
+        banner: { imgUrl: "https://cdn.example.com/banner-mall-activity.png", jumpType: 3, jumpValue: "3001", seq: 1 },
+        expected: {
+          href: "/promotion/activities?activityId=3001",
+          navigation: { strategy: "new-webview", title: "活动页" }
+        }
+      },
+      {
+        banner: { imgUrl: "https://cdn.example.com/banner-incentive.png", jumpType: 4, jumpValue: "4001", seq: 1 },
+        expected: {
+          href: "/promotion/activities/4001",
+          navigation: { strategy: "new-webview", title: "激励活动" }
+        }
+      },
+      {
+        banner: { imgUrl: "https://cdn.example.com/banner-rank-sales.png", jumpType: 5, jumpValue: "1", seq: 1 },
+        expected: {
+          href: "/promotion/ranking/sales",
+          navigation: { strategy: "new-webview", title: "带货排行榜" }
+        }
+      },
+      {
+        banner: { imgUrl: "https://cdn.example.com/banner-rank-center.png", jumpType: 5, seq: 1 },
+        expected: {
+          href: "/promotion/rank-center",
+          navigation: { strategy: "new-webview", title: "带货排行榜" }
+        }
+      }
+    ];
+
+    cases.forEach(({ banner, expected }) => {
+      const data = mapHomeApiToExperienceData({
+        aggregate: {
+          banners: [banner],
+          navList: []
+        },
+        fallback: homeExperienceData
+      });
+
+      expect(data.banner).toMatchObject({
+        alt: "首页 Banner",
+        imageUrl: banner.imgUrl,
+        ...expected
+      });
+    });
+  });
+
   test("uses navList directly without concatenating hotCategory and categoryTop8", () => {
     const data = mapHomeApiToExperienceData({
       aggregate: {

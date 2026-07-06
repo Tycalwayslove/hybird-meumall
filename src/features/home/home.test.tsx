@@ -101,6 +101,28 @@ describe("home module rendering", () => {
     expect(html).toContain("更多");
   });
 
+  test("renders banner with its mapped navigation href instead of always switching to promotion tab", () => {
+    const html = renderToStaticMarkup(
+      <HomeExperience
+        data={{
+          ...homeExperienceData,
+          banner: {
+            ...homeExperienceData.banner,
+            href: "/product/1001",
+            imageUrl: "https://cdn.example.com/banner-product.png",
+            navigation: {
+              strategy: "new-webview",
+              title: "商品详情"
+            }
+          }
+        }}
+      />
+    );
+
+    expect(html).toContain('href="/product/1001"');
+    expect(html).not.toContain('href="/promotion" class="_bannerLink');
+  });
+
   test("hides banner and renders category skeletons when home business data is empty", () => {
     const html = renderToStaticMarkup(<HomeExperience data={createEmptyHomeExperienceData(homeExperienceData)} />);
 

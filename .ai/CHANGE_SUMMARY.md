@@ -1,5 +1,22 @@
 # 变更摘要
 
+## 2026-07-06 - 首页 banner jumpType 跳转细化
+
+### 变更
+
+- 使用 `apifox-api-lookup` 查询 Apifox 项目 `4403987` main 分支，确认 `GET /p/app/home/index` 位于 `喵呜商城/APP接口/喵呜达人首页接口`，banner 字段为 `PlatformBannerVO`。
+- 首页 BFF mapper 按 `jumpType=1/2/3/4/5` 输出 banner `href/navigation`，前端不再把所有 banner 强制切到推广 Tab。
+- `jumpType=1` 支持 H5 URL/路径；`2` 进入商品详情；`3` 商城活动优先尊重后端 URL/路径，纯业务 ID 暂进入活动承接页；`4` 达人激励活动 ID 进入活动详情；`5` 支持销量榜、销售额榜和榜单中心。
+- 更新首页 API 契约、H5 API 规范、页面清单和项目状态。
+
+### 验证
+
+- `pnpm exec vitest run src/features/home/home.test.tsx src/features/home/home-real-api.test.ts`：通过，2 files / 30 tests。
+- `pnpm typecheck`：通过。
+- `pnpm exec eslint src/features/home/home-page-data.ts src/features/home/components/HomeExperience.tsx src/features/home/server/home-real-service.ts src/features/home/home-real-api.test.ts src/features/home/home.test.tsx`：通过。
+- `git diff --check`：通过。
+- 飞书同步：页面清单 revision 76。
+
 ## 2026-07-06 - H5-only 工作区边界收敛
 
 ### 变更

@@ -453,7 +453,7 @@ type HomeBffData = {
 };
 ```
 
-- `view`：当前首页组件直接渲染的稳定视图模型。首页类目直接来自 Java `navList`；`navType=1` 进入热榜 `/search/ranking`，若 Java 同时返回 `rankType/categoryId` 则携带到完整榜单用于默认选中对应标签；`navType=2` 进入带 `categoryId` 的搜索结果 `/search?categoryId=<id>`；`navType=3` 进入完整分类页 `/category`。
+- `view`：当前首页组件直接渲染的稳定视图模型。首页 banner 根据 Apifox `jumpType` 输出 `href/navigation`：`1` 尊重 H5 URL/路径，`2` 进入商品详情，`3` 商城活动优先使用后端 URL/路径、纯业务 ID 暂进入 `/promotion/activities?activityId=<id>`，`4` 达人激励活动 ID 进入 `/promotion/activities/<id>`，`5` 带货排行榜按 `jumpValue=1/2` 分别进入销量榜/销售额榜，其它进入榜单中心；Tab 根路径会切 Tab，其它目标新开 H5 WebView。首页类目直接来自 Java `navList`；`navType=1` 进入热榜 `/search/ranking`，若 Java 同时返回 `rankType/categoryId` 则携带到完整榜单用于默认选中对应标签；`navType=2` 进入带 `categoryId` 的搜索结果 `/search?categoryId=<id>`；`navType=3` 进入完整分类页 `/category`。
 - `modules`：保留首页业务模块和后端字段，方便后续首页增加字段、调整交互时直接查到对应数据，不必每次先回 BFF 里翻 mapper。`navList` 是当前分类展示来源；`hotCategory/categoryTop8` 如后端仍返回，仅作为兼容调试字段保留，不参与首页分类拼接。
 - `debugRaw`：仅 `GET /api/bff/home?debugRaw=1` 且 `APP_ENV=local/test` 时返回，用于联调对比 Java 原始 envelope；正式环境不返回。
 
