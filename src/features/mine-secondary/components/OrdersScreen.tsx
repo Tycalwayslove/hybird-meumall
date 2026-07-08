@@ -26,38 +26,50 @@ const orderStatusTabs: Array<{ id: OrderStatus; title: string }> = [
 export function OrdersScreen({ initialStatus = "all" }: OrdersScreenProps) {
   const [status, setStatus] = useState<OrderStatus>(() => normalizeOrderStatus(initialStatus));
   const [keyword, setKeyword] = useState("");
+  const [submittedKeyword, setSubmittedKeyword] = useState("");
   const [orders, setOrders] = useState<OrderCardView[]>([]);
+  const [page, setPage] = useState<{ current: number; hasMore: boolean } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const api = useMemo(() => createOrdersApi(createH5Client()), []);
   const paymentApi = useMemo(() => createPaymentApi(createH5Client()), []);
 
   const loadOrders = useCallback(
-    async (nextStatus: OrderStatus, nextKeyword: string) => {
-      setLoading(true);
+    async (nextStatus: OrderStatus, nextKeyword: string, current = 1, append = false) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
       setError("");
 
       const result = await api.getOrders({
-        current: 1,
+        current,
         keyword: nextKeyword,
         size: 10,
         status: nextStatus
       });
       if (!result.success) {
-        setOrders([]);
+        if (!append) setOrders([]);
         setError(result.message || "订单加载失败，请稍后重试。");
         setLoading(false);
+        setLoadingMore(false);
         return;
       }
-      setOrders(result.data.view.orders);
+      setOrders((prev) => (append ? [...prev, ...result.data.view.orders] : result.data.view.orders));
+      setPage({ current: result.data.page.current, hasMore: result.data.page.hasMore });
       setLoading(false);
+      setLoadingMore(false);
     },
     [api]
   );
 
   useEffect(() => {
-    void loadOrders(status, keyword);
-  }, [loadOrders, status]);
+    queueMicrotask(() => {
+      void loadOrders(status, submittedKeyword);
+    });
+  }, [loadOrders, status, submittedKeyword]);
 
   const onTabChange = (nextStatus: OrderStatus) => {
     setStatus(nextStatus);
@@ -67,7 +79,12 @@ export function OrdersScreen({ initialStatus = "all" }: OrdersScreenProps) {
 
   const onSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void loadOrders(status, keyword);
+    setSubmittedKeyword(keyword.trim());
+  };
+
+  const loadMore = () => {
+    if (!page?.hasMore || loadingMore) return;
+    void loadOrders(status, submittedKeyword, page.current + 1, true);
   };
 
   const onOrderAction = async (order: OrderCardView, action: OrderAction) => {
@@ -83,15 +100,20 @@ export function OrdersScreen({ initialStatus = "all" }: OrdersScreenProps) {
         setError(payInfo.message || "订单支付信息获取失败。");
         return;
       }
-      window.location.href = createCashierHrefFromSubmitResult({
+      if (isExpired(payInfo.data.view.endTime)) {
+        setError("订单已过期，请重新下单。");
+        await loadOrders(status, submittedKeyword);
+        return;
+      }
+      window.location.assign(createCashierHrefFromSubmitResult({
         dvyType: String(order.dvyType ?? 1),
         orderNumbers: order.orderNumber,
         orderType: String(order.orderType ?? 0)
-      });
+      }));
       return;
     }
     if (action.id === "logistics") {
-      window.location.href = buildClientHref(order.detailHref);
+      window.location.assign(buildClientHref(`/orders/logistics/${encodeURIComponent(order.orderNumber)}`));
       return;
     }
     if (action.id === "contact") {
@@ -122,7 +144,7 @@ export function OrdersScreen({ initialStatus = "all" }: OrdersScreenProps) {
       setError(result.message || "订单操作失败。");
       return;
     }
-    await loadOrders(status, keyword);
+    await loadOrders(status, submittedKeyword);
   };
 
   const hasData = orders.length > 0;
@@ -157,12 +179,25 @@ export function OrdersScreen({ initialStatus = "all" }: OrdersScreenProps) {
           {orders.map((order) => (
             <OrderCard key={order.orderNumber} order={order} onAction={onOrderAction} />
           ))}
+          {page?.hasMore ? (
+            <button className={styles.loadMoreButton} type="button" disabled={loadingMore} onClick={loadMore}>
+              {loadingMore ? "加载中..." : "加载更多"}
+            </button>
+          ) : (
+            <p className={styles.endText}>没有更多了</p>
+          )}
         </div>
       ) : (
         <OrderEmptyState text="这里空空如也~" />
       )}
     </StandardNavPage>
   );
+}
+
+function isExpired(endTime: string) {
+  if (!endTime) return false;
+  const timestamp = new Date(endTime.replace(/-/g, "/")).getTime();
+  return Number.isFinite(timestamp) && timestamp <= Date.now();
 }
 
 export function normalizeOrderStatus(status: string | undefined): OrderStatus {

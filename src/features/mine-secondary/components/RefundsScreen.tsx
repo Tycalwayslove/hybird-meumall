@@ -12,26 +12,34 @@ import styles from "./OrdersScreen.module.css";
 
 export function RefundsScreen() {
   const [refunds, setRefunds] = useState<RefundCardView[]>([]);
+  const [page, setPage] = useState<{ current: number; hasMore: boolean } | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const api = useMemo(() => createOrdersApi(createH5Client()), []);
 
-  const loadRefunds = useCallback(async () => {
-    setLoading(true);
+  const loadRefunds = useCallback(async (current = 1, append = false) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     setError("");
-    const result = await api.getRefundOrders({ current: 1, size: 10 });
+    const result = await api.getRefundOrders({ current, size: 10 });
     if (!result.success) {
-      setRefunds([]);
+      if (!append) setRefunds([]);
       setError(result.message || "退货退款加载失败，请稍后重试。");
       setLoading(false);
+      setLoadingMore(false);
       return;
     }
-    setRefunds(result.data.view.refunds);
+    setRefunds((prev) => (append ? [...prev, ...result.data.view.refunds] : result.data.view.refunds));
+    setPage({ current: result.data.page.current, hasMore: result.data.page.hasMore });
     setLoading(false);
+    setLoadingMore(false);
   }, [api]);
 
   useEffect(() => {
-    void loadRefunds();
+    queueMicrotask(() => {
+      void loadRefunds();
+    });
   }, [loadRefunds]);
 
   return (
@@ -42,6 +50,13 @@ export function RefundsScreen() {
           {refunds.map((refund) => (
             <RefundCard key={refund.refundSn} refund={refund} />
           ))}
+          {page?.hasMore ? (
+            <button className={styles.loadMoreButton} type="button" disabled={loadingMore} onClick={() => void loadRefunds(page.current + 1, true)}>
+              {loadingMore ? "加载中..." : "加载更多"}
+            </button>
+          ) : (
+            <p className={styles.endText}>没有更多了</p>
+          )}
         </div>
       ) : (
         <RefundsEmptyState />
@@ -60,6 +75,7 @@ function RefundCard({ refund }: { refund: RefundCardView }) {
         </span>
         <span className={styles.pendingStatus}>{refund.statusLabel}</span>
       </div>
+      <p className={styles.refundTypeLine}>{refund.applyType === 2 ? "退货退款" : "仅退款"}</p>
       <div className={styles.orderItems}>
         {refund.items.map((item) => (
           <OrderProductItem item={item} key={`${refund.refundSn}-${item.prodId}-${item.skuId}`} />
@@ -68,6 +84,7 @@ function RefundCard({ refund }: { refund: RefundCardView }) {
       <p className={styles.total}>
         退款金额：<strong>¥{refund.refundAmount.toFixed(2)}</strong>
       </p>
+      <p className={styles.processText}>{refund.processText}</p>
     </a>
   );
 }

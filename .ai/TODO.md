@@ -15,7 +15,7 @@ s
 - [ ] 用 App 注入的有效 `mallToken` 验证卖手活动 `/seller/activities`、活动配置 `/seller/activities/[activityId]`、选择商品和商品设置链路；重点确认 `/p/sellerActivity/detail` 对未配置商品的返回、`batchStatus` 批量部分失败策略和 `saveOrUpdate` SKU 活动价校验。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情 `/api/bff/product-detail?prodId=1000054`、订单确认 `/api/bff/order-confirm?productId=1000054&skuId=<skuId>&quantity=1&addrId=<addrId>` 和订单提交 `/api/bff/order-submit` 的真实数据链路。
 - [ ] 用 App 注入的有效 `mallToken` 验证商品详情评价数量、好评率、前两条评论、评论图片、主图视频/图片轮播、触屏横滑、售后保障和资质条展示。
-- [ ] 用 App 注入的有效 `mallToken` 验证订单列表、退货退款列表、普通快递订单详情、退款详情和订单操作接口：`/p/myOrder/myOrder`、`/p/orderRefund/list`、`/p/myOrder/orderDetail`、`/p/myDelivery/orderInfo/{orderNumber}`、`/p/myOrder/cancel/{orderNumber}`、`/p/myOrder/receipt/{orderNumber}`、`/p/myOrder/{orderNumber}`、`/p/myOrder/submitMessage`。
+- [ ] 用 App 注入的有效 `mallToken` 验证订单列表、普通快递订单详情、订单物流、退货退款列表、退款详情、退款申请、平台介入和退货物流接口：`/p/myOrder/myOrder`、`/p/orderRefund/list`、`/p/myOrder/orderDetail`、`/p/myDelivery/orderInfo/{orderNumber}`、`/p/myDelivery/deliveryOrder/{orderDeliveryId}`、`/p/myOrder/cancel/{orderNumber}`、`/p/myOrder/receipt/{orderNumber}`、`/p/myOrder/{orderNumber}`、`/p/myOrder/submitMessage`、`/p/orderRefund/info`、`/p/orderRefund/apply`、`/p/orderRefund/update_refund`、`/p/orderRefund/cancel`、`/p/orderRefund/updateRefundAmount`、`/p/orderRefund/cancel_platform_intervention`、`/p/orderRefund/apply_platform_intervention`、`/p/orderRefundIntervention/saveInterventionVoucher`、`/p/delivery/list`、`/p/orderRefund/submitExpress`、`/p/orderRefund/reSubmitExpress`。
 - [ ] 用 App 注入的有效 `mallToken` 验证我的收藏和我的足迹接口：`/p/user/collection/prods`、`/p/user/collection/addOrCancel`、`/p/prodBrowseLog/page`、`/p/prodBrowseLog`。
 - [ ] 用 App 注入的有效 `mallToken` 和真实待支付订单验证收银台 `/api/bff/order-pay-info`、`/api/bff/order-pay`、通联支付宝 `paymentStartAlipay + paymentUrl`、通联微信 `paymentStartWechat + chnlFrontParamInfo` 直开通联小程序收银台、`/api/bff/order-is-paid?payEntry=0&orderNumbers=<orderNumbers>` 与 `/pay-result` 全链路。
 - [ ] 与 iOS / Android 完成正式支付 Bridge 联调：`rpc/paymentStartAlipay` 拉起支付宝 SDK 或通联支付宝 URL，`rpc/paymentStartWechat` 拉起微信 SDK 或在 `provider=allinpay + paymentMode=allinpay-mini-program-bridge` 时按 `sdkPayload/chnlFrontParamInfo` 直开通联小程序收银台；旧 `rpc/paymentStartCashier` 仅作为 fallback；并统一返回 `success/paid/cancelled/failed/unknown` 状态。
@@ -53,6 +53,7 @@ s
 - [x] 接入 iconfont Font class 单色图标基础体系，提供 `IconFont` 组件、英文语义别名、生成类型清单和 `icons:sync` 更新脚本。
 - [x] 优化 `/pay-way` 收银台视觉层级，补齐金额面板、支付方式选中态、底部提交栏和加载/错误状态样式。
 - [x] 按 `docs/10_ORDER_LIST_DETAIL_MIGRATION_PLAN.md` 完成订单列表、退货退款列表、普通快递订单详情和退款详情真实接口迁移，新增相关 BFF、页面、mapper 和操作按钮。
+- [x] 按 `docs/11_ORDER_AFTER_SALE_COMPLETE_MIGRATION_PLAN.md` 继续迁移订单与售后主链路：订单列表分页/继续付款过期校验/物流跳转、订单详情整单/单品退款入口、订单物流详情、售后列表分页与状态说明、售后详情动作、退款申请、平台介入和退货物流页面。
 
 - [x] 创建 AI 工作流文档脚手架。
 - [x] 创建项目级 Codex Skills。

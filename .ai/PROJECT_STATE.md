@@ -185,6 +185,15 @@ H5 C 端持续迭代阶段。当前仓库只维护 `hybird-meumall`；旧 `serve
 
 ## 2026-07-03 注册后实名认证流程
 
+## 2026-07-08 订单与售后主链路继续迁移
+
+- 订单与售后不再停留在首期只读查询：`/orders` 支持分页加载、搜索提交、继续付款前校验 `/p/order/getOrderPayInfoByOrderNumber.endTime`、物流跳转到独立详情页；`/orders/[orderNumber]` 支持整单退款、单品退款和查看退款，使用 `sessionStorage` key `meumall_refund_context` 替代旧 uni-app 的 `bbcRefundItem` 承接退款上下文。
+- 新增 `/orders/logistics/[orderNumber]`，BFF `/api/bff/orders/logistics` 聚合 Java `/p/myDelivery/orderInfo/{orderNumber}`、`/p/myDelivery/deliveryOrder/{orderDeliveryId}` 和 `/p/myOrder/orderDetail`，支持多包裹切换、物流公司/单号、轨迹和包裹商品展示。
+- `/refunds` 补充分页、申请类型、平台介入状态和退款处理说明；`/refunds/[refundSn]` 补充退款原因/说明、凭证、退货物流、售后进度和底部动作。新增售后动作 BFF `/api/bff/orders/refund-actions`，对接 Java `/p/orderRefund/cancel`、`/p/orderRefund/updateRefundAmount`、`/p/orderRefund/cancel_platform_intervention`。
+- 新增 `/refunds/choose-way`、`/refunds/apply`、`/refunds/platform-intervention`、`/refunds/return-logistics`。退款申请 BFF `/api/bff/orders/refund-apply` 按是否存在 `refundId` 分流到 Java `/p/orderRefund/apply` 或 `/p/orderRefund/update_refund`；平台介入 BFF `/api/bff/orders/platform-intervention` 按 `pageType=1/2` 分流 `/p/orderRefund/apply_platform_intervention` 和 `/p/orderRefundIntervention/saveInterventionVoucher`；退货物流先查 `/p/delivery/list`，再按 `isModify` 分流 `/p/orderRefund/submitExpress` 和 `/p/orderRefund/reSubmitExpress`。
+- 本期仍将发票、评价、拼团详情、店铺首页、IM 聊天、自提/虚拟商品专属订单详情作为后续单独迁移内容；售后凭证图片上传当前使用已上传路径输入，待 App/H5 文件上传能力确认后替换为完整上传组件。
+- 验证记录：2026-07-08 已执行 `npm run typecheck` 通过；已执行 `npm test -- --run src/features/mine-secondary/mine-secondary-pages.test.tsx`，16 个测试通过；对订单/售后新增相关文件执行定向 `npx eslint ...` 无 error，仅保留商品图 `<img>` warning。全量 `npm run lint` 仍受既有 `scripts/iconfont/sync-font-class.ts` require 规则、钱包/银行卡等历史 `react-hooks/set-state-in-effect` 问题影响，非本次新增问题。
+
 - H5 注册成功后进入 `/register/certification` 达人认证入口页。
 - 运营二维码固定入口为 `https://hybird.aigcpop.com/register`，不是 `/h5-v/<version>/register`。
 - 认证姓名页 `/register/certification/name` 调用 BFF `/api/bff/certification/apply-url`，由 BFF 调 Java `/p/allinpay/member/getCreateMemberApplyUrl?name=<真实姓名>` 获取 `regInviteLink`。

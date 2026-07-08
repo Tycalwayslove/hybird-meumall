@@ -43,26 +43,29 @@ export function OrderDetailScreen({ orderNumber }: { orderNumber: string }) {
     if (!detail) return;
     if (action.id === "pay") {
       const payInfo = await paymentApi.getOrderPayInfo({
-        dvyType: "1",
+        dvyType: String(detail.dvyType),
         isPurePoints: "0",
         orderNumbers: detail.orderNumber,
-        orderType: "0",
-        ordermold: "0"
+        orderType: String(detail.orderType),
+        ordermold: String(detail.orderMold)
       });
       if (!payInfo.success) {
         setError(payInfo.message || "订单支付信息获取失败。");
         return;
       }
-      window.location.href = createCashierHrefFromSubmitResult({ orderNumbers: detail.orderNumber });
+      if (isExpired(payInfo.data.view.endTime)) {
+        setError("订单已过期，请重新下单。");
+        return;
+      }
+      window.location.assign(createCashierHrefFromSubmitResult({
+        dvyType: String(detail.dvyType),
+        orderNumbers: detail.orderNumber,
+        orderType: String(detail.orderType)
+      }));
       return;
     }
     if (action.id === "logistics") {
-      const deliverySection = document.getElementById("order-delivery");
-      if (!deliverySection) {
-        setError("暂无物流信息。");
-        return;
-      }
-      deliverySection.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.location.assign(buildClientHref(`/orders/logistics/${encodeURIComponent(detail.orderNumber)}`));
       return;
     }
     if (action.id === "contact") {
@@ -92,7 +95,7 @@ export function OrderDetailScreen({ orderNumber }: { orderNumber: string }) {
       setError(result.message || "订单操作失败。");
       return;
     }
-    window.location.href = buildClientHref("/orders");
+    window.location.assign(buildClientHref("/orders"));
   };
 
   return (
@@ -111,6 +114,19 @@ function OrderDetailContent({ detail, onAction }: { detail: OrderDetailView; onA
       </section>
     );
   }
+
+  const startRefund = (refundType: 1 | 2, item?: OrderProductView) => {
+    saveRefundContext({ item, order: detail, refundType });
+    if (detail.status === "pending-shipment") {
+      window.location.assign(buildClientHref(`/refunds/apply?type=1&refundType=${refundType}`));
+      return;
+    }
+    if (detail.orderMold === 1) {
+      window.location.assign(buildClientHref(`/refunds/apply?type=1&refundType=${refundType}&orderMold=1`));
+      return;
+    }
+    window.location.assign(buildClientHref(`/refunds/choose-way?refundType=${refundType}`));
+  };
 
   return (
     <div className={styles.detailStack}>
@@ -137,7 +153,7 @@ function OrderDetailContent({ detail, onAction }: { detail: OrderDetailView; onA
         <h3>{detail.shopName}</h3>
         <div className={styles.orderItems}>
           {detail.items.map((item) => (
-            <DetailProductItem item={item} key={`${detail.orderNumber}-${item.prodId}-${item.skuId}`} />
+            <DetailProductItem item={item} key={`${detail.orderNumber}-${item.prodId}-${item.skuId}`} orderCanRefund={detail.canRefund} onRefund={() => startRefund(2, item)} />
           ))}
         </div>
       </section>
@@ -158,6 +174,11 @@ function OrderDetailContent({ detail, onAction }: { detail: OrderDetailView; onA
         <p>支付时间：{detail.payTime || "-"}</p>
       </section>
       <div className={styles.detailActions}>
+        {detail.canAllRefund && detail.orderType !== 3 && detail.orderMold !== 1 && detail.totalAmount > 0 ? (
+          <button type="button" onClick={() => startRefund(1)}>
+            申请退款
+          </button>
+        ) : null}
         {detail.actions.map((action) => (
           <button className={action.tone === "primary" ? styles.primaryAction : ""} key={action.id} type="button" onClick={() => onAction(action)}>
             {action.label}
@@ -168,7 +189,7 @@ function OrderDetailContent({ detail, onAction }: { detail: OrderDetailView; onA
   );
 }
 
-function DetailProductItem({ item }: { item: OrderProductView }) {
+function DetailProductItem({ item, onRefund, orderCanRefund }: { item: OrderProductView; onRefund: () => void; orderCanRefund: boolean }) {
   return (
     <div className={styles.orderProduct}>
       {item.imageUrl ? <img alt="" className={styles.orderThumbImage} src={item.imageUrl} /> : <ProductImagePlaceholder className={styles.orderThumb} decorative />}
@@ -178,6 +199,15 @@ function DetailProductItem({ item }: { item: OrderProductView }) {
         <p>数量：{item.quantity}件</p>
         <div className={styles.orderPrice}>
           <strong>¥{item.price.toFixed(2)}</strong>
+        </div>
+        <div className={styles.itemActions}>
+          {item.refundSn ? (
+            <a href={buildClientHref(`/refunds/${encodeURIComponent(item.refundSn)}`)}>查看退款</a>
+          ) : orderCanRefund && item.canRefund && item.actualTotal > 0 ? (
+            <button type="button" onClick={onRefund}>
+              申请退款
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -192,4 +222,33 @@ function DetailSkeleton() {
       <section className={styles.detailSection} />
     </div>
   );
+}
+
+const refundContextKey = "meumall_refund_context";
+
+export type RefundSessionContext = {
+  item?: OrderProductView;
+  order: OrderDetailView;
+  refundType: 1 | 2;
+};
+
+export function saveRefundContext(context: RefundSessionContext) {
+  window.sessionStorage.setItem(refundContextKey, JSON.stringify(context));
+}
+
+export function readRefundContext(): RefundSessionContext | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.sessionStorage.getItem(refundContextKey);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as RefundSessionContext;
+  } catch {
+    return null;
+  }
+}
+
+function isExpired(endTime: string) {
+  if (!endTime) return false;
+  const timestamp = new Date(endTime.replace(/-/g, "/")).getTime();
+  return Number.isFinite(timestamp) && timestamp <= Date.now();
 }

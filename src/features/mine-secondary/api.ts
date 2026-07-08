@@ -14,7 +14,10 @@ import type {
   OrderStatus,
   OrdersPageData,
   OrderCardView,
+  DeliveryCompanyView,
+  LogisticsView,
   RefundCardView,
+  RefundContextInput,
   RefundDetailView,
   JavaOrder,
   JavaPage,
@@ -86,6 +89,31 @@ export type ContactMessageInput = {
   userMobile: string;
 };
 
+export type RefundActionInput =
+  | { action: "cancel-refund"; refundSn: string }
+  | { action: "modify-amount"; refundAmount: number | string; refundSn: string }
+  | { action: "cancel-platform"; orderNumber: string; refundId: string; refundSn: string };
+
+export type PlatformInterventionInput = {
+  imgUrls: string;
+  orderNumber: string;
+  pageType: 1 | 2;
+  refundId: string;
+  refundSts?: number | string;
+  voucherDesc: string;
+};
+
+export type ReturnLogisticsInput = {
+  expressId: string | number;
+  expressName: string;
+  expressNo: string;
+  imgs?: string;
+  isModify?: boolean;
+  mobile?: string;
+  refundSn: string;
+  senderRemarks?: string;
+};
+
 export function createOrdersApi(client: AddressHttpClient) {
   return {
     cancelOrder(orderNumber: string) {
@@ -101,6 +129,13 @@ export function createOrdersApi(client: AddressHttpClient) {
     },
     getOrderDetail(orderNumber: string) {
       return client.request<{ modules: { orderDetail: unknown }; view: OrderDetailView }>("/api/bff/orders/detail?" + new URLSearchParams({ orderNumber }).toString());
+    },
+    getOrderLogistics(orderNumber: string, deliveryId?: string) {
+      const query = new URLSearchParams({ orderNumber });
+      if (deliveryId) {
+        query.set("deliveryId", deliveryId);
+      }
+      return client.request<{ modules: { deliveryList: unknown[]; orderDetail: unknown; selectedDelivery?: unknown }; view: LogisticsView }>(`/api/bff/orders/logistics?${query.toString()}`);
     },
     getOrders({ current = 1, keyword, size = 10, status = "all" }: GetOrdersInput = {}) {
       const query = new URLSearchParams({
@@ -127,11 +162,38 @@ export function createOrdersApi(client: AddressHttpClient) {
         method: "PUT"
       });
     },
+    submitPlatformIntervention(input: PlatformInterventionInput) {
+      return client.request<OrderMutationData>("/api/bff/orders/platform-intervention", {
+        body: input,
+        method: "POST"
+      });
+    },
+    submitRefundApplication(input: RefundContextInput) {
+      return client.request<OrderMutationData>("/api/bff/orders/refund-apply", {
+        body: input,
+        method: "POST"
+      });
+    },
+    submitRefundAction(input: RefundActionInput) {
+      return client.request<OrderMutationData>("/api/bff/orders/refund-actions", {
+        body: input,
+        method: "PUT"
+      });
+    },
+    submitReturnLogistics(input: ReturnLogisticsInput) {
+      return client.request<OrderMutationData>("/api/bff/orders/return-logistics", {
+        body: input,
+        method: "POST"
+      });
+    },
     submitContactMessage(input: ContactMessageInput) {
       return client.request<OrderMutationData>("/api/bff/orders/contact-message", {
         body: input,
         method: "POST"
       });
+    },
+    getDeliveryCompanies() {
+      return client.request<{ modules: { raw: unknown[] }; view: { companies: DeliveryCompanyView[] } }>("/api/bff/orders/delivery-companies");
     }
   };
 }
